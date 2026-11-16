@@ -1,3 +1,4 @@
+
 # Code Review Buddy 🤖
 
 **An AI-Powered Code Review and Learning Platform for Programming Students**
@@ -201,3 +202,5 @@ After running the seed script:
 ## 📄 License
 
 MIT License — feel free to use for learning and projects.
+=======
+# codebuddy
