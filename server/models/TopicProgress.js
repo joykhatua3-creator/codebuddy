@@ -43,6 +43,7 @@ const topicProgressSchema = new mongoose.Schema(
 
 // Compound index: one record per user per topic
 topicProgressSchema.index({ user: 1, topic: 1 }, { unique: true });
+topicProgressSchema.index({ user: 1, level: 1 });
 
 // Auto-calculate level before save
 topicProgressSchema.pre('save', function (next) {

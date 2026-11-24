@@ -1,99 +1,110 @@
+import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import ProtectedRoute from './routes/ProtectedRoute';
+import LoadingSpinner from './components/ui/LoadingSpinner';
 
 // Layouts
 import StudentLayout from './layouts/StudentLayout';
 import TeacherLayout from './layouts/TeacherLayout';
 
-// Auth Pages
-import LoginPage from './pages/auth/LoginPage';
-import RegisterPage from './pages/auth/RegisterPage';
+// Auth Pages (Lazy loaded for fast initial app render)
+const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
+const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'));
 
-// Student Pages
-import DashboardPage from './pages/student/DashboardPage';
-import CodeReviewPage from './pages/student/CodeReviewPage';
-import ReviewDetailPage from './pages/student/ReviewDetailPage';
-import ReviewHistoryPage from './pages/student/ReviewHistoryPage';
-import RoadmapPage from './pages/student/RoadmapPage';
-import QuizPage from './pages/student/QuizPage';
-import QuizResultPage from './pages/student/QuizResultPage';
-import ProgressPage from './pages/student/ProgressPage';
-import ProfilePage from './pages/student/ProfilePage';
+// Student Pages (Lazy loaded chunks)
+const DashboardPage = lazy(() => import('./pages/student/DashboardPage'));
+const CodeReviewPage = lazy(() => import('./pages/student/CodeReviewPage'));
+const ReviewDetailPage = lazy(() => import('./pages/student/ReviewDetailPage'));
+const ReviewHistoryPage = lazy(() => import('./pages/student/ReviewHistoryPage'));
+const RoadmapPage = lazy(() => import('./pages/student/RoadmapPage'));
+const QuizPage = lazy(() => import('./pages/student/QuizPage'));
+const QuizResultPage = lazy(() => import('./pages/student/QuizResultPage'));
+const ProgressPage = lazy(() => import('./pages/student/ProgressPage'));
+const ProfilePage = lazy(() => import('./pages/student/ProfilePage'));
 
-// Teacher Pages
-import TeacherDashboardPage from './pages/teacher/TeacherDashboardPage';
-import StudentsPage from './pages/teacher/StudentsPage';
-import StudentProgressPage from './pages/teacher/StudentProgressPage';
+// Teacher Pages (Lazy loaded chunks)
+const TeacherDashboardPage = lazy(() => import('./pages/teacher/TeacherDashboardPage'));
+const StudentsPage = lazy(() => import('./pages/teacher/StudentsPage'));
+const StudentProgressPage = lazy(() => import('./pages/teacher/StudentProgressPage'));
 
-// Public page
-import LandingPage from './pages/LandingPage';
+// Public page (Lazy)
+const LandingPage = lazy(() => import('./pages/LandingPage'));
+
+const PageFallback = () => (
+  <div className="min-h-[50vh] flex flex-col items-center justify-center p-8 space-y-3">
+    <LoadingSpinner size="lg" />
+    <p className="text-sm text-gray-500 font-medium">Loading...</p>
+  </div>
+);
 
 function App() {
   const { isAuthenticated, user } = useAuth();
 
   return (
-    <Routes>
-      {/* Public routes */}
-      <Route path="/" element={<LandingPage />} />
-      <Route
-        path="/login"
-        element={
-          isAuthenticated ? (
-            <Navigate to={user?.role === 'teacher' ? '/teacher' : '/dashboard'} replace />
-          ) : (
-            <LoginPage />
-          )
-        }
-      />
-      <Route
-        path="/register"
-        element={
-          isAuthenticated ? (
-            <Navigate to={user?.role === 'teacher' ? '/teacher' : '/dashboard'} replace />
-          ) : (
-            <RegisterPage />
-          )
-        }
-      />
+    <Suspense fallback={<PageFallback />}>
+      <Routes>
+        {/* Public routes */}
+        <Route path="/" element={<LandingPage />} />
+        <Route
+          path="/login"
+          element={
+            isAuthenticated ? (
+              <Navigate to={user?.role === 'teacher' ? '/teacher' : '/dashboard'} replace />
+            ) : (
+              <LoginPage />
+            )
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            isAuthenticated ? (
+              <Navigate to={user?.role === 'teacher' ? '/teacher' : '/dashboard'} replace />
+            ) : (
+              <RegisterPage />
+            )
+          }
+        />
 
-      {/* Student routes */}
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute requiredRole="student">
-            <StudentLayout />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<DashboardPage />} />
-        <Route path="code-review" element={<CodeReviewPage />} />
-        <Route path="review/:id" element={<ReviewDetailPage />} />
-        <Route path="history" element={<ReviewHistoryPage />} />
-        <Route path="roadmap" element={<RoadmapPage />} />
-        <Route path="quiz" element={<QuizPage />} />
-        <Route path="quiz/result/:id" element={<QuizResultPage />} />
-        <Route path="progress" element={<ProgressPage />} />
-        <Route path="profile" element={<ProfilePage />} />
-      </Route>
+        {/* Student routes */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute requiredRole="student">
+              <StudentLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<DashboardPage />} />
+          <Route path="code-review" element={<CodeReviewPage />} />
+          <Route path="review/:id" element={<ReviewDetailPage />} />
+          <Route path="history" element={<ReviewHistoryPage />} />
+          <Route path="roadmap" element={<RoadmapPage />} />
+          <Route path="quiz" element={<QuizPage />} />
+          <Route path="quiz/result/:id" element={<QuizResultPage />} />
+          <Route path="progress" element={<ProgressPage />} />
+          <Route path="profile" element={<ProfilePage />} />
+        </Route>
 
-      {/* Teacher routes */}
-      <Route
-        path="/teacher"
-        element={
-          <ProtectedRoute requiredRole="teacher">
-            <TeacherLayout />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<TeacherDashboardPage />} />
-        <Route path="students" element={<StudentsPage />} />
-        <Route path="students/:id" element={<StudentProgressPage />} />
-      </Route>
+        {/* Teacher routes */}
+        <Route
+          path="/teacher"
+          element={
+            <ProtectedRoute requiredRole="teacher">
+              <TeacherLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<TeacherDashboardPage />} />
+          <Route path="students" element={<StudentsPage />} />
+          <Route path="students/:id" element={<StudentProgressPage />} />
+        </Route>
 
-      {/* Catch-all */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        {/* Catch-all */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
   );
 }
 

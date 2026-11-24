@@ -132,7 +132,8 @@ const getQuizzes = asyncHandler(async (req, res) => {
   const quizzes = await Quiz.find({ user: req.user._id })
     .select('-questions.correctAnswer')
     .sort('-createdAt')
-    .limit(20);
+    .limit(20)
+    .lean();
 
   res.json({ success: true, data: quizzes });
 });
@@ -143,7 +144,7 @@ const getQuizzes = asyncHandler(async (req, res) => {
  * @access  Private (owner or teacher)
  */
 const getQuizById = asyncHandler(async (req, res) => {
-  const quiz = await Quiz.findById(req.params.id);
+  const quiz = await Quiz.findById(req.params.id).lean();
 
   if (!quiz) {
     return res.status(404).json({ success: false, message: 'Quiz not found' });

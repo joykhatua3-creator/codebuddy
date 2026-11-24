@@ -1,5 +1,7 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 const express = require('express');
+const compression = require('compression');
 const helmet = require('helmet');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
@@ -11,6 +13,15 @@ const { errorHandler, notFound } = require('./middleware/errorHandler');
 connectDB();
 
 const app = express();
+
+// Trust reverse proxy (Render, Cloudflare, Vercel) for accurate client IP detection
+app.set('trust proxy', 1);
+
+// Disable X-Powered-By header for security and footprint reduction
+app.disable('x-powered-by');
+
+// Enable HTTP response compression (gzip / deflate) for faster response delivery
+app.use(compression());
 
 // ─── Security Middleware ──────────────────────────────────────────────────────
 app.use(helmet());
@@ -24,10 +35,10 @@ app.use(
   })
 );
 
-// Global rate limit: 100 requests per 15 minutes (skipped in development mode)
+// Global rate limit: 1000 requests per 15 minutes in production (skipped in development mode)
 const globalRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: process.env.NODE_ENV === 'development' ? 5000 : 100,
+  max: process.env.NODE_ENV === 'development' ? 10000 : 1000,
   skip: () => process.env.NODE_ENV === 'development',
   message: { success: false, message: 'Too many requests. Please try again later.' },
   standardHeaders: true,

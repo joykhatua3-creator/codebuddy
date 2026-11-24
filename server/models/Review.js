@@ -81,5 +81,7 @@ const reviewSchema = new mongoose.Schema(
 
 // Compound index for caching: user + codeHash
 reviewSchema.index({ user: 1, codeHash: 1 });
+reviewSchema.index({ user: 1, createdAt: -1 });
+reviewSchema.index({ user: 1, language: 1, score: -1 });
 
 module.exports = mongoose.model('Review', reviewSchema);

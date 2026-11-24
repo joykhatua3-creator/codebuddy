@@ -192,7 +192,8 @@ const getReviews = asyncHandler(async (req, res) => {
       .select('-code -bugs.solution')
       .sort(sort)
       .skip(skip)
-      .limit(Number(limit)),
+      .limit(Number(limit))
+      .lean(),
     Review.countDocuments(filter),
   ]);
 
@@ -215,7 +216,7 @@ const getReviews = asyncHandler(async (req, res) => {
  * @access  Private (owner or teacher)
  */
 const getReview = asyncHandler(async (req, res) => {
-  const review = await Review.findById(req.params.id);
+  const review = await Review.findById(req.params.id).lean();
 
   if (!review) {
     return res.status(404).json({ success: false, message: 'Review not found' });
