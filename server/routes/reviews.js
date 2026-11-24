@@ -1,7 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const rateLimit = require('express-rate-limit');
-const { submitReview, getReviews, getReview, deleteReview, toggleBookmark } = require('../controllers/reviewController');
+const {
+  submitReview,
+  streamReview,
+  getReviews,
+  getReview,
+  updateReview,
+  deleteReview,
+  toggleBookmark,
+} = require('../controllers/reviewController');
 const { protect, authorize } = require('../middleware/auth');
 const { validate, reviewSubmitSchema } = require('../validators/schemas');
 
@@ -18,8 +26,10 @@ router.use(protect);
 router.use(authorize('student'));
 
 router.post('/', aiRateLimit, validate(reviewSubmitSchema), submitReview);
+router.post('/stream', aiRateLimit, streamReview);
 router.get('/', getReviews);
 router.get('/:id', getReview);
+router.patch('/:id', updateReview);
 router.delete('/:id', deleteReview);
 router.patch('/:id/bookmark', toggleBookmark);
 

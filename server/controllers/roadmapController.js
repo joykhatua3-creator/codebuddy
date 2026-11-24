@@ -98,4 +98,17 @@ const updateStep = asyncHandler(async (req, res) => {
   });
 });
 
-module.exports = { generateRoadmap, getRoadmap, updateStep };
+/**
+ * @route   DELETE /api/roadmap
+ * @desc    Delete/reset student's roadmap
+ * @access  Private (student, owner)
+ */
+const deleteRoadmap = asyncHandler(async (req, res) => {
+  const roadmap = await Roadmap.findOneAndDelete({ user: req.user._id });
+  if (!roadmap) {
+    return res.status(404).json({ success: false, message: 'No roadmap found to delete' });
+  }
+  res.json({ success: true, message: 'Roadmap deleted successfully' });
+});
+
+module.exports = { generateRoadmap, getRoadmap, updateStep, deleteRoadmap };

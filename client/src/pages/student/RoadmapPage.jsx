@@ -1,9 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Map, RefreshCw, CheckCircle, Circle, Loader } from 'lucide-react';
+import { Map, RefreshCw, CheckCircle, Circle, Loader, Trash2 } from 'lucide-react';
 import { roadmapService } from '../../services';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import ErrorMessage from '../../components/ui/ErrorMessage';
 import EmptyState from '../../components/ui/EmptyState';
+import ConfirmModal from '../../components/ui/ConfirmModal';
 import { useToast } from '../../components/ui/Toast';
 
 export default function RoadmapPage() {
@@ -11,6 +12,8 @@ export default function RoadmapPage() {
   const [roadmap, setRoadmap] = useState(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [error, setError] = useState('');
 
   const fetchRoadmap = useCallback(async () => {
@@ -42,6 +45,20 @@ export default function RoadmapPage() {
     }
   };
 
+  const handleReset = async () => {
+    setResetting(true);
+    try {
+      await roadmapService.delete();
+      setRoadmap(null);
+      setDeleteModalOpen(false);
+      toast({ type: 'success', message: 'Roadmap reset successfully' });
+    } catch (err) {
+      toast({ type: 'error', message: err.response?.data?.message || 'Failed to reset roadmap' });
+    } finally {
+      setResetting(false);
+    }
+  };
+
   const handleToggleStep = async (stepId, currentState) => {
     try {
       const res = await roadmapService.updateStep(stepId, { completed: !currentState });
@@ -63,15 +80,30 @@ export default function RoadmapPage() {
 
   return (
     <div className="space-y-5 max-w-3xl mx-auto">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h2 className="text-xl font-bold text-gray-900">Learning Roadmap</h2>
           <p className="text-sm text-gray-500 mt-0.5">Your personalized AI-generated learning plan</p>
         </div>
-        <button onClick={handleGenerate} disabled={generating}
-          className="btn btn-primary gap-2">
-          {generating ? <><LoadingSpinner size="sm" /> Generating...</> : roadmap ? <><RefreshCw size={16} /> Regenerate</> : <><Map size={16} /> Generate Roadmap</>}
-        </button>
+        <div className="flex items-center gap-2">
+          {roadmap && (
+            <button
+              onClick={() => setDeleteModalOpen(true)}
+              className="btn btn-secondary btn-sm gap-1.5 text-red-600 hover:bg-red-50"
+            >
+              <Trash2 size={14} /> Reset Plan
+            </button>
+          )}
+          <button onClick={handleGenerate} disabled={generating} className="btn btn-primary gap-2">
+            {generating ? (
+              <><LoadingSpinner size="sm" /> Generating...</>
+            ) : roadmap ? (
+              <><RefreshCw size={16} /> Regenerate</>
+            ) : (
+              <><Map size={16} /> Generate Roadmap</>
+            )}
+          </button>
+        </div>
       </div>
 
       {!roadmap ? (
@@ -102,38 +134,34 @@ export default function RoadmapPage() {
           </div>
 
           {/* Steps */}
-          <div className="space-y-4">
-            {roadmap.steps.map((step, i) => (
-              <div key={step._id}
-                className={`card p-5 border-l-4 ${step.completed ? 'border-green-400 opacity-80' : 'border-primary-400'}`}>
+          <div className="space-y-3">
+            {roadmap.steps.map((step, idx) => (
+              <div
+                key={step._id || idx}
+                className={`card p-4 transition-all duration-200 border-l-4 ${
+                  step.completed ? 'border-l-green-500 bg-green-50/30' : 'border-l-primary-500'
+                }`}
+              >
                 <div className="flex items-start gap-3">
-                  <button onClick={() => handleToggleStep(step._id, step.completed)}
-                    className="mt-0.5 shrink-0 text-gray-400 hover:text-green-500 transition-colors">
-                    {step.completed
-                      ? <CheckCircle size={22} className="text-green-500" />
-                      : <Circle size={22} />}
+                  <button
+                    onClick={() => handleToggleStep(step._id, step.completed)}
+                    className="mt-0.5 text-gray-400 hover:text-primary-600 transition-colors shrink-0"
+                  >
+                    {step.completed ? (
+                      <CheckCircle className="text-green-500" size={20} />
+                    ) : (
+                      <Circle size={20} />
+                    )}
                   </button>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs bg-primary-100 text-primary-700 font-semibold px-2 py-0.5 rounded">
-                        Step {step.order}
-                      </span>
-                      <h3 className={`font-semibold text-gray-900 ${step.completed ? 'line-through text-gray-500' : ''}`}>
-                        {step.topic}
-                      </h3>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-gray-900 text-sm">{step.title}</span>
+                      <span className="badge badge-blue text-xs">{step.topic}</span>
                     </div>
-                    <p className="text-sm font-medium text-primary-600 mb-2">{step.objective}</p>
-                    <p className="text-sm text-gray-600 mb-3">{step.explanation}</p>
-                    <div className="grid sm:grid-cols-2 gap-3">
-                      <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg">
-                        <p className="text-xs font-semibold text-blue-700 mb-1">📚 Learning Task</p>
-                        <p className="text-xs text-gray-700">{step.learningTask}</p>
-                      </div>
-                      <div className="p-3 bg-green-50 border border-green-100 rounded-lg">
-                        <p className="text-xs font-semibold text-green-700 mb-1">🧪 Practice Assignment</p>
-                        <p className="text-xs text-gray-700">{step.practiceAssignment}</p>
-                      </div>
-                    </div>
+                    <p className="text-xs text-gray-500 mt-1">{step.description}</p>
+                    {step.estimatedHours && (
+                      <p className="text-xs text-gray-400 mt-2">⏱ Est: {step.estimatedHours}h</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -142,13 +170,16 @@ export default function RoadmapPage() {
         </>
       )}
 
-      {generating && (
-        <div className="card p-8 text-center space-y-3">
-          <LoadingSpinner size="lg" className="mx-auto" />
-          <p className="font-medium text-gray-700">AI is generating your personalized roadmap...</p>
-          <p className="text-sm text-gray-500">This may take 10–15 seconds</p>
-        </div>
-      )}
+      {/* Confirm Reset Roadmap Modal */}
+      <ConfirmModal
+        isOpen={deleteModalOpen}
+        danger
+        title="Reset Learning Roadmap?"
+        message="Are you sure you want to clear your current roadmap? You can generate a fresh one anytime based on your latest review progress."
+        confirmLabel={resetting ? 'Resetting...' : 'Yes, Reset Roadmap'}
+        onConfirm={handleReset}
+        onCancel={() => setDeleteModalOpen(false)}
+      />
     </div>
   );
 }

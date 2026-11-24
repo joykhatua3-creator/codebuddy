@@ -3,6 +3,12 @@ const TopicProgress = require('../models/TopicProgress');
 const User = require('../models/User');
 const { reviewCode: aiReviewCode } = require('../services/aiService');
 const { generateCodeHash, asyncHandler } = require('../utils/helpers');
+const {
+  getReviewCache,
+  setReviewCache,
+  deleteReviewCache,
+  checkQuotaGuard,
+} = require('../config/redis');
 
 /**
  * Update TopicProgress for a student based on AI-detected concepts.
@@ -24,37 +30,48 @@ const updateTopicProgress = async (userId, concepts) => {
       { upsert: true, new: true, runValidators: true }
     );
 
-    // Recalculate level
     const tp = await TopicProgress.findOne({ user: userId, topic: concept.name });
-    if (tp) await tp.save(); // triggers pre-save hook to recalc level
+    if (tp) await tp.save();
   }
 };
 
 /**
  * @route   POST /api/reviews
- * @desc    Submit code for AI review
+ * @desc    Submit code for AI review (with Upstash Redis cache & quota guard)
  * @access  Private (student)
  */
 const submitReview = asyncHandler(async (req, res) => {
   const { language, code } = req.validatedData;
   const userId = req.user._id;
 
-  // Generate hash for cache lookup
   const codeHash = generateCodeHash(code, language);
 
-  // Check for cached review (same user + same code)
-  const cached = await Review.findOne({ user: userId, codeHash });
-  if (cached) {
+  // 1. Check Redis cache first (fast sub-millisecond response)
+  const cachedRedis = await getReviewCache(codeHash);
+  if (cachedRedis) {
     return res.json({
       success: true,
-      data: { ...cached.toObject(), fromCache: true },
+      data: { ...cachedRedis, fromCache: true },
     });
   }
 
-  // Call AI for fresh review
+  // 2. Check MongoDB cache
+  const cachedMongo = await Review.findOne({ user: userId, codeHash });
+  if (cachedMongo) {
+    await setReviewCache(codeHash, cachedMongo.toObject(), 86400);
+    return res.json({
+      success: true,
+      data: { ...cachedMongo.toObject(), fromCache: true },
+    });
+  }
+
+  // 3. Enforce Redis Quota Guard
+  await checkQuotaGuard(userId);
+
+  // 4. Call AI (queued via p-queue with concurrency 2)
   const aiResult = await aiReviewCode(code, language);
 
-  // Save review
+  // 5. Save in MongoDB
   const review = await Review.create({
     user: userId,
     language,
@@ -70,6 +87,9 @@ const submitReview = asyncHandler(async (req, res) => {
     fromCache: false,
   });
 
+  // 6. Cache in Redis with 24h TTL
+  await setReviewCache(codeHash, review.toObject(), 86400);
+
   // Update topic progress asynchronously
   if (aiResult.concepts?.length > 0) {
     updateTopicProgress(userId, aiResult.concepts).catch((err) =>
@@ -79,10 +99,74 @@ const submitReview = asyncHandler(async (req, res) => {
 
   // Update user streak
   const user = await User.findById(userId);
-  user.updateStreak();
-  await user.save();
+  if (user) {
+    user.updateStreak();
+    await user.save();
+  }
 
   res.status(201).json({ success: true, data: review });
+});
+
+/**
+ * @route   POST /api/reviews/stream
+ * @desc    Submit code and stream review via Server-Sent Events (SSE)
+ * @access  Private (student)
+ */
+const streamReview = asyncHandler(async (req, res) => {
+  const { language, code } = req.body;
+  if (!language || !code) {
+    return res.status(400).json({ success: false, message: 'Language and code are required' });
+  }
+
+  const userId = req.user._id;
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+
+  const sendEvent = (event, data) => {
+    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+  };
+
+  sendEvent('status', { step: 1, message: 'Checking cache...' });
+  const codeHash = generateCodeHash(code, language);
+  const cached = (await getReviewCache(codeHash)) || (await Review.findOne({ user: userId, codeHash }));
+
+  if (cached) {
+    sendEvent('status', { step: 2, message: 'Review retrieved from cache' });
+    sendEvent('complete', { ...cached, fromCache: true });
+    return res.end();
+  }
+
+  await checkQuotaGuard(userId);
+  sendEvent('status', { step: 2, message: 'Sending code to Gemini AI for structured static analysis...' });
+
+  const aiResult = await aiReviewCode(code, language);
+  sendEvent('status', { step: 3, message: 'Validating response and saving review...' });
+
+  const review = await Review.create({
+    user: userId,
+    language,
+    code,
+    codeHash,
+    score: aiResult.score,
+    summary: aiResult.summary,
+    bugs: aiResult.bugs,
+    codeQuality: aiResult.codeQuality,
+    complexity: aiResult.complexity,
+    security: aiResult.security,
+    concepts: aiResult.concepts,
+    fromCache: false,
+  });
+
+  await setReviewCache(codeHash, review.toObject(), 86400);
+
+  if (aiResult.concepts?.length > 0) {
+    updateTopicProgress(userId, aiResult.concepts).catch(console.error);
+  }
+
+  sendEvent('complete', review);
+  res.end();
 });
 
 /**
@@ -105,7 +189,7 @@ const getReviews = asyncHandler(async (req, res) => {
 
   const [reviews, total] = await Promise.all([
     Review.find(filter)
-      .select('-code -bugs.solution') // don't expose solutions in list view
+      .select('-code -bugs.solution')
       .sort(sort)
       .skip(skip)
       .limit(Number(limit)),
@@ -128,7 +212,7 @@ const getReviews = asyncHandler(async (req, res) => {
 /**
  * @route   GET /api/reviews/:id
  * @desc    Get a single review (full detail including solutions)
- * @access  Private (owner only)
+ * @access  Private (owner or teacher)
  */
 const getReview = asyncHandler(async (req, res) => {
   const review = await Review.findById(req.params.id);
@@ -137,10 +221,38 @@ const getReview = asyncHandler(async (req, res) => {
     return res.status(404).json({ success: false, message: 'Review not found' });
   }
 
-  // Ownership check
-  if (review.user.toString() !== req.user._id.toString()) {
+  if (review.user.toString() !== req.user._id.toString() && req.user.role !== 'teacher') {
     return res.status(403).json({ success: false, message: 'Not authorized to view this review' });
   }
+
+  res.json({ success: true, data: review });
+});
+
+/**
+ * @route   PATCH /api/reviews/:id
+ * @desc    Update review (title, notes)
+ * @access  Private (owner only)
+ */
+const updateReview = asyncHandler(async (req, res) => {
+  const { summary, notes, isBookmarked } = req.body;
+  const review = await Review.findById(req.params.id);
+
+  if (!review) {
+    return res.status(404).json({ success: false, message: 'Review not found' });
+  }
+
+  if (review.user.toString() !== req.user._id.toString()) {
+    return res.status(403).json({ success: false, message: 'Not authorized' });
+  }
+
+  if (summary !== undefined) review.summary = summary;
+  if (notes !== undefined) review.notes = notes;
+  if (isBookmarked !== undefined) review.isBookmarked = isBookmarked;
+
+  await review.save();
+
+  // Invalidate cache
+  await deleteReviewCache(review.codeHash);
 
   res.json({ success: true, data: review });
 });
@@ -161,6 +273,7 @@ const deleteReview = asyncHandler(async (req, res) => {
     return res.status(403).json({ success: false, message: 'Not authorized to delete this review' });
   }
 
+  await deleteReviewCache(review.codeHash);
   await review.deleteOne();
 
   res.json({ success: true, data: { message: 'Review deleted successfully' } });
@@ -188,4 +301,12 @@ const toggleBookmark = asyncHandler(async (req, res) => {
   res.json({ success: true, data: { isBookmarked: review.isBookmarked } });
 });
 
-module.exports = { submitReview, getReviews, getReview, deleteReview, toggleBookmark };
+module.exports = {
+  submitReview,
+  streamReview,
+  getReviews,
+  getReview,
+  updateReview,
+  deleteReview,
+  toggleBookmark,
+};

@@ -1,7 +1,7 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
-import { Code2, Trash2, Send, AlertCircle, CheckCircle } from 'lucide-react';
+import { Code2, Trash2, Send, Radio, Sparkles, CheckCircle2, Clock } from 'lucide-react';
 import { reviewService } from '../../services';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { getMonacoLanguage, getLanguageLabel } from '../../utils/helpers';
@@ -21,7 +21,9 @@ export default function CodeReviewPage() {
   const navigate = useNavigate();
   const [language, setLanguage] = useState('javascript');
   const [code, setCode] = useState(DEFAULT_CODE.javascript);
+  const [useStreaming, setUseStreaming] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [streamProgress, setStreamProgress] = useState(null);
   const [error, setError] = useState('');
 
   const lines = code.split('\n').length;
@@ -38,18 +40,49 @@ export default function CodeReviewPage() {
   const handleClear = () => {
     setCode(DEFAULT_CODE[language]);
     setError('');
+    setStreamProgress(null);
   };
 
   const handleSubmit = async () => {
     if (isEmpty || isOverLimit || loading) return;
     setLoading(true);
     setError('');
+    setStreamProgress('Starting code analysis...');
+
+    if (useStreaming) {
+      try {
+        await reviewService.streamReview(
+          { language, code },
+          {
+            onProgress: (info) => {
+              setStreamProgress(info.message || 'Analyzing code...');
+            },
+            onComplete: (data) => {
+              navigate(`/dashboard/review/${data.reviewId}`);
+            },
+            onError: (err) => {
+              setError(err.message || 'Streaming failed. Trying fallback...');
+              // Fallback to standard HTTP submission
+              fallbackSubmit();
+            },
+          }
+        );
+      } catch (err) {
+        fallbackSubmit();
+      }
+    } else {
+      fallbackSubmit();
+    }
+  };
+
+  const fallbackSubmit = async () => {
     try {
       const res = await reviewService.submit({ language, code });
       navigate(`/dashboard/review/${res.data.data._id}`);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to submit code. Please try again.');
+      setError(err.response?.data?.message || err.message || 'Failed to submit code. Please try again.');
       setLoading(false);
+      setStreamProgress(null);
     }
   };
 
@@ -58,26 +91,44 @@ export default function CodeReviewPage() {
       {/* Header */}
       <div>
         <h2 className="text-xl font-bold text-gray-900">AI Code Review</h2>
-        <p className="text-sm text-gray-500 mt-0.5">Submit your code and get instant AI-powered feedback</p>
+        <p className="text-sm text-gray-500 mt-0.5">Submit your code and get instant, structured AI feedback with guided hints</p>
       </div>
 
-      {/* Language selector */}
-      <div className="card p-4">
-        <label className="label">Programming Language</label>
-        <div className="flex flex-wrap gap-2 mt-1">
-          {LANGUAGES.map((lang) => (
-            <button
-              key={lang}
-              onClick={() => handleLanguageChange(lang)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium border-2 transition-colors ${
-                language === lang
-                  ? 'border-primary-500 bg-primary-50 text-primary-700'
-                  : 'border-gray-200 text-gray-600 hover:border-gray-300 bg-white'
-              }`}
-            >
-              {getLanguageLabel(lang)}
-            </button>
-          ))}
+      {/* Language selector & Stream mode */}
+      <div className="card p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <label className="label">Programming Language</label>
+          <div className="flex flex-wrap gap-2 mt-1">
+            {LANGUAGES.map((lang) => (
+              <button
+                key={lang}
+                onClick={() => handleLanguageChange(lang)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium border-2 transition-colors ${
+                  language === lang
+                    ? 'border-primary-500 bg-primary-50 text-primary-700'
+                    : 'border-gray-200 text-gray-600 hover:border-gray-300 bg-white'
+                }`}
+              >
+                {getLanguageLabel(lang)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* SSE Streaming Toggle */}
+        <div className="flex items-center gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100">
+          <label className="flex items-center gap-2 cursor-pointer select-none text-xs font-semibold text-gray-700">
+            <input
+              type="checkbox"
+              checked={useStreaming}
+              onChange={(e) => setUseStreaming(e.target.checked)}
+              className="rounded text-primary-600 focus:ring-primary-500"
+            />
+            <span className="flex items-center gap-1">
+              <Radio size={14} className={useStreaming ? 'text-primary-600' : 'text-gray-400'} />
+              Live Stream (SSE)
+            </span>
+          </label>
         </div>
       </div>
 
@@ -99,71 +150,77 @@ export default function CodeReviewPage() {
               Lines: {lines}/{MAX_LINES}
             </span>
             <span className={chars > MAX_CHARS ? 'text-red-500 font-semibold' : ''}>
-              Chars: {chars.toLocaleString()}/{MAX_CHARS.toLocaleString()}
+              Chars: {chars}/{MAX_CHARS}
             </span>
           </div>
         </div>
 
-        <Editor
-          height="420px"
-          language={getMonacoLanguage(language)}
-          value={code}
-          onChange={(val) => { setCode(val || ''); setError(''); }}
-          theme="vs-light"
-          options={{
-            fontSize: 14,
-            fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-            minimap: { enabled: false },
-            scrollBeyondLastLine: false,
-            lineNumbers: 'on',
-            wordWrap: 'on',
-            padding: { top: 12 },
-            suggestOnTriggerCharacters: true,
-            tabSize: 2,
-          }}
-        />
+        <div className="h-96">
+          <Editor
+            height="100%"
+            language={getMonacoLanguage(language)}
+            value={code}
+            onChange={(val) => setCode(val || '')}
+            theme="vs-light"
+            options={{
+              fontSize: 13,
+              fontFamily: "'Fira Code', 'Cascadia Code', Consolas, monospace",
+              minimap: { enabled: false },
+              scrollBeyondLastLine: false,
+              lineNumbers: 'on',
+              tabSize: 2,
+              wordWrap: 'on',
+            }}
+          />
+        </div>
+
+        <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-t border-gray-200">
+          <button
+            onClick={handleClear}
+            disabled={loading}
+            className="btn btn-secondary btn-sm gap-1.5 text-gray-600"
+          >
+            <Trash2 size={14} /> Clear Code
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={isEmpty || isOverLimit || loading}
+            className="btn btn-primary gap-2"
+          >
+            {loading ? (
+              <>
+                <LoadingSpinner size="sm" />
+                <span>Reviewing...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles size={16} />
+                <span>Submit for AI Review</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
-      {/* Warnings */}
-      {isOverLimit && (
-        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-          <AlertCircle size={16} className="shrink-0" />
-          {lines > MAX_LINES
-            ? `Code exceeds ${MAX_LINES} lines limit (currently ${lines} lines)`
-            : `Code exceeds ${MAX_CHARS.toLocaleString()} character limit`}
-        </div>
-      )}
-
-      {error && (
-        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-          <AlertCircle size={16} className="shrink-0" />{error}
-        </div>
-      )}
-
-      {/* Actions */}
-      <div className="flex justify-between items-center">
-        <button onClick={handleClear} className="btn btn-secondary gap-2" disabled={loading}>
-          <Trash2 size={16} /> Clear Code
-        </button>
-        <button
-          onClick={handleSubmit}
-          disabled={isEmpty || isOverLimit || loading}
-          className="btn btn-primary btn-lg gap-2"
-        >
-          {loading ? (
-            <><LoadingSpinner size="sm" /> Analyzing with AI...</>
-          ) : (
-            <><Send size={16} /> Submit for Review</>
-          )}
-        </button>
-      </div>
-
-      {/* Loading overlay message */}
+      {/* Streaming / Loading Progress Banner */}
       {loading && (
-        <div className="card p-6 text-center space-y-3">
-          <LoadingSpinner size="lg" className="mx-auto" />
-          <p className="font-medium text-gray-700">AI is reviewing your code...</p>
-          <p className="text-sm text-gray-500">This usually takes 10–20 seconds. Please wait.</p>
+        <div className="card p-4 bg-primary-50 border border-primary-200 flex items-center gap-3 animate-pulse">
+          <LoadingSpinner size="sm" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-primary-900">
+              {streamProgress || 'Gemini AI is analyzing code structure and identifying bugs...'}
+            </p>
+            <p className="text-xs text-primary-700 mt-0.5">
+              Evaluating syntax, time/space complexity, security issues, and pedagogical hints.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Error Banner */}
+      {error && (
+        <div className="card p-4 bg-red-50 border border-red-200 text-red-700 text-sm">
+          {error}
         </div>
       )}
     </div>

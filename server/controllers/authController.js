@@ -1,6 +1,15 @@
 const User = require('../models/User');
 const { generateToken, asyncHandler } = require('../utils/helpers');
 
+const setAuthCookie = (res, token) => {
+  res.cookie('token', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+};
+
 /**
  * @route   POST /api/auth/register
  * @desc    Register a new user (student or teacher)
@@ -9,16 +18,14 @@ const { generateToken, asyncHandler } = require('../utils/helpers');
 const register = asyncHandler(async (req, res) => {
   const { name, email, password, role } = req.validatedData;
 
-  // Check for existing email
   const existing = await User.findOne({ email });
   if (existing) {
     return res.status(400).json({ success: false, message: 'Email already registered' });
   }
 
-  // Create user (password hashed in pre-save hook)
   const user = await User.create({ name, email, password, role });
-
   const token = generateToken(user._id);
+  setAuthCookie(res, token);
 
   res.status(201).json({
     success: true,
@@ -44,7 +51,6 @@ const register = asyncHandler(async (req, res) => {
 const login = asyncHandler(async (req, res) => {
   const { email, password } = req.validatedData;
 
-  // Find user and explicitly include password
   const user = await User.findOne({ email }).select('+password');
   if (!user) {
     return res.status(401).json({ success: false, message: 'Invalid email or password' });
@@ -55,11 +61,11 @@ const login = asyncHandler(async (req, res) => {
     return res.status(401).json({ success: false, message: 'Invalid email or password' });
   }
 
-  // Update streak
   user.updateStreak();
   await user.save();
 
   const token = generateToken(user._id);
+  setAuthCookie(res, token);
 
   res.json({
     success: true,
@@ -75,6 +81,20 @@ const login = asyncHandler(async (req, res) => {
       },
     },
   });
+});
+
+/**
+ * @route   POST /api/auth/logout
+ * @desc    Clear httpOnly auth cookie
+ * @access  Public
+ */
+const logout = asyncHandler(async (req, res) => {
+  res.cookie('token', '', {
+    httpOnly: true,
+    expires: new Date(0),
+    sameSite: 'lax',
+  });
+  res.json({ success: true, message: 'Logged out successfully' });
 });
 
 /**
@@ -99,4 +119,92 @@ const getMe = asyncHandler(async (req, res) => {
   });
 });
 
-module.exports = { register, login, getMe };
+/**
+ * @route   PATCH /api/auth/me
+ * @desc    Update user profile name
+ * @access  Private
+ */
+const updateProfile = asyncHandler(async (req, res) => {
+  const { name } = req.body;
+  if (!name || name.trim().length < 2) {
+    return res.status(400).json({ success: false, message: 'Name must be at least 2 characters' });
+  }
+
+  const user = await User.findById(req.user._id);
+  user.name = name.trim();
+  await user.save();
+
+  res.json({
+    success: true,
+    data: {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      streak: user.streak,
+    },
+  });
+});
+
+/**
+ * @route   PATCH /api/auth/password
+ * @desc    Update password with current password verification
+ * @access  Private
+ */
+const updatePassword = asyncHandler(async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ success: false, message: 'Current and new password are required' });
+  }
+  if (newPassword.length < 6) {
+    return res.status(400).json({ success: false, message: 'New password must be at least 6 characters' });
+  }
+
+  const user = await User.findById(req.user._id).select('+password');
+  const isMatch = await user.comparePassword(currentPassword);
+  if (!isMatch) {
+    return res.status(400).json({ success: false, message: 'Current password is incorrect' });
+  }
+
+  user.password = newPassword;
+  await user.save();
+
+  const token = generateToken(user._id);
+  setAuthCookie(res, token);
+
+  res.json({ success: true, message: 'Password updated successfully' });
+});
+
+/**
+ * @route   DELETE /api/auth/me
+ * @desc    Delete user account and cascade delete associated data
+ * @access  Private
+ */
+const deleteAccount = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  const Review = require('../models/Review');
+  const TopicProgress = require('../models/TopicProgress');
+  const Quiz = require('../models/Quiz');
+  const Roadmap = require('../models/Roadmap');
+
+  await Promise.all([
+    Review.deleteMany({ user: userId }),
+    TopicProgress.deleteMany({ user: userId }),
+    Quiz.deleteMany({ user: userId }),
+    Roadmap.deleteMany({ user: userId }),
+    User.findByIdAndDelete(userId),
+  ]);
+
+  res.cookie('token', '', { httpOnly: true, expires: new Date(0) });
+  res.json({ success: true, message: 'Account and associated learning data deleted successfully' });
+});
+
+module.exports = {
+  register,
+  login,
+  logout,
+  getMe,
+  updateProfile,
+  updatePassword,
+  deleteAccount,
+};

@@ -11,14 +11,12 @@ const { asyncHandler } = require('../utils/helpers');
 const generateQuiz = asyncHandler(async (req, res) => {
   const userId = req.user._id;
 
-  // Find up to 3 weakest topics
   const weakTopics = await TopicProgress.find({ user: userId })
     .sort({ level: 1 })
     .limit(3)
     .select('topic level');
 
   if (weakTopics.length === 0) {
-    // No topics yet — use defaults
     weakTopics.push(
       { topic: 'Variables and Data Types' },
       { topic: 'Functions' },
@@ -27,11 +25,8 @@ const generateQuiz = asyncHandler(async (req, res) => {
   }
 
   const topicNames = weakTopics.map((t) => t.topic);
-
-  // Call AI
   const aiResult = await aiGenerateQuiz(topicNames);
 
-  // Save quiz (not yet completed)
   const quiz = await Quiz.create({
     user: userId,
     topics: topicNames,
@@ -41,7 +36,6 @@ const generateQuiz = asyncHandler(async (req, res) => {
     completed: false,
   });
 
-  // Return questions WITHOUT correctAnswer (hide until submission)
   const safeQuestions = quiz.questions.map((q) => ({
     _id: q._id,
     question: q.question,
@@ -84,7 +78,6 @@ const submitQuiz = asyncHandler(async (req, res) => {
 
   const { answers } = req.validatedData;
 
-  // Calculate score
   let correctCount = 0;
   const gradedAnswers = answers.map((a) => {
     const question = quiz.questions[a.questionIndex];
@@ -107,7 +100,6 @@ const submitQuiz = asyncHandler(async (req, res) => {
   quiz.completedAt = new Date();
   await quiz.save();
 
-  // Return full results with correct answers and explanations
   const results = quiz.questions.map((q, i) => ({
     question: q.question,
     options: q.options,
@@ -138,11 +130,56 @@ const submitQuiz = asyncHandler(async (req, res) => {
  */
 const getQuizzes = asyncHandler(async (req, res) => {
   const quizzes = await Quiz.find({ user: req.user._id })
-    .select('-questions.correctAnswer') // hide correct answers from list
+    .select('-questions.correctAnswer')
     .sort('-createdAt')
     .limit(20);
 
   res.json({ success: true, data: quizzes });
 });
 
-module.exports = { generateQuiz, submitQuiz, getQuizzes };
+/**
+ * @route   GET /api/quizzes/:id
+ * @desc    Get a single quiz by ID
+ * @access  Private (owner or teacher)
+ */
+const getQuizById = asyncHandler(async (req, res) => {
+  const quiz = await Quiz.findById(req.params.id);
+
+  if (!quiz) {
+    return res.status(404).json({ success: false, message: 'Quiz not found' });
+  }
+
+  if (quiz.user.toString() !== req.user._id.toString() && req.user.role !== 'teacher') {
+    return res.status(403).json({ success: false, message: 'Not authorized' });
+  }
+
+  res.json({ success: true, data: quiz });
+});
+
+/**
+ * @route   DELETE /api/quizzes/:id
+ * @desc    Delete a quiz
+ * @access  Private (owner only)
+ */
+const deleteQuiz = asyncHandler(async (req, res) => {
+  const quiz = await Quiz.findById(req.params.id);
+
+  if (!quiz) {
+    return res.status(404).json({ success: false, message: 'Quiz not found' });
+  }
+
+  if (quiz.user.toString() !== req.user._id.toString()) {
+    return res.status(403).json({ success: false, message: 'Not authorized' });
+  }
+
+  await quiz.deleteOne();
+  res.json({ success: true, message: 'Quiz deleted successfully' });
+});
+
+module.exports = {
+  generateQuiz,
+  submitQuiz,
+  getQuizzes,
+  getQuizById,
+  deleteQuiz,
+};

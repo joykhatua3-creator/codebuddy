@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/db');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
@@ -33,7 +34,8 @@ const globalRateLimit = rateLimit({
 });
 app.use(globalRateLimit);
 
-// ─── Body Parsing ─────────────────────────────────────────────────────────────
+// ─── Body & Cookie Parsing ───────────────────────────────────────────────────
+app.use(cookieParser());
 app.use(express.json({ limit: '50kb' }));
 app.use(express.urlencoded({ extended: true, limit: '50kb' }));
 
