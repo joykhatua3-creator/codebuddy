@@ -17,14 +17,18 @@ const generateRoadmap = asyncHandler(async (req, res) => {
     .limit(5)
     .select('topic level');
 
-  if (weakTopics.length === 0) {
-    return res.status(400).json({
-      success: false,
-      message: 'No programming topics found yet. Submit at least one code review first.',
-    });
-  }
+  let topicNames = weakTopics.map((t) => t.topic);
 
-  const topicNames = weakTopics.map((t) => t.topic);
+  // If student hasn't accumulated weak topics yet, default to modern foundational topics
+  if (topicNames.length === 0) {
+    topicNames = [
+      'Variables and Data Types',
+      'Control Flow and Loops',
+      'Functions and Scope',
+      'Arrays and Data Structures',
+      'Asynchronous JavaScript'
+    ];
+  }
   const studentName = req.user.name.split(' ')[0];
 
   // Call AI

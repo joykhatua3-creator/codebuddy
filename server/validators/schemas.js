@@ -118,10 +118,15 @@ const aiRoadmapResponseSchema = z.object({
       z.object({
         order: z.number().int().min(1),
         topic: z.string(),
-        objective: z.string(),
-        explanation: z.string(),
-        learningTask: z.string(),
-        practiceAssignment: z.string(),
+        title: z.string().optional().default(''),
+        level: z.string().optional().default('Intermediate'),
+        estimatedHours: z.coerce.number().optional().default(2),
+        objective: z.string().optional().default('Master this topic'),
+        explanation: z.string().optional().default(''),
+        keyConcepts: z.array(z.string()).optional().default([]),
+        learningTask: z.string().optional().default(''),
+        practiceAssignment: z.string().optional().default(''),
+        starterCode: z.string().optional().default(''),
       })
     )
     .min(1),

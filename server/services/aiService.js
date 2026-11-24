@@ -108,13 +108,18 @@ const roadmapJsonSchema = {
         type: 'OBJECT',
         properties: {
           order: { type: 'INTEGER' },
+          title: { type: 'STRING' },
           topic: { type: 'STRING' },
+          level: { type: 'STRING' },
+          estimatedHours: { type: 'INTEGER' },
           objective: { type: 'STRING' },
           explanation: { type: 'STRING' },
+          keyConcepts: { type: 'ARRAY', items: { type: 'STRING' } },
           learningTask: { type: 'STRING' },
           practiceAssignment: { type: 'STRING' },
+          starterCode: { type: 'STRING' },
         },
-        required: ['order', 'topic', 'objective', 'explanation', 'learningTask', 'practiceAssignment'],
+        required: ['order', 'topic', 'objective'],
       },
     },
   },
@@ -507,105 +512,153 @@ const getCuratedQuizForTopics = (weakTopics = []) => {
 
 const getFallbackQuiz = (weakTopics = []) => getCuratedQuizForTopics(weakTopics);
 
+const MODERN_TOPIC_TEMPLATES = {
+  variables: {
+    title: 'Mastering Variables, Data Types & Immutability',
+    level: 'Beginner',
+    estimatedHours: 2,
+    objective: 'Understand primitive types, reference semantics, and immutable binding patterns.',
+    explanation: 'Variables are foundational memory allocations. Understanding the distinction between primitives (stack-allocated) and reference objects (heap-allocated) is critical for building predictable software and avoiding unintended mutations.',
+    keyConcepts: ['let vs const', 'Primitives vs References', 'Type Coercion', 'Object.freeze & Immutability'],
+    learningTask: 'Review MDN documentation on JavaScript primitive types and practice cloning objects without mutation.',
+    practiceAssignment: 'Write a utility function that safely clones deeply nested data structures without mutating the original source object.',
+    starterCode: 'const userState = { name: "Dev", settings: { theme: "dark", notifications: true } };\n// Task: Implement a deep clone helper\nfunction deepClone(obj) {\n  return JSON.parse(JSON.stringify(obj));\n}'
+  },
+  loops: {
+    title: 'Algorithmic Control Flow, Iterators & Safe Loops',
+    level: 'Beginner',
+    estimatedHours: 3,
+    objective: 'Construct efficient loops, guard against infinite execution, and master modern iterators.',
+    explanation: 'Iteration is the engine of data processing. Using modern iterators and guard clauses prevents CPU lockups and makes algorithmic code clean and maintainable.',
+    keyConcepts: ['for...of & for...in', 'While Loop Safeguards', 'Break & Continue', 'Early Returns'],
+    learningTask: 'Convert traditional C-style index loops into modern for...of iterators and functional predicates.',
+    practiceAssignment: 'Implement an algorithm that finds the longest consecutive sequence of numbers in an array with optimal time complexity.',
+    starterCode: 'function longestSequence(arr) {\n  // Task: Find max length of consecutive numbers\n  let maxLen = 0;\n  for (const num of arr) {\n    // Implement logic here\n  }\n  return maxLen;\n}'
+  },
+  functions: {
+    title: 'Deep Dive into Functions, Closures & Lexical Scope',
+    level: 'Intermediate',
+    estimatedHours: 4,
+    objective: 'Master closure encapsulation, lexical scope, and functional composition patterns.',
+    explanation: 'Closures allow an inner function to retain access to its parent scope even after the parent has returned. This forms the architectural foundation for React Hooks, middleware, and event handlers.',
+    keyConcepts: ['Lexical Scope', 'Closures', 'Arrow Functions & this', 'Higher-Order Functions'],
+    learningTask: 'Build a private state container and a function memoization cache using closures.',
+    practiceAssignment: 'Create a reusable createCounter() factory that encapsulates private state with increment, decrement, and reset actions.',
+    starterCode: 'function createCounter(initial = 0) {\n  let count = initial;\n  return {\n    increment: () => ++count,\n    decrement: () => --count,\n    get: () => count\n  };\n}\nconst counter = createCounter(5);\nconsole.log(counter.increment()); // 6'
+  },
+  arrays: {
+    title: 'Modern Declarative Data Pipelines & Array Methods',
+    level: 'Intermediate',
+    estimatedHours: 3,
+    objective: 'Execute complex data aggregations and pipeline transformations using functional array methods.',
+    explanation: 'Declarative pipelines using map, filter, and reduce eliminate procedural state bugs and create expressive, self-documenting code.',
+    keyConcepts: ['map() & filter()', 'reduce() Aggregations', 'Immutable Mutations', 'flatMap()'],
+    learningTask: 'Practice refactoring multi-level nested loops into clean, chained functional pipelines.',
+    practiceAssignment: 'Transform an array of user e-commerce transactions into a grouped report categorized by product category with spend totals.',
+    starterCode: 'const orders = [\n  { item: "Laptop", category: "Tech", price: 1200 },\n  { item: "Book", category: "Education", price: 25 },\n  { item: "Mouse", category: "Tech", price: 40 }\n];\n// Task: Group total price by category'
+  },
+  async: {
+    title: 'Asynchronous Programming, Promises & Event Loop',
+    level: 'Advanced',
+    estimatedHours: 4,
+    objective: 'Harness non-blocking asynchronous execution, Promise orchestration, and error resilience.',
+    explanation: 'Asynchronous architecture powers real-time applications, API integrations, and background job processing. Mastering the microtask queue ensures high-performance UI responsiveness.',
+    keyConcepts: ['Promises & async/await', 'Promise.allSettled', 'Microtasks vs Macrotasks', 'Exponential Backoff'],
+    learningTask: 'Explore the JavaScript Event Loop and practice error recovery across concurrent API requests.',
+    practiceAssignment: 'Build an async utility with auto-retry and exponential backoff to handle unreliable network requests.',
+    starterCode: 'async function fetchWithRetry(url, maxRetries = 3) {\n  for (let i = 0; i < maxRetries; i++) {\n    try {\n      // Attempt fetch\n      break;\n    } catch (err) {\n      await new Promise(r => setTimeout(r, 1000 * Math.pow(2, i)));\n    }\n  }\n}'
+  }
+};
+
 const getFallbackRoadmap = (weakTopics = [], studentName = 'Student') => {
-  const topics = weakTopics.length > 0 ? weakTopics : ['Variables & Data Types', 'Control Flow & Loops', 'Functions & Scope'];
-  return {
-    steps: topics.map((t, idx) => ({
+  const defaultKeys = ['variables', 'loops', 'functions', 'arrays', 'async'];
+  let matchedKeys = [];
+
+  if (weakTopics && weakTopics.length > 0) {
+    weakTopics.forEach((topic) => {
+      const t = topic.toLowerCase();
+      if (t.includes('var') || t.includes('type')) matchedKeys.push('variables');
+      else if (t.includes('loop') || t.includes('control')) matchedKeys.push('loops');
+      else if (t.includes('func') || t.includes('scope')) matchedKeys.push('functions');
+      else if (t.includes('array') || t.includes('data')) matchedKeys.push('arrays');
+      else if (t.includes('async') || t.includes('promis')) matchedKeys.push('async');
+    });
+  }
+
+  // Deduplicate and ensure at least 3-5 comprehensive milestones
+  matchedKeys = [...new Set(matchedKeys)];
+  defaultKeys.forEach((k) => {
+    if (!matchedKeys.includes(k) && matchedKeys.length < 5) {
+      matchedKeys.push(k);
+    }
+  });
+
+  const steps = matchedKeys.map((key, idx) => {
+    const tmpl = MODERN_TOPIC_TEMPLATES[key] || MODERN_TOPIC_TEMPLATES.functions;
+    const topicLabel = key.charAt(0).toUpperCase() + key.slice(1);
+    return {
       order: idx + 1,
-      topic: t,
-      objective: `Master core fundamentals and practical applications of ${t}`,
-      explanation: `Understanding ${t} is crucial for writing clean, bug-free, and maintainable software.`,
-      learningTask: `Review tutorials and code documentation focusing on ${t} syntax, common gotchas, and best practices.`,
-      practiceAssignment: `Write a small project or mini-program applying ${t} to solve a real-world problem.`
-    }))
-  };
+      title: tmpl.title,
+      topic: topicLabel,
+      level: tmpl.level,
+      estimatedHours: tmpl.estimatedHours,
+      objective: tmpl.objective,
+      explanation: tmpl.explanation,
+      keyConcepts: tmpl.keyConcepts,
+      learningTask: tmpl.learningTask,
+      practiceAssignment: tmpl.practiceAssignment,
+      starterCode: tmpl.starterCode
+    };
+  });
+
+  return { steps };
 };
 
-const generateQuizInternal = async (weakTopics = []) => {
-  const normalizedKey = (weakTopics || [])
-    .map((t) => t.toLowerCase().replace(/[^a-z0-9]/g, ''))
-    .sort()
-    .join('_') || 'default_quiz';
-
-  // 1. Sub-millisecond Cache Check (Upstash Redis or in-memory)
-  const cached = await getQuizCache(normalizedKey);
-  if (cached && Array.isArray(cached.questions) && cached.questions.length >= 5) {
-    return cached;
-  }
-
-  // 2. Ultra-Fast AI Race (Capped at 3.5s)
-  // If Gemini has available quota and responds rapidly, return fresh AI questions.
-  // If Gemini times out (>3.5s) or hits daily quota limit, instantly fall back (<5ms).
-  try {
-    const topicList = weakTopics.length > 0 ? weakTopics.join(', ') : 'JavaScript Core Fundamentals';
-    const prompt = `You are a programming quiz generator. Generate exactly 5 multiple-choice questions on these weak topics: ${topicList}. Return ONLY JSON according to the schema.`;
-
-    const model = getQuizModel();
-    const aiPromise = (async () => {
-      const result = await model.generateContent(prompt);
-      const text = result.response.text();
-      return parseAndValidate(text, aiQuizResponseSchema);
-    })();
-
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('AI generation timed out (>3.5s)')), 3500)
-    );
-
-    const validated = await Promise.race([aiPromise, timeoutPromise]);
-    await setQuizCache(normalizedKey, validated, 43200);
-    return validated;
-  } catch (error) {
-    console.warn('[AI Quiz Generation] Fast fallback activated (speed: <5ms):', error.message);
-    const curated = getCuratedQuizForTopics(weakTopics);
-    await setQuizCache(normalizedKey, curated, 43200);
-    return curated;
-  }
-};
-
-const generateRoadmapInternal = async (weakTopics, studentName = 'Student') => {
-  const topicList = weakTopics.join(', ');
+const generateRoadmapInternal = async (weakTopics = [], studentName = 'Student') => {
+  const topicList = weakTopics.length > 0 ? weakTopics.join(', ') : 'JavaScript Core Fundamentals';
 
   const prompt = `
-You are a personalized learning roadmap generator for a programming student named ${studentName}.
-The student has shown weakness in these programming topics (most weak first): ${topicList}.
+You are a modern programming curriculum architect creating a personalized learning roadmap for ${studentName}.
+Focus on these programming topics (most critical first): ${topicList}.
 
-Generate a structured, ordered learning roadmap to help them improve. Each step should build on the previous one.
-
-Return ONLY this JSON structure:
+Generate an ultra-modern, outcome-oriented learning roadmap.
+Return ONLY valid JSON matching this structure:
 {
   "steps": [
     {
-      "order": <1, 2, 3, ...>,
-      "topic": "<topic name>",
-      "objective": "<what the student will be able to do after completing this step>",
-      "explanation": "<clear, beginner-friendly explanation of the topic>",
-      "learningTask": "<specific task to learn this topic, e.g. read a tutorial, watch a video, etc.>",
-      "practiceAssignment": "<a small coding assignment to practice this topic>"
+      "order": 1,
+      "title": "<Milestone title e.g. Mastering Closures & Lexical Scope>",
+      "topic": "<Topic category>",
+      "level": "<Beginner | Intermediate | Advanced>",
+      "estimatedHours": <number of hours, e.g. 3>,
+      "objective": "<Actionable outcome>",
+      "explanation": "<Concise conceptual guide explaining why this matters>",
+      "keyConcepts": ["<Tag1>", "<Tag2>", "<Tag3>"],
+      "learningTask": "<Step-by-step learning checklist>",
+      "practiceAssignment": "<Real-world coding challenge>",
+      "starterCode": "<Boilerplate starter code snippet to test in editor>"
     }
   ]
 }
-
-Include only the provided weak topics. Order them logically for learning progression.
 `;
 
-  const model = getRoadmapModel();
-  let attempt = 0;
-
-  while (attempt < 2) {
-    try {
+  try {
+    const model = getRoadmapModel();
+    const aiPromise = (async () => {
       const result = await model.generateContent(prompt);
       const text = result.response.text();
-      const validated = parseAndValidate(text, aiRoadmapResponseSchema);
-      return validated;
-    } catch (error) {
-      attempt++;
-      console.warn(`[AI Roadmap Generation] Attempt ${attempt} failed:`, error.message);
-      if (attempt >= 2) {
-        console.info('[AI Roadmap Generation] Using resilient curated fallback roadmap.');
-        return getFallbackRoadmap(weakTopics, studentName);
-      }
-      await new Promise((r) => setTimeout(r, 1000));
-    }
+      return parseAndValidate(text, aiRoadmapResponseSchema);
+    })();
+
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('AI roadmap generation timed out (>4s)')), 4000)
+    );
+
+    const validated = await Promise.race([aiPromise, timeoutPromise]);
+    return validated;
+  } catch (error) {
+    console.warn('[AI Roadmap Generation] Using fast modern curated roadmap fallback:', error.message);
+    return getFallbackRoadmap(weakTopics, studentName);
   }
 };
 
