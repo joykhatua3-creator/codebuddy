@@ -39,7 +39,12 @@ export default function LoginPage() {
       const redirect = from || (user.role === 'teacher' ? '/teacher' : '/dashboard');
       navigate(redirect, { replace: true });
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Please try again.');
+      const msg =
+        err.response?.data?.message ||
+        (err.message === 'Network Error' || !err.response
+          ? 'Cannot connect to server. Please ensure backend is running (npm run dev).'
+          : 'Login failed. Please check your credentials and try again.');
+      setError(msg);
     } finally {
       setLoading(false);
     }

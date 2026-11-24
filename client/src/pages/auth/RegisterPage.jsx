@@ -40,7 +40,12 @@ export default function RegisterPage() {
       const user = await register(payload);
       navigate(user.role === 'teacher' ? '/teacher' : '/dashboard', { replace: true });
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+      const msg =
+        err.response?.data?.message ||
+        (err.message === 'Network Error' || !err.response
+          ? 'Cannot connect to server. Please ensure backend is running (npm run dev).'
+          : 'Registration failed. Please try again.');
+      setError(msg);
     } finally {
       setLoading(false);
     }
