@@ -24,10 +24,17 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid — clear storage and redirect
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      window.location.href = '/login';
+
+      // Do NOT redirect or reload if already on auth pages or checking auth status
+      const currentPath = window.location.pathname;
+      const isAuthPage = currentPath === '/login' || currentPath === '/register' || currentPath === '/';
+      const isAuthRequest = error.config?.url?.includes('/auth/me') || error.config?.url?.includes('/auth/login') || error.config?.url?.includes('/auth/register');
+
+      if (!isAuthPage && !isAuthRequest) {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

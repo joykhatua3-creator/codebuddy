@@ -17,12 +17,18 @@ export const AuthProvider = ({ children }) => {
   // Verify token / session on mount
   useEffect(() => {
     const verifyToken = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
       try {
         const { data } = await authService.getMe();
         setUser(data.data);
         localStorage.setItem('user', JSON.stringify(data.data));
       } catch {
-        // Clear if invalid
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         setUser(null);
