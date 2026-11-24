@@ -54,6 +54,31 @@ const deleteReviewCache = async (codeHash) => {
   }
 };
 
+const getQuizCache = async (key) => {
+  const cacheKey = `quiz:${key}`;
+  try {
+    if (redis) {
+      const data = await redis.get(cacheKey);
+      if (data) return typeof data === 'string' ? JSON.parse(data) : data;
+    }
+    return memoryCache.get(cacheKey) || null;
+  } catch (err) {
+    return memoryCache.get(cacheKey) || null;
+  }
+};
+
+const setQuizCache = async (key, data, ttlSeconds = 43200) => {
+  const cacheKey = `quiz:${key}`;
+  try {
+    if (redis) {
+      await redis.set(cacheKey, JSON.stringify(data), { ex: ttlSeconds });
+    }
+    memoryCache.set(cacheKey, data);
+  } catch (err) {
+    memoryCache.set(cacheKey, data);
+  }
+};
+
 const checkQuotaGuard = async (userId) => {
   const today = new Date().toISOString().split('T')[0];
   const userKey = `quota:user:${userId}:${today}`;
@@ -94,5 +119,7 @@ module.exports = {
   getReviewCache,
   setReviewCache,
   deleteReviewCache,
+  getQuizCache,
+  setQuizCache,
   checkQuotaGuard,
 };
