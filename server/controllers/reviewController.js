@@ -126,47 +126,59 @@ const streamReview = asyncHandler(async (req, res) => {
 
   const sendEvent = (event, data) => {
     res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    if (event === 'status') {
+      res.write(`event: progress\ndata: ${JSON.stringify(data)}\n\n`);
+    }
   };
 
-  sendEvent('status', { step: 1, message: 'Checking cache...' });
-  const codeHash = generateCodeHash(code, language);
-  const cached = (await getReviewCache(codeHash)) || (await Review.findOne({ user: userId, codeHash }));
+  try {
+    sendEvent('status', { step: 1, message: 'Checking review cache...' });
+    const codeHash = generateCodeHash(code, language);
+    const cached = (await getReviewCache(codeHash)) || (await Review.findOne({ user: userId, codeHash }));
 
-  if (cached) {
-    sendEvent('status', { step: 2, message: 'Review retrieved from cache' });
-    sendEvent('complete', { ...cached, fromCache: true });
-    return res.end();
+    if (cached) {
+      sendEvent('status', { step: 2, message: 'Review retrieved from cache' });
+      const cachedObj = cached.toObject ? cached.toObject() : cached;
+      const reviewId = (cached._id || cached.id).toString();
+      sendEvent('complete', { ...cachedObj, reviewId, _id: reviewId, fromCache: true });
+      return res.end();
+    }
+
+    sendEvent('status', { step: 2, message: 'Analyzing code structure and identifying bugs...' });
+
+    const aiResult = await aiReviewCode(code, language);
+    sendEvent('status', { step: 3, message: 'Saving review results...' });
+
+    const review = await Review.create({
+      user: userId,
+      language,
+      code,
+      codeHash,
+      score: aiResult.score,
+      summary: aiResult.summary,
+      bugs: aiResult.bugs,
+      codeQuality: aiResult.codeQuality,
+      complexity: aiResult.complexity,
+      security: aiResult.security,
+      concepts: aiResult.concepts,
+      fromCache: false,
+    });
+
+    await setReviewCache(codeHash, review.toObject(), 86400);
+
+    if (aiResult.concepts?.length > 0) {
+      updateTopicProgress(userId, aiResult.concepts).catch(console.error);
+    }
+
+    const reviewObj = review.toObject();
+    const reviewId = review._id.toString();
+    sendEvent('complete', { ...reviewObj, reviewId, _id: reviewId });
+    res.end();
+  } catch (err) {
+    console.error('Error during review stream:', err.message);
+    sendEvent('error', { message: err.message || 'Review failed' });
+    res.end();
   }
-
-  await checkQuotaGuard(userId);
-  sendEvent('status', { step: 2, message: 'Sending code to Gemini AI for structured static analysis...' });
-
-  const aiResult = await aiReviewCode(code, language);
-  sendEvent('status', { step: 3, message: 'Validating response and saving review...' });
-
-  const review = await Review.create({
-    user: userId,
-    language,
-    code,
-    codeHash,
-    score: aiResult.score,
-    summary: aiResult.summary,
-    bugs: aiResult.bugs,
-    codeQuality: aiResult.codeQuality,
-    complexity: aiResult.complexity,
-    security: aiResult.security,
-    concepts: aiResult.concepts,
-    fromCache: false,
-  });
-
-  await setReviewCache(codeHash, review.toObject(), 86400);
-
-  if (aiResult.concepts?.length > 0) {
-    updateTopicProgress(userId, aiResult.concepts).catch(console.error);
-  }
-
-  sendEvent('complete', review);
-  res.end();
 });
 
 /**

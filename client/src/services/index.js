@@ -71,7 +71,7 @@ export const reviewService = {
           if (dataStr) {
             try {
               const parsed = JSON.parse(dataStr);
-              if (eventType === 'progress' && onProgress) {
+              if ((eventType === 'progress' || eventType === 'status') && onProgress) {
                 onProgress(parsed);
               } else if (eventType === 'complete' && onComplete) {
                 onComplete(parsed);

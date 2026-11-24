@@ -63,10 +63,15 @@ export default function CodeReviewPage() {
               setStreamProgress(info.message || 'Analyzing code...');
             },
             onComplete: (data) => {
-              navigate(`/dashboard/review/${data.reviewId}`);
+              const reviewId = data.reviewId || data._id || data.data?._id;
+              if (reviewId) {
+                navigate(`/dashboard/review/${reviewId}`);
+              } else {
+                fallbackSubmit();
+              }
             },
             onError: (err) => {
-              setError(err.message || 'Streaming failed. Trying fallback...');
+              console.warn('Streaming error, falling back to standard submit:', err.message);
               fallbackSubmit();
             },
           }
@@ -82,7 +87,13 @@ export default function CodeReviewPage() {
   const fallbackSubmit = async () => {
     try {
       const res = await reviewService.submit({ language, code });
-      navigate(`/dashboard/review/${res.data.data._id}`);
+      const reviewId = res.data?.data?._id || res.data?._id;
+      if (reviewId) {
+        navigate(`/dashboard/review/${reviewId}`);
+      } else {
+        setError('Review generated but could not open detail. Please check Review History.');
+        setLoading(false);
+      }
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Failed to submit code. Please try again.');
       setLoading(false);
