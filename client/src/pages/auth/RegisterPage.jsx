@@ -40,10 +40,13 @@ export default function RegisterPage() {
       const user = await register(payload);
       navigate(user.role === 'teacher' ? '/teacher' : '/dashboard', { replace: true });
     } catch (err) {
+      const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
       const msg =
         err.response?.data?.message ||
         (err.message === 'Network Error' || !err.response
-          ? 'Cannot connect to server. Please ensure backend is running (npm run dev).'
+          ? isLocal
+            ? 'Cannot connect to local server. Please ensure backend is running (npm run dev) or set your Render URL in client/.env.'
+            : 'Cannot connect to backend server. Render server might be waking up from sleep (~50s). Please wait a moment and try again.'
           : 'Registration failed. Please try again.');
       setError(msg);
     } finally {
