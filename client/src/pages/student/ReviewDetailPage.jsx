@@ -1,9 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import Editor from '@monaco-editor/react';
 import {
   ArrowLeft, Bug, Shield, Zap, BookOpen, Eye, EyeOff,
   Copy, CheckCheck, ChevronDown, ChevronUp, AlertTriangle,
-  Edit2, Check, X
+  Edit2, Check, X, Code2
 } from 'lucide-react';
 import { reviewService } from '../../services';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
@@ -11,11 +12,12 @@ import ErrorMessage from '../../components/ui/ErrorMessage';
 import ScoreBadge from '../../components/ui/ScoreBadge';
 import {
   formatDate, getLanguageLabel, getLanguageBadgeClass,
-  getConceptLevelClass, getSeverityClass, copyToClipboard
+  getConceptLevelClass, getSeverityClass, copyToClipboard,
+  getMonacoLanguage
 } from '../../utils/helpers';
 import { useToast } from '../../components/ui/Toast';
 
-const BugCard = ({ bug, index }) => {
+const BugCard = ({ bug, index, language = 'javascript' }) => {
   const [showSolution, setShowSolution] = useState(false);
   const [copied, setCopied] = useState(false);
   const toast = useToast();
@@ -62,14 +64,32 @@ const BugCard = ({ bug, index }) => {
             {showSolution ? <><EyeOff size={14} /> Hide Solution</> : <><Eye size={14} /> Reveal Solution</>}
           </button>
           {showSolution && (
-            <div className="mt-3 bg-gray-900 rounded-lg overflow-hidden">
-              <div className="flex items-center justify-between px-3 py-2 bg-gray-800">
-                <span className="text-xs text-gray-400 font-mono">Suggested Fix</span>
+            <div className="mt-3 border border-gray-800 rounded-lg overflow-hidden bg-gray-900 shadow-sm">
+              <div className="flex items-center justify-between px-3 py-1.5 bg-gray-800 border-b border-gray-700">
+                <span className="text-xs text-green-400 font-mono font-medium">Suggested Fix (Monaco Editor)</span>
                 <button onClick={handleCopy} className="btn btn-ghost btn-sm text-gray-400 hover:text-white p-1">
                   {copied ? <CheckCheck size={14} className="text-green-400" /> : <Copy size={14} />}
                 </button>
               </div>
-              <pre className="p-4 text-sm text-green-300 font-mono overflow-x-auto whitespace-pre-wrap">{bug.solution}</pre>
+              <div className="h-44">
+                <Editor
+                  height="100%"
+                  language={getMonacoLanguage(language)}
+                  value={bug.solution}
+                  theme="vs-dark"
+                  options={{
+                    readOnly: true,
+                    fontSize: 12,
+                    fontFamily: "'Fira Code', 'Cascadia Code', Consolas, monospace",
+                    minimap: { enabled: false },
+                    lineNumbers: 'on',
+                    scrollBeyondLastLine: false,
+                    automaticLayout: true,
+                    wordWrap: 'on',
+                    padding: { top: 8, bottom: 8 },
+                  }}
+                />
+              </div>
             </div>
           )}
         </div>
@@ -219,6 +239,45 @@ export default function ReviewDetailPage() {
         </div>
       </div>
 
+      {/* Submitted Code Viewer in Monaco Editor */}
+      {review.code && (
+        <div className="card overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-2.5 bg-gray-900 border-b border-gray-800 text-gray-300">
+            <div className="flex items-center gap-2">
+              <Code2 size={16} className="text-primary-400" />
+              <span className="text-xs font-mono font-medium text-white">Submitted Code</span>
+              <span className="text-xs text-gray-400 font-mono">({getLanguageLabel(review.language)})</span>
+            </div>
+            <button
+              onClick={() => copyToClipboard(review.code).then(() => toast({ type: 'success', message: 'Code copied' }))}
+              className="btn btn-ghost btn-sm text-gray-400 hover:text-white gap-1 text-xs"
+            >
+              <Copy size={13} /> Copy Code
+            </button>
+          </div>
+          <div className="h-64">
+            <Editor
+              height="100%"
+              language={getMonacoLanguage(review.language)}
+              value={review.code}
+              theme="vs-dark"
+              options={{
+                readOnly: true,
+                fontSize: 13,
+                fontFamily: "'Fira Code', 'Cascadia Code', Consolas, monospace",
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                lineNumbers: 'on',
+                wordWrap: 'on',
+                automaticLayout: true,
+                domReadOnly: true,
+                padding: { top: 10, bottom: 10 },
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Bugs & Guided Hints */}
       <div className="space-y-3">
         <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
@@ -231,7 +290,7 @@ export default function ReviewDetailPage() {
             🎉 No bugs found! Excellent work.
           </div>
         ) : (
-          review.bugs?.map((bug, i) => <BugCard key={i} bug={bug} index={i} />)
+          review.bugs?.map((bug, i) => <BugCard key={i} bug={bug} index={i} language={review.language} />)
         )}
       </div>
 
