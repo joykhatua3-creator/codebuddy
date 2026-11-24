@@ -24,10 +24,11 @@ app.use(
   })
 );
 
-// Global rate limit: 100 requests per 15 minutes
+// Global rate limit: 100 requests per 15 minutes (skipped in development mode)
 const globalRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: process.env.NODE_ENV === 'development' ? 5000 : 100,
+  skip: () => process.env.NODE_ENV === 'development',
   message: { success: false, message: 'Too many requests. Please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
