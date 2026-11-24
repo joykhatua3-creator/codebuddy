@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useRef, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import { Code2, Trash2, Send, Radio, Sparkles, CheckCircle2, Clock, Moon, Sun, Maximize2, Minimize2, Globe } from 'lucide-react';
 import { reviewService } from '../../services';
@@ -45,21 +45,25 @@ const DEFAULT_CODE = {
 
 export default function CodeReviewPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isDark } = useTheme();
   const [editorTheme, setEditorTheme] = useState(isDark ? 'vs-dark' : 'vs-dark'); // VS Code Dark default
   const [fontSize, setFontSize] = useState(14);
-  const [language, setLanguage] = useState('javascript');
-  const [code, setCode] = useState(DEFAULT_CODE.javascript);
+  const [language, setLanguage] = useState(() => location.state?.language || 'javascript');
+  const [code, setCode] = useState(
+    () => location.state?.starterCode || DEFAULT_CODE[location.state?.language || 'javascript']
+  );
   const [useStreaming, setUseStreaming] = useState(true);
   const [loading, setLoading] = useState(false);
   const [streamProgress, setStreamProgress] = useState(null);
   const [error, setError] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
+  const submitRef = useRef(null);
 
   const lines = code.split('\n').length;
   const chars = code.length;
   const isOverLimit = lines > MAX_LINES || chars > MAX_CHARS;
-  const isEmpty = !code.trim();
+  const isEmpty = code.trim().length < 5;
 
   const handleLanguageChange = (lang) => {
     setLanguage(lang);
@@ -126,9 +130,13 @@ export default function CodeReviewPage() {
     }
   };
 
+  useEffect(() => {
+    submitRef.current = handleSubmit;
+  });
+
   const handleEditorDidMount = (editor, monaco) => {
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
-      handleSubmit();
+      submitRef.current?.();
     });
   };
 

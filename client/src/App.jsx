@@ -1,6 +1,7 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
+import { warmUpBackend } from './services';
 import ProtectedRoute from './routes/ProtectedRoute';
 import LoadingSpinner from './components/ui/LoadingSpinner';
 
@@ -40,6 +41,10 @@ const PageFallback = () => (
 
 function App() {
   const { isAuthenticated, user } = useAuth();
+
+  useEffect(() => {
+    warmUpBackend();
+  }, []);
 
   return (
     <Suspense fallback={<PageFallback />}>

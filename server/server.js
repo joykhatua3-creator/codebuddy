@@ -59,11 +59,11 @@ app.use(
   })
 );
 
-// Global rate limit: 1000 requests per 15 minutes in production (skipped in development mode)
+// Global rate limit: 1000 requests per 15 minutes in production (skipped in development or health check)
 const globalRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: process.env.NODE_ENV === 'development' ? 10000 : 1000,
-  skip: () => process.env.NODE_ENV === 'development',
+  skip: (req) => process.env.NODE_ENV === 'development' || req.path === '/api/health',
   message: { success: false, message: 'Too many requests. Please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -72,15 +72,18 @@ app.use(globalRateLimit);
 
 // ─── Body & Cookie Parsing ───────────────────────────────────────────────────
 app.use(cookieParser());
-app.use(express.json({ limit: '50kb' }));
-app.use(express.urlencoded({ extended: true, limit: '50kb' }));
+app.use(express.json({ limit: '100kb' }));
+app.use(express.urlencoded({ extended: true, limit: '100kb' }));
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
+  const mongoose = require('mongoose');
   res.json({
     success: true,
     data: {
       status: 'running',
+      dbConnected: mongoose.connection.readyState === 1,
+      uptime: Math.round(process.uptime()),
       timestamp: new Date().toISOString(),
       env: process.env.NODE_ENV,
     },

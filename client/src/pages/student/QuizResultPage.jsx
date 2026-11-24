@@ -1,6 +1,8 @@
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { CheckCircle, XCircle, Trophy, RotateCcw, LayoutDashboard, ChevronDown, ChevronUp } from 'lucide-react';
-import { useState } from 'react';
+import { CheckCircle, XCircle, RotateCcw, LayoutDashboard, ChevronDown, ChevronUp } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { quizService } from '../../services';
+import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { getScoreColor, getScoreLabel } from '../../utils/helpers';
 
 const OPTIONS = ['A', 'B', 'C', 'D'];
@@ -58,9 +60,34 @@ const QuestionResult = ({ q, index }) => {
 };
 
 export default function QuizResultPage() {
+  const { id } = useParams();
   const { state } = useLocation();
   const navigate = useNavigate();
-  const result = state?.result;
+  const [result, setResult] = useState(state?.result || null);
+  const [loading, setLoading] = useState(!state?.result && !!id);
+
+  useEffect(() => {
+    if (!result && id) {
+      quizService
+        .getById(id)
+        .then((res) => {
+          const data = res.data?.data;
+          if (data && data.completed) {
+            setResult(data);
+          }
+        })
+        .catch(() => {})
+        .finally(() => setLoading(false));
+    }
+  }, [id, result]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
 
   if (!result) {
     return (

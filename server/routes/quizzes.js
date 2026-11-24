@@ -21,12 +21,11 @@ const aiRateLimit = rateLimit({
 });
 
 router.use(protect);
-router.use(authorize('student'));
 
-router.post('/generate', aiRateLimit, generateQuiz);
-router.get('/', getQuizzes);
-router.get('/:id', getQuizById);
-router.post('/:id/submit', validate(quizSubmitSchema), submitQuiz);
-router.delete('/:id', deleteQuiz);
+router.post('/generate', authorize('student'), aiRateLimit, generateQuiz);
+router.get('/', authorize('student'), getQuizzes);
+router.get('/:id', authorize('student', 'teacher'), getQuizById);
+router.post('/:id/submit', authorize('student'), validate(quizSubmitSchema), submitQuiz);
+router.delete('/:id', authorize('student'), deleteQuiz);
 
 module.exports = router;

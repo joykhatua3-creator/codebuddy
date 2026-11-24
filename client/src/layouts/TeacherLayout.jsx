@@ -75,11 +75,14 @@ export default function TeacherLayout() {
               <ChevronDown size={14} className="text-gray-400" />
             </button>
             {userMenuOpen && (
-              <div className="absolute right-0 top-full mt-1 w-44 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50">
-                <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
-                  <LogOut size={14} /> Logout
-                </button>
-              </div>
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
+                <div className="absolute right-0 top-full mt-1 w-44 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50">
+                  <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
+                    <LogOut size={14} /> Logout
+                  </button>
+                </div>
+              </>
             )}
           </div>
         </header>

@@ -203,7 +203,7 @@ const getStaticCodeReview = (code, language) => {
         solution: line.replace(/\bvar\b/g, 'let')
       });
     }
-    if ((line.includes('while (true)') || line.includes('while(true)')) && !code.includes('break')) {
+    if ((line.includes('while (true)') || line.includes('while(true)')) && !code.includes('break') && !code.includes('return')) {
       bugs.push({
         title: 'Potential infinite loop without break',
         lineNumber: lineNum,
@@ -213,23 +213,69 @@ const getStaticCodeReview = (code, language) => {
         solution: '// Add a counter and exit condition:\nlet count = 0;\nwhile (count < 10) {\n  count++;\n}'
       });
     }
+    if (language === 'python' && /^\s*except\s*:/.test(line)) {
+      bugs.push({
+        title: 'Bare except clause catches all exceptions',
+        lineNumber: lineNum,
+        description: 'Using bare `except:` catches KeyboardInterrupt and SystemExit, hiding real bugs.',
+        whyItHappens: 'No exception class is specified after except.',
+        hint: 'Catch a specific exception like `except Exception as e:` so errors are properly handled.',
+        solution: line.replace(/except\s*:/, 'except Exception as e:')
+      });
+    }
+    if (language === 'python' && /def\s+\w+\([^)]*=\s*(\[\]|\{\})/.test(line)) {
+      bugs.push({
+        title: 'Mutable default argument in function',
+        lineNumber: lineNum,
+        description: 'Default list/dict arguments in Python are shared across all function calls.',
+        whyItHappens: 'Python evaluates default arguments once at function definition time, not on every call.',
+        hint: 'Use `None` as the default value and initialize inside the function.',
+        solution: line.replace(/=\s*(\[\]|\{\})/, '=None')
+      });
+    }
+    if ((language === 'c' || language === 'cpp') && /\b(gets|strcpy|sprintf)\s*\(/.test(line)) {
+      bugs.push({
+        title: 'Unsafe buffer operation detected',
+        lineNumber: lineNum,
+        description: 'Unbounded string/input functions like gets() or strcpy() can cause buffer overflows.',
+        whyItHappens: 'These functions do not check destination buffer boundaries.',
+        hint: 'Use bounded alternatives like fgets(), strncpy(), or snprintf().',
+        solution: line.replace(/\bgets\(/, 'fgets(').replace(/\bstrcpy\(/, 'strncpy(')
+      });
+    }
+    if (language === 'sql' && /SELECT\s+\*/i.test(line)) {
+      bugs.push({
+        title: 'Avoid SELECT * in production queries',
+        lineNumber: lineNum,
+        description: 'Selecting all columns increases I/O and memory usage and can break consumers if schema changes.',
+        whyItHappens: 'Wildcard column selection fetches unnecessary columns.',
+        hint: 'Explicitly list only the required column names.',
+        solution: line.replace(/SELECT\s+\*/i, 'SELECT id, name')
+      });
+    }
   });
 
   // Detect concepts
-  if (code.includes('function') || code.includes('def ') || code.includes('=>')) {
+  if (code.includes('function') || code.includes('def ') || code.includes('=>') || code.includes('fn ')) {
     concepts.push({ name: 'Functions', level: 'strong' });
   }
-  if (code.includes('for') || code.includes('while')) {
+  if (code.includes('for') || code.includes('while') || code.includes('loop')) {
     concepts.push({ name: 'Loops', level: 'strong' });
   }
   if (code.includes('let ') || code.includes('const ') || code.includes('var ') || code.includes('=')) {
     concepts.push({ name: 'Variables and Data Types', level: 'strong' });
   }
-  if (code.includes('if') || code.includes('switch') || code.includes('else')) {
-    concepts.push({ name: 'Control Flow', level: 'strong' });
+  if (code.includes('class ') || code.includes('struct ') || code.includes('interface ')) {
+    concepts.push({ name: 'OOP', level: 'ok' });
+  }
+  if (code.includes('async ') || code.includes('await ') || code.includes('Promise')) {
+    concepts.push({ name: 'Async/Await', level: 'strong' });
+  }
+  if (code.includes('try') || code.includes('catch') || code.includes('except')) {
+    concepts.push({ name: 'Exception Handling', level: 'ok' });
   }
   if (concepts.length === 0) {
-    concepts.push({ name: 'Programming Fundamentals', level: 'ok' });
+    concepts.push({ name: 'Variables and Data Types', level: 'ok' });
   }
 
   // Detect complexity
@@ -470,6 +516,38 @@ const CURATED_QUESTION_BANK = [
     options: ["A Promise", "A Callback Function", "A Generator Object", "A Void type"],
     correctAnswer: 0,
     explanation: "Async functions always wrap their return value in a resolved Promise automatically."
+  },
+  // Recursion & Algorithms
+  {
+    topic: 'Recursion & Algorithms',
+    question: "What is essential to prevent a recursive function from causing a stack overflow?",
+    options: [
+      "A well-defined base case that stops recursion",
+      "Using global variables inside the function",
+      "Adding a setTimeout delay on each call",
+      "Calling the function inside a while(true) loop"
+    ],
+    correctAnswer: 0,
+    explanation: "Every recursive function needs a base case where it stops calling itself, allowing the call stack to unwind."
+  },
+  {
+    topic: 'Data Structures & OOP',
+    question: "Which data structure follows the Last-In, First-Out (LIFO) principle?",
+    options: ["Queue", "Stack", "Hash Table", "Linked List"],
+    correctAnswer: 1,
+    explanation: "A Stack inserts and removes elements from the same end (top), following LIFO order."
+  },
+  {
+    topic: 'Exception Handling',
+    question: "In a try...catch...finally block, when does the 'finally' block execute?",
+    options: [
+      "Only if an exception is thrown",
+      "Only if no exception occurs",
+      "Always, regardless of whether an exception was thrown or caught",
+      "Only when return is omitted"
+    ],
+    correctAnswer: 2,
+    explanation: "The finally block always executes after try and catch finish, making it ideal for cleanup logic."
   }
 ];
 
@@ -511,6 +589,46 @@ const getCuratedQuizForTopics = (weakTopics = []) => {
 };
 
 const getFallbackQuiz = (weakTopics = []) => getCuratedQuizForTopics(weakTopics);
+
+const generateQuizInternal = async (weakTopics = []) => {
+  const normalizedKey = (weakTopics || [])
+    .map((t) => t.toLowerCase().replace(/[^a-z0-9]/g, ''))
+    .sort()
+    .join('_') || 'default_quiz';
+
+  // 1. Sub-millisecond Cache Check (Upstash Redis or in-memory)
+  const cached = await getQuizCache(normalizedKey);
+  if (cached && Array.isArray(cached.questions) && cached.questions.length >= 5) {
+    // Re-shuffle curated order slightly if cache hit, keeping options accurate
+    return cached;
+  }
+
+  // 2. Ultra-Fast AI Race (Capped at 3.5s)
+  try {
+    const topicList = weakTopics.length > 0 ? weakTopics.join(', ') : 'JavaScript Core Fundamentals';
+    const prompt = `You are a programming quiz generator. Generate exactly 5 multiple-choice questions on these topics: ${topicList}. Return ONLY valid JSON matching the schema.`;
+
+    const model = getQuizModel();
+    const aiPromise = (async () => {
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
+      return parseAndValidate(text, aiQuizResponseSchema);
+    })();
+
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('AI quiz generation timed out (>3.5s)')), 3500)
+    );
+
+    const validated = await Promise.race([aiPromise, timeoutPromise]);
+    await setQuizCache(normalizedKey, validated, 43200);
+    return validated;
+  } catch (error) {
+    console.warn('[AI Quiz Generation] Fast curated fallback activated:', error.message);
+    const curated = getCuratedQuizForTopics(weakTopics);
+    await setQuizCache(normalizedKey, curated, 3600);
+    return curated;
+  }
+};
 
 const MODERN_TOPIC_TEMPLATES = {
   variables: {

@@ -10,30 +10,60 @@ const {
   checkQuotaGuard,
 } = require('../config/redis');
 
+const { reviewSubmitSchema } = require('../validators/schemas');
+
 /**
- * Update TopicProgress for a student based on AI-detected concepts.
+ * Update TopicProgress for a student based on AI-detected concepts (parallelized).
  * @param {string} userId
  * @param {Array<{name: string, level: 'weak'|'ok'|'strong'}>} concepts
  */
 const updateTopicProgress = async (userId, concepts) => {
-  for (const concept of concepts) {
-    const update = {};
-    if (concept.level === 'weak') update.$inc = { weakCount: 1 };
-    else if (concept.level === 'ok') update.$inc = { okCount: 1 };
-    else if (concept.level === 'strong') update.$inc = { strongCount: 1 };
+  if (!Array.isArray(concepts) || concepts.length === 0) return;
 
-    update.$set = { lastSeen: new Date() };
+  await Promise.all(
+    concepts.map(async (concept) => {
+      if (!concept?.name) return;
+      const inc = {};
+      if (concept.level === 'weak') inc.weakCount = 1;
+      else if (concept.level === 'ok') inc.okCount = 1;
+      else if (concept.level === 'strong') inc.strongCount = 1;
 
-    await TopicProgress.findOneAndUpdate(
-      { user: userId, topic: concept.name },
-      update,
-      { upsert: true, new: true, runValidators: true }
-    );
+      const updated = await TopicProgress.findOneAndUpdate(
+        { user: userId, topic: concept.name.trim() },
+        { ...(Object.keys(inc).length ? { $inc: inc } : {}), $set: { lastSeen: new Date() } },
+        { upsert: true, new: true }
+      );
 
-    const tp = await TopicProgress.findOne({ user: userId, topic: concept.name });
-    if (tp) await tp.save();
+      if (updated) {
+        const total = updated.weakCount + updated.okCount + updated.strongCount;
+        const computedLevel =
+          total === 0 ? 0 : Math.round((100 * (updated.okCount * 0.5 + updated.strongCount)) / total);
+        if (updated.level !== computedLevel) {
+          updated.level = computedLevel;
+          await updated.save();
+        }
+      }
+    })
+  );
+};
+
+const updateUserStreak = async (userId) => {
+  const user = await User.findById(userId);
+  if (user) {
+    user.updateStreak();
+    await user.save();
   }
 };
+
+const extractAiFields = (source) => ({
+  score: source.score,
+  summary: source.summary,
+  bugs: source.bugs || [],
+  codeQuality: source.codeQuality,
+  complexity: source.complexity,
+  security: source.security || [],
+  concepts: source.concepts || [],
+});
 
 /**
  * @route   POST /api/reviews
@@ -43,66 +73,47 @@ const updateTopicProgress = async (userId, concepts) => {
 const submitReview = asyncHandler(async (req, res) => {
   const { language, code } = req.validatedData;
   const userId = req.user._id;
-
   const codeHash = generateCodeHash(code, language);
 
-  // 1. Check Redis cache first (fast sub-millisecond response)
-  const cachedRedis = await getReviewCache(codeHash);
-  if (cachedRedis) {
+  // 1. Check if this user already reviewed this exact code
+  const existingUserReview = await Review.findOne({ user: userId, codeHash }).lean();
+  if (existingUserReview) {
     return res.json({
       success: true,
-      data: { ...cachedRedis, fromCache: true },
+      data: { ...existingUserReview, fromCache: true },
     });
   }
 
-  // 2. Check MongoDB cache
-  const cachedMongo = await Review.findOne({ user: userId, codeHash });
-  if (cachedMongo) {
-    await setReviewCache(codeHash, cachedMongo.toObject(), 86400);
-    return res.json({
-      success: true,
-      data: { ...cachedMongo.toObject(), fromCache: true },
-    });
+  // 2. Check shared AI analysis cache in Redis; create a user-owned Review record if found
+  const cachedAi = await getReviewCache(codeHash);
+  let aiResult = cachedAi ? extractAiFields(cachedAi) : null;
+  let fromCache = !!aiResult;
+
+  if (!aiResult) {
+    await checkQuotaGuard(userId);
+    aiResult = await aiReviewCode(code, language);
+    await setReviewCache(codeHash, extractAiFields(aiResult), 86400);
   }
 
-  // 3. Enforce Redis Quota Guard
-  await checkQuotaGuard(userId);
-
-  // 4. Call AI (queued via p-queue with concurrency 2)
-  const aiResult = await aiReviewCode(code, language);
-
-  // 5. Save in MongoDB
+  // 3. Save user-owned Review in MongoDB
   const review = await Review.create({
     user: userId,
     language,
     code,
     codeHash,
-    score: aiResult.score,
-    summary: aiResult.summary,
-    bugs: aiResult.bugs,
-    codeQuality: aiResult.codeQuality,
-    complexity: aiResult.complexity,
-    security: aiResult.security,
-    concepts: aiResult.concepts,
-    fromCache: false,
+    ...extractAiFields(aiResult),
+    fromCache,
   });
 
-  // 6. Cache in Redis with 24h TTL
-  await setReviewCache(codeHash, review.toObject(), 86400);
-
-  // Update topic progress asynchronously
-  if (aiResult.concepts?.length > 0) {
-    updateTopicProgress(userId, aiResult.concepts).catch((err) =>
-      console.error('Topic progress update error:', err.message)
-    );
-  }
-
-  // Update user streak
-  const user = await User.findById(userId);
-  if (user) {
-    user.updateStreak();
-    await user.save();
-  }
+  // Update topic progress & streak
+  await Promise.all([
+    aiResult.concepts?.length > 0
+      ? updateTopicProgress(userId, aiResult.concepts).catch((err) =>
+          console.error('Topic progress update error:', err.message)
+        )
+      : Promise.resolve(),
+    updateUserStreak(userId).catch((err) => console.error('Streak update error:', err.message)),
+  ]);
 
   res.status(201).json({ success: true, data: review });
 });
@@ -113,16 +124,19 @@ const submitReview = asyncHandler(async (req, res) => {
  * @access  Private (student)
  */
 const streamReview = asyncHandler(async (req, res) => {
-  const { language, code } = req.body;
-  if (!language || !code) {
-    return res.status(400).json({ success: false, message: 'Language and code are required' });
+  const parsed = reviewSubmitSchema.safeParse(req.body);
+  if (!parsed.success) {
+    const message = parsed.error.errors.map((e) => e.message).join(', ');
+    return res.status(400).json({ success: false, message });
   }
 
+  const { language, code } = parsed.data;
   const userId = req.user._id;
 
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
+  if (res.flushHeaders) res.flushHeaders();
 
   const sendEvent = (event, data) => {
     res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
@@ -134,19 +148,28 @@ const streamReview = asyncHandler(async (req, res) => {
   try {
     sendEvent('status', { step: 1, message: 'Checking review cache...' });
     const codeHash = generateCodeHash(code, language);
-    const cached = (await getReviewCache(codeHash)) || (await Review.findOne({ user: userId, codeHash }));
 
-    if (cached) {
-      sendEvent('status', { step: 2, message: 'Review retrieved from cache' });
-      const cachedObj = cached.toObject ? cached.toObject() : cached;
-      const reviewId = (cached._id || cached.id).toString();
-      sendEvent('complete', { ...cachedObj, reviewId, _id: reviewId, fromCache: true });
+    // 1. User's own prior review
+    const existingUserReview = await Review.findOne({ user: userId, codeHash }).lean();
+    if (existingUserReview) {
+      sendEvent('status', { step: 2, message: 'Review retrieved from your history' });
+      const reviewId = existingUserReview._id.toString();
+      sendEvent('complete', { ...existingUserReview, reviewId, _id: reviewId, fromCache: true });
       return res.end();
     }
 
-    sendEvent('status', { step: 2, message: 'Analyzing code structure and identifying bugs...' });
+    // 2. Shared Redis AI analysis cache
+    const cachedAi = await getReviewCache(codeHash);
+    let aiResult = cachedAi ? extractAiFields(cachedAi) : null;
+    const fromCache = !!aiResult;
 
-    const aiResult = await aiReviewCode(code, language);
+    if (!aiResult) {
+      await checkQuotaGuard(userId);
+      sendEvent('status', { step: 2, message: 'Analyzing code structure and identifying bugs...' });
+      aiResult = await aiReviewCode(code, language);
+      await setReviewCache(codeHash, extractAiFields(aiResult), 86400);
+    }
+
     sendEvent('status', { step: 3, message: 'Saving review results...' });
 
     const review = await Review.create({
@@ -154,21 +177,18 @@ const streamReview = asyncHandler(async (req, res) => {
       language,
       code,
       codeHash,
-      score: aiResult.score,
-      summary: aiResult.summary,
-      bugs: aiResult.bugs,
-      codeQuality: aiResult.codeQuality,
-      complexity: aiResult.complexity,
-      security: aiResult.security,
-      concepts: aiResult.concepts,
-      fromCache: false,
+      ...extractAiFields(aiResult),
+      fromCache,
     });
 
-    await setReviewCache(codeHash, review.toObject(), 86400);
-
-    if (aiResult.concepts?.length > 0) {
-      updateTopicProgress(userId, aiResult.concepts).catch(console.error);
-    }
+    await Promise.all([
+      aiResult.concepts?.length > 0
+        ? updateTopicProgress(userId, aiResult.concepts).catch((err) =>
+            console.error('Topic progress update error:', err.message)
+          )
+        : Promise.resolve(),
+      updateUserStreak(userId).catch((err) => console.error('Streak update error:', err.message)),
+    ]);
 
     const reviewObj = review.toObject();
     const reviewId = review._id.toString();
@@ -186,25 +206,35 @@ const streamReview = asyncHandler(async (req, res) => {
  * @desc    Get all reviews for the authenticated student
  * @access  Private (student)
  */
+const ALLOWED_SORTS = new Set(['-createdAt', 'createdAt', '-score', 'score']);
+
 const getReviews = asyncHandler(async (req, res) => {
   const { language, minScore, maxScore, sort = '-createdAt', page = 1, limit = 10 } = req.query;
 
   const filter = { user: req.user._id };
   if (language) filter.language = language;
-  if (minScore || maxScore) {
+  if ((minScore !== undefined && minScore !== '') || (maxScore !== undefined && maxScore !== '')) {
     filter.score = {};
-    if (minScore) filter.score.$gte = Number(minScore);
-    if (maxScore) filter.score.$lte = Number(maxScore);
+    if (minScore !== undefined && minScore !== '' && !Number.isNaN(Number(minScore))) {
+      filter.score.$gte = Number(minScore);
+    }
+    if (maxScore !== undefined && maxScore !== '' && !Number.isNaN(Number(maxScore))) {
+      filter.score.$lte = Number(maxScore);
+    }
+    if (Object.keys(filter.score).length === 0) delete filter.score;
   }
 
-  const skip = (Number(page) - 1) * Number(limit);
+  const safePage = Math.max(1, parseInt(page, 10) || 1);
+  const safeLimit = Math.min(50, Math.max(1, parseInt(limit, 10) || 10));
+  const safeSort = ALLOWED_SORTS.has(sort) ? sort : '-createdAt';
+  const skip = (safePage - 1) * safeLimit;
 
   const [reviews, total] = await Promise.all([
     Review.find(filter)
       .select('-code -bugs.solution')
-      .sort(sort)
+      .sort(safeSort)
       .skip(skip)
-      .limit(Number(limit))
+      .limit(safeLimit)
       .lean(),
     Review.countDocuments(filter),
   ]);
@@ -215,8 +245,8 @@ const getReviews = asyncHandler(async (req, res) => {
       reviews,
       pagination: {
         total,
-        page: Number(page),
-        pages: Math.ceil(total / Number(limit)),
+        page: safePage,
+        pages: Math.ceil(total / safeLimit),
       },
     },
   });
@@ -247,7 +277,7 @@ const getReview = asyncHandler(async (req, res) => {
  * @access  Private (owner only)
  */
 const updateReview = asyncHandler(async (req, res) => {
-  const { summary, notes, isBookmarked } = req.body;
+  const { title, summary, notes, isBookmarked } = req.body;
   const review = await Review.findById(req.params.id);
 
   if (!review) {
@@ -258,14 +288,12 @@ const updateReview = asyncHandler(async (req, res) => {
     return res.status(403).json({ success: false, message: 'Not authorized' });
   }
 
+  if (title !== undefined) review.title = String(title).trim();
   if (summary !== undefined) review.summary = summary;
   if (notes !== undefined) review.notes = notes;
   if (isBookmarked !== undefined) review.isBookmarked = isBookmarked;
 
   await review.save();
-
-  // Invalidate cache
-  await deleteReviewCache(review.codeHash);
 
   res.json({ success: true, data: review });
 });

@@ -1,6 +1,14 @@
-import api from './api';
+import api, { API_BASE_URL } from './api';
 
-const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const baseURL = API_BASE_URL;
+
+// Silently pre-warm the Render backend on app load so cold-starts finish before user submits forms
+let warmedUp = false;
+export const warmUpBackend = () => {
+  if (warmedUp) return;
+  warmedUp = true;
+  fetch(`${baseURL}/health`, { method: 'GET', mode: 'cors' }).catch(() => {});
+};
 
 export const authService = {
   register: (data) => api.post('/auth/register', data),

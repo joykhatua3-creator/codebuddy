@@ -23,6 +23,7 @@ export default function StudentLayout() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
 
   const initials = user?.name?.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2) || 'S';
 
@@ -97,20 +98,43 @@ export default function StudentLayout() {
           <div className="flex-1" />
 
           {/* Theme toggle */}
-          <button onClick={toggleTheme} className="btn btn-ghost p-2 rounded-lg">
+          <button onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'} className="btn btn-ghost p-2 rounded-lg">
             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
           </button>
 
           {/* Notifications */}
-          <button className="btn btn-ghost p-2 rounded-lg relative">
-            <Bell size={18} />
-            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-primary-600 rounded-full" />
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => { setNotifOpen((p) => !p); setUserMenuOpen(false); }}
+              className="btn btn-ghost p-2 rounded-lg relative"
+              title="Learning Status"
+            >
+              <Bell size={18} />
+              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-primary-600 rounded-full" />
+            </button>
+            {notifOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
+                <div className="absolute right-0 top-full mt-1 w-64 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-50 space-y-2">
+                  <p className="text-xs font-semibold text-gray-900">Learning Updates</p>
+                  <div className="text-xs text-gray-600 bg-primary-50/70 p-2 rounded-md">
+                    🔥 Current Streak: <strong>{user?.streak || 0} days</strong>. Keep submitting code reviews or quizzes!
+                  </div>
+                  <button
+                    onClick={() => { navigate('/dashboard/roadmap'); setNotifOpen(false); }}
+                    className="w-full text-left text-xs text-primary-600 font-medium hover:underline"
+                  >
+                    View Personalized Roadmap →
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
 
           {/* User menu */}
           <div className="relative">
             <button
-              onClick={() => setUserMenuOpen((p) => !p)}
+              onClick={() => { setUserMenuOpen((p) => !p); setNotifOpen(false); }}
               className="flex items-center gap-2 btn btn-ghost px-2 py-1.5"
             >
               <div className="w-7 h-7 rounded-full bg-primary-600 flex items-center justify-center text-white text-xs font-bold">
@@ -120,18 +144,20 @@ export default function StudentLayout() {
               <ChevronDown size={14} className="text-gray-400" />
             </button>
             {userMenuOpen && (
-              <div className="absolute right-0 top-full mt-1 w-44 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50"
-                onBlur={() => setUserMenuOpen(false)}>
-                <button onClick={() => { navigate('/dashboard/profile'); setUserMenuOpen(false); }}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
-                  <User size={14} /> Profile
-                </button>
-                <div className="border-t border-gray-100 my-1" />
-                <button onClick={handleLogout}
-                  className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
-                  <LogOut size={14} /> Logout
-                </button>
-              </div>
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
+                <div className="absolute right-0 top-full mt-1 w-44 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50">
+                  <button onClick={() => { navigate('/dashboard/profile'); setUserMenuOpen(false); }}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                    <User size={14} /> Profile
+                  </button>
+                  <div className="border-t border-gray-100 my-1" />
+                  <button onClick={handleLogout}
+                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
+                    <LogOut size={14} /> Logout
+                  </button>
+                </div>
+              </>
             )}
           </div>
         </header>

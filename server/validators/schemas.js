@@ -154,6 +154,7 @@ const validate = (schema) => (req, res, next) => {
 };
 
 module.exports = {
+  SUPPORTED_LANGUAGES,
   registerSchema,
   loginSchema,
   reviewSubmitSchema,

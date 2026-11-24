@@ -21,12 +21,21 @@ const reviewSchema = new mongoose.Schema(
     code: {
       type: String,
       required: true,
-      maxlength: [10000, 'Code cannot exceed 10,000 characters'],
+      maxlength: [15000, 'Code cannot exceed 15,000 characters'],
     },
     codeHash: {
       type: String,
       required: true,
       index: true,
+    },
+    title: {
+      type: String,
+      trim: true,
+      maxlength: [120, 'Title cannot exceed 120 characters'],
+    },
+    notes: {
+      type: String,
+      maxlength: [2000, 'Notes cannot exceed 2,000 characters'],
     },
     score: {
       type: Number,

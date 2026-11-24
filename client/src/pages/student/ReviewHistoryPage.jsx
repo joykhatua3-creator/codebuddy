@@ -8,9 +8,8 @@ import EmptyState from '../../components/ui/EmptyState';
 import ConfirmModal from '../../components/ui/ConfirmModal';
 import ScoreBadge from '../../components/ui/ScoreBadge';
 import { useToast } from '../../components/ui/Toast';
-import { formatRelativeTime, getLanguageLabel, getLanguageBadgeClass, truncate } from '../../utils/helpers';
+import { formatRelativeTime, getLanguageLabel, getLanguageBadgeClass, truncate, ALL_LANGUAGES } from '../../utils/helpers';
 
-const LANGUAGES = ['', 'javascript', 'python', 'java', 'cpp'];
 const SORTS = [
   { value: '-createdAt', label: 'Newest First' },
   { value: 'createdAt', label: 'Oldest First' },
@@ -85,9 +84,9 @@ export default function ReviewHistoryPage() {
         <div className="min-w-[140px]">
           <label className="label">Language</label>
           <select value={language} onChange={(e) => { setLanguage(e.target.value); setPage(1); }} className="input">
-            <option value="">All Languages</option>
-            {LANGUAGES.filter(Boolean).map((l) => (
-              <option key={l} value={l}>{getLanguageLabel(l)}</option>
+            <option value="">All Languages ({ALL_LANGUAGES.length})</option>
+            {ALL_LANGUAGES.map((l) => (
+              <option key={l.id} value={l.id}>{l.name}</option>
             ))}
           </select>
         </div>
@@ -122,7 +121,9 @@ export default function ReviewHistoryPage() {
         />
       ) : (
         <div className="space-y-3">
-          {reviews.map((r) => (
+          {reviews.map((r) => {
+            const bugCount = Array.isArray(r.bugs) ? r.bugs.length : (r.bugs || 0);
+            return (
             <div key={r._id} className="card p-4 hover:shadow-card-hover transition-shadow cursor-pointer"
               onClick={() => navigate(`/dashboard/review/${r._id}`)}>
               <div className="flex items-start gap-4">
@@ -134,7 +135,7 @@ export default function ReviewHistoryPage() {
                     </span>
                     <span className="text-xs text-gray-400">{formatRelativeTime(r.createdAt)}</span>
                     {r.bugs !== undefined && (
-                      <span className="text-xs text-red-500">{r.bugs} bug{r.bugs !== 1 ? 's' : ''}</span>
+                      <span className="text-xs text-red-500">{bugCount} bug{bugCount !== 1 ? 's' : ''}</span>
                     )}
                   </div>
                   <p className="text-sm text-gray-700 leading-relaxed">{truncate(r.summary, 120)}</p>
@@ -155,7 +156,8 @@ export default function ReviewHistoryPage() {
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

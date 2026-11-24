@@ -381,7 +381,11 @@ export default function RoadmapPage() {
                                   )}
                                 </button>
                                 <button
-                                  onClick={() => navigate('/dashboard/code-review')}
+                                  onClick={() =>
+                                    navigate('/dashboard/code-review', {
+                                      state: { starterCode: step.starterCode, language: 'javascript' },
+                                    })
+                                  }
                                   className="btn btn-secondary btn-sm text-xs gap-1 text-primary-600 py-0.5 h-7"
                                 >
                                   <span>Open in Code Review</span>

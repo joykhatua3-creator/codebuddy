@@ -227,17 +227,51 @@ export default function ReviewDetailPage() {
             <span>Tagged Concepts</span>
           </div>
           <div className="flex flex-wrap gap-2">
-            {review.concepts?.map((c, i) => (
-              <span
-                key={i}
-                className={`badge text-xs px-2.5 py-1 ${getConceptLevelClass(c.status)}`}
-              >
-                {c.name} • {c.status}
-              </span>
-            ))}
+            {review.concepts?.length > 0 ? (
+              review.concepts.map((c, i) => {
+                const lvl = c.level || c.status || 'ok';
+                return (
+                  <span
+                    key={i}
+                    className={`badge text-xs px-2.5 py-1 ${getConceptLevelClass(lvl)}`}
+                  >
+                    {c.name} • {lvl}
+                  </span>
+                );
+              })
+            ) : (
+              <span className="text-xs text-gray-400">No specific concepts tagged</span>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Code Quality Breakdown */}
+      {review.codeQuality && (
+        <div className="card p-5 space-y-3">
+          <h3 className="text-sm font-semibold text-gray-900">Code Quality Breakdown</h3>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {[
+              { key: 'readability', label: 'Readability' },
+              { key: 'namingConventions', label: 'Naming' },
+              { key: 'codeStructure', label: 'Structure' },
+              { key: 'bestPractices', label: 'Best Practices' },
+            ].map(({ key, label }) => {
+              const metric = review.codeQuality?.[key];
+              if (!metric) return null;
+              return (
+                <div key={key} className="p-3 bg-gray-50 rounded-lg border border-gray-100">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-medium text-gray-600">{label}</span>
+                    <span className="text-xs font-bold text-primary-600">{metric.score ?? 0}/10</span>
+                  </div>
+                  <p className="text-xs text-gray-500 leading-relaxed">{metric.comment}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Submitted Code Viewer in Monaco Editor */}
       {review.code && (
@@ -295,17 +329,26 @@ export default function ReviewDetailPage() {
       </div>
 
       {/* Security Analysis */}
-      {review.securityIssues?.length > 0 && (
+      {(review.security?.length > 0 || review.securityIssues?.length > 0) && (
         <div className="card p-5 border-l-4 border-l-amber-500 space-y-3">
           <div className="flex items-center gap-2 text-amber-700 font-semibold">
             <Shield size={18} />
-            <span>Security Considerations ({review.securityIssues.length})</span>
+            <span>Security Considerations ({(review.security || review.securityIssues).length})</span>
           </div>
           <div className="space-y-2">
-            {review.securityIssues.map((issue, idx) => (
-              <div key={idx} className="p-3 bg-amber-50/50 rounded-lg text-sm text-amber-900">
-                <span className="font-semibold">{issue.title || issue.issue || 'Security Note'}: </span>
-                <span>{issue.description || issue.detail}</span>
+            {(review.security || review.securityIssues).map((item, idx) => (
+              <div key={idx} className="p-3 bg-amber-50/60 rounded-lg text-sm text-amber-900 space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold">{item.title || item.issue || 'Security Note'}</span>
+                  {item.severity && (
+                    <span className={`badge text-[10px] uppercase ${getSeverityClass(item.severity)}`}>
+                      {item.severity}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-amber-800">
+                  {item.recommendation || item.description || item.detail}
+                </p>
               </div>
             ))}
           </div>

@@ -24,14 +24,13 @@ const aiRateLimit = rateLimit({
 });
 
 router.use(protect);
-router.use(authorize('student'));
 
-router.post('/', aiRateLimit, validate(reviewSubmitSchema), submitReview);
-router.post('/stream', aiRateLimit, streamReview);
-router.get('/', getReviews);
-router.get('/:id', getReview);
-router.patch('/:id', updateReview);
-router.delete('/:id', deleteReview);
-router.patch('/:id/bookmark', toggleBookmark);
+router.post('/', authorize('student'), aiRateLimit, validate(reviewSubmitSchema), submitReview);
+router.post('/stream', authorize('student'), aiRateLimit, streamReview);
+router.get('/', authorize('student'), getReviews);
+router.get('/:id', authorize('student', 'teacher'), getReview);
+router.patch('/:id', authorize('student'), updateReview);
+router.delete('/:id', authorize('student'), deleteReview);
+router.patch('/:id/bookmark', authorize('student'), toggleBookmark);
 
 module.exports = router;

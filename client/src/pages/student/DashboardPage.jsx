@@ -96,7 +96,7 @@ export default function DashboardPage() {
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={scoreTrend}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={(d) => d.slice(5)} />
+                <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={(d) => (d ? String(d).slice(5) : '')} />
                 <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
                 <Tooltip formatter={(v) => [`${v}/100`, 'Score']} />
                 <Line type="monotone" dataKey="score" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />

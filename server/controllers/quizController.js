@@ -1,5 +1,6 @@
 const Quiz = require('../models/Quiz');
 const TopicProgress = require('../models/TopicProgress');
+const User = require('../models/User');
 const { generateQuiz: aiGenerateQuiz } = require('../services/aiService');
 const { asyncHandler } = require('../utils/helpers');
 
@@ -14,7 +15,8 @@ const generateQuiz = asyncHandler(async (req, res) => {
   const weakTopics = await TopicProgress.find({ user: userId })
     .sort({ level: 1 })
     .limit(3)
-    .select('topic level');
+    .select('topic level')
+    .lean();
 
   if (weakTopics.length === 0) {
     weakTopics.push(
@@ -91,7 +93,7 @@ const submitQuiz = asyncHandler(async (req, res) => {
     };
   });
 
-  const score = Math.round((correctCount / quiz.totalQuestions) * 100);
+  const score = quiz.totalQuestions > 0 ? Math.round((correctCount / quiz.totalQuestions) * 100) : 0;
 
   quiz.answers = answers;
   quiz.score = score;
@@ -99,6 +101,13 @@ const submitQuiz = asyncHandler(async (req, res) => {
   quiz.completed = true;
   quiz.completedAt = new Date();
   await quiz.save();
+
+  // Update user streak on quiz completion
+  const user = await User.findById(req.user._id);
+  if (user) {
+    user.updateStreak();
+    await user.save();
+  }
 
   const results = quiz.questions.map((q, i) => ({
     question: q.question,
@@ -152,6 +161,24 @@ const getQuizById = asyncHandler(async (req, res) => {
 
   if (quiz.user.toString() !== req.user._id.toString() && req.user.role !== 'teacher') {
     return res.status(403).json({ success: false, message: 'Not authorized' });
+  }
+
+  // Prevent exposing answers to student before quiz submission
+  if (!quiz.completed && req.user.role !== 'teacher') {
+    quiz.questions = quiz.questions.map(({ correctAnswer, ...rest }) => rest);
+  } else if (quiz.completed) {
+    quiz.results = quiz.questions.map((q, i) => {
+      const userAnswer = quiz.answers?.find((a) => a.questionIndex === i);
+      const selectedOption = userAnswer?.selectedOption ?? null;
+      return {
+        question: q.question,
+        options: q.options,
+        correctAnswer: q.correctAnswer,
+        explanation: q.explanation,
+        selectedOption,
+        isCorrect: selectedOption === q.correctAnswer,
+      };
+    });
   }
 
   res.json({ success: true, data: quiz });
