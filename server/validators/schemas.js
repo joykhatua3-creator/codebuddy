@@ -104,12 +104,12 @@ const aiQuizResponseSchema = z.object({
     .array(
       z.object({
         question: z.string(),
-        options: z.array(z.string()).length(4),
-        correctAnswer: z.number().int().min(0).max(3),
-        explanation: z.string(),
+        options: z.array(z.string()).min(2),
+        correctAnswer: z.coerce.number().int().min(0).max(5),
+        explanation: z.string().optional().default(''),
       })
     )
-    .length(5),
+    .min(1),
 });
 
 const aiRoadmapResponseSchema = z.object({
