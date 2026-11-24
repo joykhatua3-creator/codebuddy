@@ -11,7 +11,12 @@ const reviewSchema = new mongoose.Schema(
     language: {
       type: String,
       required: true,
-      enum: ['javascript', 'python', 'java', 'cpp'],
+      enum: [
+        'python', 'javascript', 'typescript', 'java', 'cpp', 'c', 'csharp',
+        'go', 'rust', 'sql', 'kotlin', 'swift', 'dart', 'php', 'ruby',
+        'r', 'scala', 'julia', 'mojo', 'zig', 'elixir', 'lua', 'perl',
+        'matlab', 'assembly', 'bash', 'solidity', 'groovy', 'haskell', 'fsharp'
+      ],
     },
     code: {
       type: String,

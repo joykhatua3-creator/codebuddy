@@ -1,21 +1,46 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
-import { Code2, Trash2, Send, Radio, Sparkles, CheckCircle2, Clock, Moon, Sun, Maximize2, Minimize2 } from 'lucide-react';
+import { Code2, Trash2, Send, Radio, Sparkles, CheckCircle2, Clock, Moon, Sun, Maximize2, Minimize2, Globe } from 'lucide-react';
 import { reviewService } from '../../services';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
-import { getMonacoLanguage, getLanguageLabel } from '../../utils/helpers';
+import { ALL_LANGUAGES, POPULAR_LANGUAGES, getMonacoLanguage, getLanguageLabel } from '../../utils/helpers';
 import { useTheme } from '../../context/ThemeContext';
 
-const LANGUAGES = ['javascript', 'python', 'java', 'cpp'];
-const MAX_CHARS = 10000;
-const MAX_LINES = 300;
+const MAX_CHARS = 15000;
+const MAX_LINES = 400;
 
 const DEFAULT_CODE = {
-  javascript: `// Write your JavaScript code here\nfunction greet(name) {\n  console.log("Hello, " + name);\n}\n\ngreet("World");`,
-  python: `# Write your Python code here\ndef greet(name):\n    print(f"Hello, {name}")\n\ngreet("World")`,
-  java: `// Write your Java code here\npublic class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello, World!");\n    }\n}`,
-  cpp: `// Write your C++ code here\n#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << "Hello, World!" << endl;\n    return 0;\n}`,
+  python: `# Python 3.x\ndef greet(name: str) -> str:\n    return f"Hello, {name}!"\n\nprint(greet("World"))`,
+  javascript: `// JavaScript (ES2024)\nfunction greet(name) {\n  return "Hello, " + name + "!";\n}\n\nconsole.log(greet("World"));`,
+  typescript: `// TypeScript\ninterface User {\n  id: number;\n  name: string;\n}\n\nfunction greet(user: User): string {\n  return \`Hello, \${user.name}! (ID: \${user.id})\`;\n}\n\nconsole.log(greet({ id: 1, name: "World" }));`,
+  java: `// Java 21+\npublic class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello, World!");\n    }\n}`,
+  cpp: `// C++ 20+\n#include <iostream>\n#include <vector>\nusing namespace std;\n\nint main() {\n    cout << "Hello, C++ World!" << endl;\n    return 0;\n}`,
+  c: `// C17\n#include <stdio.h>\n\nint main() {\n    printf("Hello, C World!\\n");\n    return 0;\n}`,
+  csharp: `// C# (.NET 8+)\nusing System;\n\nclass Program {\n    static void Main() {\n        Console.WriteLine("Hello, C# World!");\n    }\n}`,
+  go: `// Go (Golang)\npackage main\n\nimport "fmt"\n\nfunc main() {\n    fmt.Println("Hello, Go World!")\n}`,
+  rust: `// Rust (Edition 2021)\nfn main() {\n    let greeting = "Hello, Rust World!";\n    println!("{}", greeting);\n}`,
+  sql: `-- SQL (PostgreSQL / MySQL)\nSELECT \n    u.id,\n    u.name,\n    COUNT(o.id) AS order_count\nFROM users u\nLEFT JOIN orders o ON u.id = o.user_id\nGROUP BY u.id, u.name\nORDER BY order_count DESC;`,
+  kotlin: `// Kotlin\nfun main() {\n    val greeting = "Hello, Kotlin World!"\n    println(greeting)\n}`,
+  swift: `// Swift 5.9+\nimport Foundation\n\nfunc greet(name: String) -> String {\n    return "Hello, \\(name)!"\n}\nprint(greet(name: "World"))`,
+  dart: `// Dart (Flutter)\nvoid main() {\n  print('Hello, Dart World!');\n}`,
+  php: `<?php\n// PHP 8.2+\nfunction greet(string $name): string {\n    return "Hello, {$name}!";\n}\necho greet("World");`,
+  ruby: `# Ruby 3+\ndef greet(name)\n  "Hello, #{name}!"\nend\nputs greet("World")`,
+  r: `# R Script\nx <- c(10, 20, 30, 40, 50)\ncat("Mean:", mean(x), "\\n")`,
+  scala: `// Scala 3\nobject Main extends App {\n  def greet(name: String): String = s"Hello, $name!"\n  println(greet("World"))\n}`,
+  julia: `# Julia\nfunction greet(name::String)\n    return "Hello, $name!"\nend\nprintln(greet("World"))`,
+  mojo: `# Mojo (Modular)\nfn main():\n    let msg: String = "Hello, Mojo World!"\n    print(msg)`,
+  zig: `// Zig 0.12+\nconst std = @import("std");\n\npub fn main() !void {\n    std.debug.print("Hello, Zig World!\\n", .{});\n}`,
+  elixir: `# Elixir\ndefmodule Greeter do\n  def greet(name), do: "Hello, #{name}!"\nend\nIO.puts Greeter.greet("World")`,
+  lua: `-- Lua 5.4\nfunction greet(name)\n    return "Hello, " .. name .. "!"\nend\nprint(greet("World"))`,
+  perl: `# Perl 5\nuse strict;\nuse warnings;\nmy $msg = "Hello, Perl World!\\n";\nprint $msg;`,
+  matlab: `% MATLAB / GNU Octave\nx = [1, 2, 3, 4, 5];\ny = x .^ 2;\ndisp(y);`,
+  assembly: `; x86_64 NASM Assembly\nsection .data\n    msg db "Hello, Assembly World!", 10\n    len equ $ - msg\nsection .text\n    global _start\n_start:\n    mov rax, 1\n    mov rdi, 1\n    mov rsi, msg\n    mov rdx, len\n    syscall\n    mov rax, 60\n    xor rdi, rdi\n    syscall`,
+  bash: `#!/usr/bin/env bash\n# Bash / Shell Script\nNAME="World"\necho "Hello, \${NAME}!"`,
+  solidity: `// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20;\n\ncontract Greeter {\n    string public greeting;\n    constructor(string memory _greeting) {\n        greeting = _greeting;\n    }\n}`,
+  groovy: `// Apache Groovy\ndef greet(name) {\n    return "Hello, \${name}!"\n}\nprintln greet("World")`,
+  haskell: `-- Haskell GHC\ngreet :: String -> String\ngreet name = "Hello, " ++ name ++ "!"\n\nmain :: IO ()\nmain = putStrLn (greet "World")`,
+  fsharp: `// F#\nlet greet name = sprintf "Hello, %s!" name\n\n[<EntryPoint>]\nlet main argv =\n    printfn "%s" (greet "World")\n    0`
 };
 
 export default function CodeReviewPage() {
@@ -38,12 +63,12 @@ export default function CodeReviewPage() {
 
   const handleLanguageChange = (lang) => {
     setLanguage(lang);
-    setCode(DEFAULT_CODE[lang]);
+    setCode(DEFAULT_CODE[lang] || `// Write your ${getLanguageLabel(lang)} code here`);
     setError('');
   };
 
   const handleClear = () => {
-    setCode(DEFAULT_CODE[language]);
+    setCode(DEFAULT_CODE[language] || `// Write your ${getLanguageLabel(language)} code here`);
     setError('');
     setStreamProgress(null);
   };
@@ -108,38 +133,29 @@ export default function CodeReviewPage() {
   };
 
   return (
-    <div className="space-y-5 max-w-4xl mx-auto">
+    <div className="space-y-5 max-w-5xl mx-auto">
       {/* Header */}
       <div>
-        <h2 className="text-xl font-bold text-gray-900">AI Code Review</h2>
+        <div className="flex items-center gap-2">
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary-100 text-primary-700">
+            30 Languages Supported
+          </span>
+        </div>
+        <h2 className="text-xl font-bold text-gray-900 mt-1">AI Code Review</h2>
         <p className="text-sm text-gray-500 mt-0.5">
-          Submit your code in Monaco Editor and get instant, structured AI feedback with guided hints
+          Select any of the 30 programming languages and get instant, structured AI feedback with guided hints
         </p>
       </div>
 
       {/* Language selector & Stream mode */}
-      <div className="card p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <label className="label">Programming Language</label>
-          <div className="flex flex-wrap gap-2 mt-1">
-            {LANGUAGES.map((lang) => (
-              <button
-                key={lang}
-                onClick={() => handleLanguageChange(lang)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium border-2 transition-colors ${
-                  language === lang
-                    ? 'border-primary-500 bg-primary-50 text-primary-700'
-                    : 'border-gray-200 text-gray-600 hover:border-gray-300 bg-white'
-                }`}
-              >
-                {getLanguageLabel(lang)}
-              </button>
-            ))}
-          </div>
-        </div>
+      <div className="card p-4 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-2">
+          <label className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center gap-1.5">
+            <Globe size={14} className="text-primary-600" />
+            <span>Select Programming Language ({ALL_LANGUAGES.length})</span>
+          </label>
 
-        {/* SSE Streaming Toggle */}
-        <div className="flex items-center gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100">
+          {/* SSE Streaming Toggle */}
           <label className="flex items-center gap-2 cursor-pointer select-none text-xs font-semibold text-gray-700">
             <input
               type="checkbox"
@@ -152,6 +168,39 @@ export default function CodeReviewPage() {
               Live Stream (SSE)
             </span>
           </label>
+        </div>
+
+        {/* Quick Popular Pills + All 30 Dropdown */}
+        <div className="flex flex-wrap items-center gap-2">
+          {POPULAR_LANGUAGES.map((lang) => (
+            <button
+              key={lang}
+              onClick={() => handleLanguageChange(lang)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                language === lang
+                  ? 'border-primary-600 bg-primary-600 text-white shadow-xs'
+                  : 'border-gray-200 text-gray-700 hover:border-primary-400 bg-white'
+              }`}
+            >
+              {getLanguageLabel(lang)}
+            </button>
+          ))}
+
+          {/* All 30 Languages Dropdown */}
+          <div className="relative inline-block ml-auto">
+            <select
+              value={language}
+              onChange={(e) => handleLanguageChange(e.target.value)}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-300 bg-white text-gray-800 shadow-2xs hover:border-primary-500 focus:outline-hidden focus:ring-2 focus:ring-primary-500"
+            >
+              <option value="" disabled>Browse all 30 languages...</option>
+              {ALL_LANGUAGES.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name} ({l.category})
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
@@ -166,7 +215,7 @@ export default function CodeReviewPage() {
               <span className="w-3 h-3 rounded-full bg-green-500 inline-block" />
             </div>
             <span className="text-xs font-mono font-medium">
-              Monaco Editor • {getLanguageLabel(language)}
+              Monaco Editor • <span className="text-primary-400 font-bold">{getLanguageLabel(language)}</span>
             </span>
           </div>
 
@@ -231,7 +280,7 @@ export default function CodeReviewPage() {
             loading={
               <div className={`flex flex-col items-center justify-center h-full space-y-2 ${editorTheme === 'vs-dark' ? 'bg-gray-900 text-gray-400' : 'bg-gray-50 text-gray-500'}`}>
                 <LoadingSpinner size="md" />
-                <span className="text-xs font-mono">Loading Monaco Editor...</span>
+                <span className="text-xs font-mono">Loading Monaco Editor ({getLanguageLabel(language)})...</span>
               </div>
             }
             options={{
@@ -278,7 +327,7 @@ export default function CodeReviewPage() {
             {loading ? (
               <>
                 <LoadingSpinner size="sm" />
-                <span>Reviewing...</span>
+                <span>Reviewing {getLanguageLabel(language)}...</span>
               </>
             ) : (
               <>
@@ -296,7 +345,7 @@ export default function CodeReviewPage() {
           <LoadingSpinner size="sm" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-primary-900">
-              {streamProgress || 'Gemini AI is analyzing code structure and identifying bugs...'}
+              {streamProgress || `Gemini AI is analyzing ${getLanguageLabel(language)} code structure and identifying bugs...`}
             </p>
             <p className="text-xs text-primary-700 mt-0.5">
               Evaluating syntax, time/space complexity, security issues, and pedagogical hints.
@@ -314,4 +363,5 @@ export default function CodeReviewPage() {
     </div>
   );
 }
+
 

@@ -47,25 +47,72 @@ export const formatRelativeTime = (date) => {
   return formatDate(date);
 };
 
+// 30 Supported Languages Metadata
+export const ALL_LANGUAGES = [
+  { id: 'python', name: 'Python', category: 'General & Data', monaco: 'python' },
+  { id: 'javascript', name: 'JavaScript', category: 'Web & Fullstack', monaco: 'javascript' },
+  { id: 'typescript', name: 'TypeScript', category: 'Web & Fullstack', monaco: 'typescript' },
+  { id: 'java', name: 'Java', category: 'Enterprise & Mobile', monaco: 'java' },
+  { id: 'cpp', name: 'C++', category: 'Systems & Performance', monaco: 'cpp' },
+  { id: 'c', name: 'C', category: 'Systems & Performance', monaco: 'c' },
+  { id: 'csharp', name: 'C#', category: 'Enterprise & GameDev', monaco: 'csharp' },
+  { id: 'go', name: 'Go (Golang)', category: 'Cloud & Systems', monaco: 'go' },
+  { id: 'rust', name: 'Rust', category: 'Systems & Performance', monaco: 'rust' },
+  { id: 'sql', name: 'SQL', category: 'Database & Data', monaco: 'sql' },
+  { id: 'kotlin', name: 'Kotlin', category: 'Mobile & Enterprise', monaco: 'kotlin' },
+  { id: 'swift', name: 'Swift', category: 'Mobile & Apple', monaco: 'swift' },
+  { id: 'dart', name: 'Dart', category: 'Mobile & Flutter', monaco: 'dart' },
+  { id: 'php', name: 'PHP', category: 'Web & Backend', monaco: 'php' },
+  { id: 'ruby', name: 'Ruby', category: 'Web & Scripting', monaco: 'ruby' },
+  { id: 'r', name: 'R', category: 'Data & Statistics', monaco: 'r' },
+  { id: 'scala', name: 'Scala', category: 'Big Data & Functional', monaco: 'scala' },
+  { id: 'julia', name: 'Julia', category: 'Data & Scientific', monaco: 'julia' },
+  { id: 'mojo', name: 'Mojo', category: 'AI & Systems', monaco: 'python' },
+  { id: 'zig', name: 'Zig', category: 'Systems & Performance', monaco: 'c' },
+  { id: 'elixir', name: 'Elixir', category: 'Distributed & Concurrency', monaco: 'elixir' },
+  { id: 'lua', name: 'Lua', category: 'Embedded & GameDev', monaco: 'lua' },
+  { id: 'perl', name: 'Perl', category: 'Scripting & Text', monaco: 'perl' },
+  { id: 'matlab', name: 'MATLAB', category: 'Scientific & Math', monaco: 'matlab' },
+  { id: 'assembly', name: 'Assembly', category: 'Low-Level Architecture', monaco: 'mips' },
+  { id: 'bash', name: 'Bash / Shell', category: 'DevOps & Scripting', monaco: 'shell' },
+  { id: 'solidity', name: 'Solidity (Web3)', category: 'Blockchain & Smart Contracts', monaco: 'sol' },
+  { id: 'groovy', name: 'Groovy', category: 'JVM & DevOps', monaco: 'groovy' },
+  { id: 'haskell', name: 'Haskell', category: 'Pure Functional', monaco: 'haskell' },
+  { id: 'fsharp', name: 'F#', category: 'Functional .NET', monaco: 'fsharp' },
+];
+
+export const POPULAR_LANGUAGES = [
+  'python', 'javascript', 'typescript', 'java', 'cpp', 'csharp', 'go', 'rust', 'sql', 'kotlin'
+];
+
 // Language helpers
 export const getLanguageLabel = (lang) => {
-  const map = { javascript: 'JavaScript', python: 'Python', java: 'Java', cpp: 'C++' };
-  return map[lang] || lang;
+  const found = ALL_LANGUAGES.find((l) => l.id === lang);
+  return found ? found.name : (lang ? lang.toUpperCase() : 'Code');
 };
 
 export const getLanguageBadgeClass = (lang) => {
   const map = {
-    javascript: 'bg-yellow-100 text-yellow-800',
-    python: 'bg-blue-100 text-blue-800',
-    java: 'bg-orange-100 text-orange-800',
-    cpp: 'bg-purple-100 text-purple-800',
+    javascript: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    typescript: 'bg-blue-100 text-blue-800 border-blue-200',
+    python: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+    java: 'bg-orange-100 text-orange-800 border-orange-200',
+    cpp: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+    c: 'bg-slate-100 text-slate-800 border-slate-200',
+    csharp: 'bg-purple-100 text-purple-800 border-purple-200',
+    go: 'bg-cyan-100 text-cyan-800 border-cyan-200',
+    rust: 'bg-amber-100 text-amber-800 border-amber-200',
+    sql: 'bg-sky-100 text-sky-800 border-sky-200',
+    kotlin: 'bg-violet-100 text-violet-800 border-violet-200',
+    swift: 'bg-rose-100 text-rose-800 border-rose-200',
+    solidity: 'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200',
   };
-  return map[lang] || 'bg-gray-100 text-gray-700';
+  return map[lang] || 'bg-gray-100 text-gray-700 border-gray-200';
 };
 
 export const getMonacoLanguage = (lang) => {
-  const map = { javascript: 'javascript', python: 'python', java: 'java', cpp: 'cpp' };
-  return map[lang] || 'javascript';
+  const found = ALL_LANGUAGES.find((l) => l.id === lang);
+  return found ? found.monaco : 'plaintext';
 };
 
 // String helpers

@@ -30,15 +30,22 @@ export const loginSchema = z.object({
   password: z.string({ required_error: 'Password is required' }).min(1, 'Password is required'),
 });
 
+const SUPPORTED_LANGUAGES = [
+  'python', 'javascript', 'typescript', 'java', 'cpp', 'c', 'csharp',
+  'go', 'rust', 'sql', 'kotlin', 'swift', 'dart', 'php', 'ruby',
+  'r', 'scala', 'julia', 'mojo', 'zig', 'elixir', 'lua', 'perl',
+  'matlab', 'assembly', 'bash', 'solidity', 'groovy', 'haskell', 'fsharp'
+];
+
 export const reviewSubmitSchema = z.object({
-  language: z.enum(['javascript', 'python', 'java', 'cpp'], {
+  language: z.enum(SUPPORTED_LANGUAGES, {
     required_error: 'Language is required',
-    invalid_type_error: 'Language must be one of: javascript, python, java, cpp',
+    invalid_type_error: 'Language must be one of the 30 supported languages',
   }),
   code: z
     .string({ required_error: 'Code is required' })
-    .min(10, 'Code must be at least 10 characters')
-    .max(10000, 'Code cannot exceed 10,000 characters'),
+    .min(5, 'Code must be at least 5 characters')
+    .max(15000, 'Code cannot exceed 15,000 characters'),
 });
 
 export const quizSubmitSchema = z.object({

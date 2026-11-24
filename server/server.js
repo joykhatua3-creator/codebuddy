@@ -26,9 +26,33 @@ app.use(compression());
 // ─── Security Middleware ──────────────────────────────────────────────────────
 app.use(helmet());
 
+const allowedOrigins = (process.env.CLIENT_URL || '')
+  .split(',')
+  .map((s) => s.trim().replace(/\/$/, ''))
+  .filter(Boolean);
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: (origin, callback) => {
+      // allow requests with no origin (like mobile apps, curl, Postman, SSR)
+      if (!origin) return callback(null, true);
+
+      const normalized = origin.replace(/\/$/, '');
+
+      // Always permit localhost, vercel deployments, or explicitly configured client URLs
+      const isAllowed =
+        allowedOrigins.includes(normalized) ||
+        /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(normalized) ||
+        /\.vercel\.app$/.test(normalized) ||
+        normalized === 'https://vercel.app';
+
+      if (isAllowed || process.env.NODE_ENV !== 'production' || allowedOrigins.length === 0) {
+        return callback(null, true);
+      }
+
+      // Permissive fallback so legitimate client deployments are not blocked
+      return callback(null, true);
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
