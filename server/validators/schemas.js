@@ -32,6 +32,10 @@ const loginSchema = z.object({
   password: z.string({ required_error: 'Password is required' }).min(1, 'Password is required'),
 });
 
+const demoLoginSchema = z.object({
+  role: z.enum(['student', 'teacher']).optional().default('student'),
+});
+
 // ─── Review Validators ───────────────────────────────────────────────────────
 
 const SUPPORTED_LANGUAGES = [
@@ -157,6 +161,7 @@ module.exports = {
   SUPPORTED_LANGUAGES,
   registerSchema,
   loginSchema,
+  demoLoginSchema,
   reviewSubmitSchema,
   quizSubmitSchema,
   aiReviewResponseSchema,

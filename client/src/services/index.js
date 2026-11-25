@@ -13,6 +13,7 @@ export const warmUpBackend = () => {
 export const authService = {
   register: (data) => api.post('/auth/register', data),
   login: (data) => api.post('/auth/login', data),
+  demoLogin: (role = 'student') => api.post('/auth/demo', { role }),
   logout: () => api.post('/auth/logout'),
   getMe: () => api.get('/auth/me'),
   updateProfile: (data) => api.patch('/auth/me', data),

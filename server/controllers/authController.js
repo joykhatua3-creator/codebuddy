@@ -1,12 +1,47 @@
 const User = require('../models/User');
 const { generateToken, asyncHandler } = require('../utils/helpers');
 
+const DEMO_ACCOUNTS = {
+  student: {
+    name: 'Ali Hassan',
+    email: 'student@crbuddy.com',
+    password: 'Student@123',
+    role: 'student',
+  },
+  teacher: {
+    name: 'Dr. Sarah Ahmed',
+    email: 'teacher@crbuddy.com',
+    password: 'Teacher@123',
+    role: 'teacher',
+  },
+};
+
 const setAuthCookie = (res, token) => {
   res.cookie('token', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+};
+
+const sendAuthResponse = (res, user, statusCode = 200) => {
+  const token = generateToken(user._id);
+  setAuthCookie(res, token);
+
+  return res.status(statusCode).json({
+    success: true,
+    data: {
+      token,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        streak: user.streak,
+        createdAt: user.createdAt,
+      },
+    },
   });
 };
 
@@ -24,23 +59,7 @@ const register = asyncHandler(async (req, res) => {
   }
 
   const user = await User.create({ name, email, password, role });
-  const token = generateToken(user._id);
-  setAuthCookie(res, token);
-
-  res.status(201).json({
-    success: true,
-    data: {
-      token,
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        streak: user.streak,
-        createdAt: user.createdAt,
-      },
-    },
-  });
+  sendAuthResponse(res, user, 201);
 });
 
 /**
@@ -64,23 +83,35 @@ const login = asyncHandler(async (req, res) => {
   user.updateStreak();
   await user.save();
 
-  const token = generateToken(user._id);
-  setAuthCookie(res, token);
+  sendAuthResponse(res, user);
+});
 
-  res.json({
-    success: true,
-    data: {
-      token,
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        streak: user.streak,
-        createdAt: user.createdAt,
-      },
-    },
-  });
+/**
+ * @route   POST /api/auth/demo
+ * @desc    One-click demo login for student or teacher role
+ * @access  Public
+ */
+const demoLogin = asyncHandler(async (req, res) => {
+  const { role } = req.validatedData;
+  const account = DEMO_ACCOUNTS[role];
+
+  let user = await User.findOne({ email: account.email });
+  if (!user) {
+    try {
+      user = await User.create(account);
+    } catch (err) {
+      if (err.code === 11000) {
+        user = await User.findOne({ email: account.email });
+      } else {
+        throw err;
+      }
+    }
+  }
+
+  user.updateStreak();
+  await user.save();
+
+  sendAuthResponse(res, user);
 });
 
 /**
@@ -202,6 +233,7 @@ const deleteAccount = asyncHandler(async (req, res) => {
 module.exports = {
   register,
   login,
+  demoLogin,
   logout,
   getMe,
   updateProfile,

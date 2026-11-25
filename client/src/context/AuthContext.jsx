@@ -39,8 +39,7 @@ export const AuthProvider = ({ children }) => {
     verifyToken();
   }, []);
 
-  const login = useCallback(async (credentials) => {
-    const { data } = await authService.login(credentials);
+  const persistSession = useCallback((data) => {
     const { token, user: userData } = data.data;
     if (token) localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(userData));
@@ -48,14 +47,29 @@ export const AuthProvider = ({ children }) => {
     return userData;
   }, []);
 
-  const register = useCallback(async (formData) => {
-    const { data } = await authService.register(formData);
-    const { token, user: userData } = data.data;
-    if (token) localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(userData));
-    setUser(userData);
-    return userData;
-  }, []);
+  const login = useCallback(
+    async (credentials) => {
+      const { data } = await authService.login(credentials);
+      return persistSession(data);
+    },
+    [persistSession]
+  );
+
+  const register = useCallback(
+    async (formData) => {
+      const { data } = await authService.register(formData);
+      return persistSession(data);
+    },
+    [persistSession]
+  );
+
+  const demoLogin = useCallback(
+    async (role = 'student') => {
+      const { data } = await authService.demoLogin(role);
+      return persistSession(data);
+    },
+    [persistSession]
+  );
 
   const logout = useCallback(async () => {
     try {
@@ -82,6 +96,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     register,
+    demoLogin,
     logout,
     updateUser,
     isStudent: user?.role === 'student',

@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   register,
   login,
+  demoLogin,
   logout,
   getMe,
   updateProfile,
@@ -10,10 +11,11 @@ const {
   deleteAccount,
 } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
-const { validate, registerSchema, loginSchema } = require('../validators/schemas');
+const { validate, registerSchema, loginSchema, demoLoginSchema } = require('../validators/schemas');
 
 router.post('/register', validate(registerSchema), register);
 router.post('/login', validate(loginSchema), login);
+router.post('/demo', validate(demoLoginSchema), demoLogin);
 router.post('/logout', logout);
 router.get('/me', protect, getMe);
 router.patch('/me', protect, updateProfile);
