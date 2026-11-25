@@ -23,10 +23,14 @@ const BugCard = ({ bug, index, language = 'javascript' }) => {
   const toast = useToast();
 
   const handleCopy = async () => {
-    await copyToClipboard(bug.solution);
-    setCopied(true);
-    toast({ type: 'success', message: 'Solution copied to clipboard' });
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await copyToClipboard(bug.solution);
+      setCopied(true);
+      toast({ type: 'success', message: 'Solution copied to clipboard' });
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast({ type: 'error', message: 'Failed to copy to clipboard' });
+    }
   };
 
   return (
@@ -172,7 +176,13 @@ export default function ReviewDetailPage() {
               <button onClick={handleSaveTitle} disabled={savingTitle} className="btn btn-primary btn-sm">
                 <Check size={14} />
               </button>
-              <button onClick={() => setEditingTitle(false)} className="btn btn-secondary btn-sm">
+              <button
+                onClick={() => {
+                  setEditingTitle(false);
+                  setTitleValue(review.title || '');
+                }}
+                className="btn btn-secondary btn-sm"
+              >
                 <X size={14} />
               </button>
             </div>
@@ -283,7 +293,14 @@ export default function ReviewDetailPage() {
               <span className="text-xs text-gray-400 font-mono">({getLanguageLabel(review.language)})</span>
             </div>
             <button
-              onClick={() => copyToClipboard(review.code).then(() => toast({ type: 'success', message: 'Code copied' }))}
+              onClick={async () => {
+                try {
+                  await copyToClipboard(review.code);
+                  toast({ type: 'success', message: 'Code copied' });
+                } catch {
+                  toast({ type: 'error', message: 'Failed to copy code' });
+                }
+              }}
               className="btn btn-ghost btn-sm text-gray-400 hover:text-white gap-1 text-xs"
             >
               <Copy size={13} /> Copy Code

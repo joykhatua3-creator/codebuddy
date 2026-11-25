@@ -2,24 +2,26 @@ const { z } = require('zod');
 
 // ─── Auth Validators ─────────────────────────────────────────────────────────
 
+const passwordSchema = z
+  .string({ required_error: 'Password is required' })
+  .min(6, 'Password must be at least 6 characters')
+  .regex(
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+    'Password must contain at least one uppercase letter, one lowercase letter, and one number'
+  );
+
 const registerSchema = z.object({
   name: z
     .string({ required_error: 'Name is required' })
+    .trim()
     .min(2, 'Name must be at least 2 characters')
-    .max(50, 'Name cannot exceed 50 characters')
-    .trim(),
+    .max(50, 'Name cannot exceed 50 characters'),
   email: z
     .string({ required_error: 'Email is required' })
     .email('Please provide a valid email')
     .toLowerCase()
     .trim(),
-  password: z
-    .string({ required_error: 'Password is required' })
-    .min(6, 'Password must be at least 6 characters')
-    .regex(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-      'Password must contain at least one uppercase letter, one lowercase letter, and one number'
-    ),
+  password: passwordSchema,
   role: z.enum(['student', 'teacher']).optional().default('student'),
 });
 
@@ -34,6 +36,21 @@ const loginSchema = z.object({
 
 const demoLoginSchema = z.object({
   role: z.enum(['student', 'teacher']).optional().default('student'),
+});
+
+const updateProfileSchema = z.object({
+  name: z
+    .string({ required_error: 'Name is required' })
+    .trim()
+    .min(2, 'Name must be at least 2 characters')
+    .max(50, 'Name cannot exceed 50 characters'),
+});
+
+const updatePasswordSchema = z.object({
+  currentPassword: z
+    .string({ required_error: 'Current password is required' })
+    .min(1, 'Current password is required'),
+  newPassword: passwordSchema,
 });
 
 // ─── Review Validators ───────────────────────────────────────────────────────
@@ -52,8 +69,18 @@ const reviewSubmitSchema = z.object({
   }),
   code: z
     .string({ required_error: 'Code is required' })
-    .min(5, 'Code must be at least 5 characters')
-    .max(15000, 'Code cannot exceed 15,000 characters'),
+    .max(15000, 'Code cannot exceed 15,000 characters')
+    .refine((val) => val.trim().length >= 5, 'Code must be at least 5 non-whitespace characters'),
+});
+
+const updateReviewSchema = z.object({
+  title: z.string().trim().max(120, 'Title cannot exceed 120 characters').optional(),
+  notes: z.string().max(2000, 'Notes cannot exceed 2,000 characters').optional(),
+  isBookmarked: z.boolean().optional(),
+});
+
+const updateRoadmapStepSchema = z.object({
+  completed: z.boolean().optional(),
 });
 
 // ─── Quiz Validators ─────────────────────────────────────────────────────────
@@ -115,8 +142,8 @@ const aiQuizResponseSchema = z.object({
     .array(
       z.object({
         question: z.string(),
-        options: z.array(z.string()).min(2),
-        correctAnswer: z.coerce.number().int().min(0).max(5),
+        options: z.array(z.string()).min(2).max(4),
+        correctAnswer: z.coerce.number().int().min(0).max(3),
         explanation: z.string().optional().default(''),
       })
     )
@@ -162,7 +189,11 @@ module.exports = {
   registerSchema,
   loginSchema,
   demoLoginSchema,
+  updateProfileSchema,
+  updatePasswordSchema,
   reviewSubmitSchema,
+  updateReviewSchema,
+  updateRoadmapStepSchema,
   quizSubmitSchema,
   aiReviewResponseSchema,
   aiQuizResponseSchema,

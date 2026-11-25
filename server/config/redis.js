@@ -2,6 +2,29 @@ const { Redis } = require('@upstash/redis');
 
 let redis = null;
 const memoryCache = new Map();
+const MAX_MEMORY_CACHE_ENTRIES = 500;
+
+const getFromMemory = (key) => {
+  const entry = memoryCache.get(key);
+  if (!entry) return null;
+  if (entry.expiresAt && entry.expiresAt <= Date.now()) {
+    memoryCache.delete(key);
+    return null;
+  }
+  return entry.value;
+};
+
+const setInMemory = (key, value, ttlSeconds) => {
+  if (memoryCache.has(key)) memoryCache.delete(key);
+  if (memoryCache.size >= MAX_MEMORY_CACHE_ENTRIES) {
+    const oldestKey = memoryCache.keys().next().value;
+    memoryCache.delete(oldestKey);
+  }
+  memoryCache.set(key, {
+    value,
+    expiresAt: ttlSeconds ? Date.now() + ttlSeconds * 1000 : null,
+  });
+};
 
 if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
   try {
@@ -24,10 +47,10 @@ const getReviewCache = async (codeHash) => {
       const data = await redis.get(key);
       if (data) return typeof data === 'string' ? JSON.parse(data) : data;
     }
-    return memoryCache.get(key) || null;
+    return getFromMemory(key);
   } catch (err) {
     console.warn('Redis getReviewCache warning:', err.message);
-    return memoryCache.get(key) || null;
+    return getFromMemory(key);
   }
 };
 
@@ -37,10 +60,10 @@ const setReviewCache = async (codeHash, data, ttlSeconds = 86400) => {
     if (redis) {
       await redis.set(key, JSON.stringify(data), { ex: ttlSeconds });
     }
-    memoryCache.set(key, data);
+    setInMemory(key, data, ttlSeconds);
   } catch (err) {
     console.warn('Redis setReviewCache warning:', err.message);
-    memoryCache.set(key, data);
+    setInMemory(key, data, ttlSeconds);
   }
 };
 
@@ -61,9 +84,9 @@ const getQuizCache = async (key) => {
       const data = await redis.get(cacheKey);
       if (data) return typeof data === 'string' ? JSON.parse(data) : data;
     }
-    return memoryCache.get(cacheKey) || null;
+    return getFromMemory(cacheKey);
   } catch (err) {
-    return memoryCache.get(cacheKey) || null;
+    return getFromMemory(cacheKey);
   }
 };
 
@@ -73,9 +96,9 @@ const setQuizCache = async (key, data, ttlSeconds = 43200) => {
     if (redis) {
       await redis.set(cacheKey, JSON.stringify(data), { ex: ttlSeconds });
     }
-    memoryCache.set(cacheKey, data);
+    setInMemory(cacheKey, data, ttlSeconds);
   } catch (err) {
-    memoryCache.set(cacheKey, data);
+    setInMemory(cacheKey, data, ttlSeconds);
   }
 };
 

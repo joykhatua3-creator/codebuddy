@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import {
   Bot, LayoutDashboard, Code2, History, Map, Brain, BarChart2, User,
-  LogOut, Sun, Moon, Bell, Menu, X, ChevronDown,
+  LogOut, Sun, Moon, Bell, Menu, ChevronDown,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -17,6 +17,47 @@ const NAV = [
   { to: '/dashboard/profile', label: 'Profile', icon: User },
 ];
 
+const StudentSidebarContent = ({ user, onNavigate, onLogout }) => (
+  <div className="flex flex-col h-full">
+    {/* Logo */}
+    <div className="flex items-center gap-2.5 px-4 py-5 border-b border-gray-200">
+      <div className="p-1.5 bg-primary-600 rounded-lg"><Bot size={18} className="text-white" /></div>
+      <div>
+        <span className="text-sm font-bold text-gray-900 leading-tight block">Code Review</span>
+        <span className="text-xs text-primary-600 font-semibold">Buddy</span>
+      </div>
+    </div>
+
+    {/* Nav links */}
+    <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto scrollbar-thin">
+      {NAV.map(({ to, label, icon: Icon, end }) => (
+        <NavLink
+          key={to}
+          to={to}
+          end={end}
+          onClick={onNavigate}
+          className={({ isActive }) => isActive ? 'sidebar-link-active' : 'sidebar-link'}
+        >
+          <Icon size={16} />
+          <span>{label}</span>
+        </NavLink>
+      ))}
+    </nav>
+
+    {/* Logout */}
+    <div className="p-3 border-t border-gray-200">
+      <div className="px-3 py-2 mb-2">
+        <p className="text-xs font-medium text-gray-900 truncate">{user?.name}</p>
+        <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+      </div>
+      <button onClick={onLogout} className="sidebar-link w-full text-red-600 hover:bg-red-50 hover:text-red-700">
+        <LogOut size={16} />
+        <span>Logout</span>
+      </button>
+    </div>
+  </div>
+);
+
 export default function StudentLayout() {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -29,52 +70,11 @@ export default function StudentLayout() {
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
-  const SidebarContent = () => (
-    <div className="flex flex-col h-full">
-      {/* Logo */}
-      <div className="flex items-center gap-2.5 px-4 py-5 border-b border-gray-200">
-        <div className="p-1.5 bg-primary-600 rounded-lg"><Bot size={18} className="text-white" /></div>
-        <div>
-          <span className="text-sm font-bold text-gray-900 leading-tight block">Code Review</span>
-          <span className="text-xs text-primary-600 font-semibold">Buddy</span>
-        </div>
-      </div>
-
-      {/* Nav links */}
-      <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto scrollbar-thin">
-        {NAV.map(({ to, label, icon: Icon, end }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={end}
-            onClick={() => setSidebarOpen(false)}
-            className={({ isActive }) => isActive ? 'sidebar-link-active' : 'sidebar-link'}
-          >
-            <Icon size={16} />
-            <span>{label}</span>
-          </NavLink>
-        ))}
-      </nav>
-
-      {/* Logout */}
-      <div className="p-3 border-t border-gray-200">
-        <div className="px-3 py-2 mb-2">
-          <p className="text-xs font-medium text-gray-900 truncate">{user?.name}</p>
-          <p className="text-xs text-gray-500 truncate">{user?.email}</p>
-        </div>
-        <button onClick={handleLogout} className="sidebar-link w-full text-red-600 hover:bg-red-50 hover:text-red-700">
-          <LogOut size={16} />
-          <span>Logout</span>
-        </button>
-      </div>
-    </div>
-  );
-
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
       {/* Desktop sidebar */}
       <aside className="hidden lg:flex flex-col w-56 bg-white border-r border-gray-200 shrink-0">
-        <SidebarContent />
+        <StudentSidebarContent user={user} onNavigate={() => setSidebarOpen(false)} onLogout={handleLogout} />
       </aside>
 
       {/* Mobile sidebar overlay */}
@@ -82,7 +82,7 @@ export default function StudentLayout() {
         <div className="fixed inset-0 z-40 lg:hidden">
           <div className="absolute inset-0 bg-black/40" onClick={() => setSidebarOpen(false)} />
           <aside className="relative z-50 flex flex-col w-56 h-full bg-white border-r border-gray-200">
-            <SidebarContent />
+            <StudentSidebarContent user={user} onNavigate={() => setSidebarOpen(false)} onLogout={handleLogout} />
           </aside>
         </div>
       )}

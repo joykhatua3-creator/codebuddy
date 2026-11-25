@@ -99,7 +99,7 @@ export default function QuizPage() {
             ))}
           </div>
         </div>
-        <button onClick={handleGenerate} className="btn btn-secondary btn-sm">New Quiz</button>
+        <button onClick={handleGenerate} disabled={submitting} className="btn btn-secondary btn-sm">New Quiz</button>
       </div>
 
       {/* Progress indicator */}

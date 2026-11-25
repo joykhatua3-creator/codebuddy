@@ -27,10 +27,20 @@ const errorHandler = (err, req, res, next) => {
       .join(', ');
   }
 
+  // Malformed JSON payload
+  if (err.type === 'entity.parse.failed') {
+    statusCode = 400;
+    message = 'Invalid JSON payload';
+  }
+
   // JWT errors
   if (err.name === 'JsonWebTokenError') {
     statusCode = 401;
     message = 'Invalid token';
+  }
+  if (err.name === 'TokenExpiredError') {
+    statusCode = 401;
+    message = 'Token has expired, please login again';
   }
 
   // Never expose stack traces in production

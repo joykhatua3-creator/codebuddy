@@ -74,7 +74,7 @@ const getRoadmap = asyncHandler(async (req, res) => {
  */
 const updateStep = asyncHandler(async (req, res) => {
   const { stepId } = req.params;
-  const { completed } = req.body;
+  const { completed } = req.validatedData || req.body || {};
 
   const roadmap = await Roadmap.findOne({ user: req.user._id });
 

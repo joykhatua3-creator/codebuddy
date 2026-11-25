@@ -11,7 +11,7 @@ const {
   toggleBookmark,
 } = require('../controllers/reviewController');
 const { protect, authorize } = require('../middleware/auth');
-const { validate, reviewSubmitSchema } = require('../validators/schemas');
+const { validate, reviewSubmitSchema, updateReviewSchema } = require('../validators/schemas');
 
 // AI rate limit: 10 requests per minute
 const aiRateLimit = rateLimit({
@@ -29,7 +29,7 @@ router.post('/', authorize('student'), aiRateLimit, validate(reviewSubmitSchema)
 router.post('/stream', authorize('student'), aiRateLimit, streamReview);
 router.get('/', authorize('student'), getReviews);
 router.get('/:id', authorize('student', 'teacher'), getReview);
-router.patch('/:id', authorize('student'), updateReview);
+router.patch('/:id', authorize('student'), validate(updateReviewSchema), updateReview);
 router.delete('/:id', authorize('student'), deleteReview);
 router.patch('/:id/bookmark', authorize('student'), toggleBookmark);
 

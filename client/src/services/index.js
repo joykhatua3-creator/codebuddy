@@ -48,50 +48,74 @@ export const reviewService = {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP error ${response.status}`);
+        const err = new Error(errorData.message || `HTTP error ${response.status}`);
+        err.status = response.status;
+        throw err;
       }
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
+      let finished = false;
+
+      const processBlock = (block) => {
+        if (!block.trim()) return;
+        let eventType = 'message';
+        let dataStr = '';
+
+        const parts = block.split('\n');
+        for (const line of parts) {
+          if (line.startsWith('event: ')) {
+            eventType = line.replace('event: ', '').trim();
+          } else if (line.startsWith('data: ')) {
+            dataStr = line.replace('data: ', '').trim();
+          }
+        }
+
+        if (dataStr) {
+          try {
+            const parsed = JSON.parse(dataStr);
+            if ((eventType === 'progress' || eventType === 'status') && onProgress) {
+              onProgress(parsed);
+            } else if (eventType === 'complete' && onComplete) {
+              finished = true;
+              onComplete(parsed);
+            } else if (eventType === 'error') {
+              finished = true;
+              if (onError) onError(new Error(parsed.message || 'Stream error'));
+            }
+          } catch (err) {
+            console.error('SSE JSON parse error:', err);
+          }
+        }
+      };
 
       while (true) {
         const { value, done } = await reader.read();
-        if (done) break;
+        if (done) {
+          buffer += decoder.decode();
+          break;
+        }
 
         buffer += decoder.decode(value, { stream: true });
+        buffer = buffer.replace(/\r\n/g, '\n');
         const lines = buffer.split('\n\n');
         buffer = lines.pop(); // Keep trailing incomplete chunk
 
         for (const block of lines) {
-          if (!block.trim()) continue;
-          let eventType = 'message';
-          let dataStr = '';
-
-          const parts = block.split('\n');
-          for (const line of parts) {
-            if (line.startsWith('event: ')) {
-              eventType = line.replace('event: ', '').trim();
-            } else if (line.startsWith('data: ')) {
-              dataStr = line.replace('data: ', '').trim();
-            }
-          }
-
-          if (dataStr) {
-            try {
-              const parsed = JSON.parse(dataStr);
-              if ((eventType === 'progress' || eventType === 'status') && onProgress) {
-                onProgress(parsed);
-              } else if (eventType === 'complete' && onComplete) {
-                onComplete(parsed);
-              } else if (eventType === 'error') {
-                if (onError) onError(new Error(parsed.message || 'Stream error'));
-              }
-            } catch (err) {
-              console.error('SSE JSON parse error:', err);
-            }
-          }
+          processBlock(block);
         }
+      }
+
+      // Flush any trailing SSE block when stream closes without final \n\n
+      if (buffer.trim()) {
+        for (const block of buffer.replace(/\r\n/g, '\n').split('\n\n')) {
+          processBlock(block);
+        }
+      }
+
+      if (!finished && onError) {
+        onError(new Error('Stream ended before completion'));
       }
     } catch (err) {
       if (onError) onError(err);

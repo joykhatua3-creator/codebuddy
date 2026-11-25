@@ -41,15 +41,24 @@ export default function ProfilePage() {
 
   const handleUpdatePassword = async (e) => {
     e.preventDefault();
-    if (newPassword.length < 6) {
-      return toast({ type: 'error', message: 'New password must be at least 6 characters' });
+    if (!currentPassword) {
+      return toast({ type: 'error', message: 'Current password is required' });
+    }
+    if (newPassword.length < 6 || !/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(newPassword)) {
+      return toast({
+        type: 'error',
+        message: 'New password must be at least 6 characters and include uppercase, lowercase, and a number',
+      });
     }
     if (newPassword !== confirmPassword) {
       return toast({ type: 'error', message: 'Passwords do not match' });
     }
     setUpdatingPassword(true);
     try {
-      await authService.updatePassword({ currentPassword, newPassword });
+      const res = await authService.updatePassword({ currentPassword, newPassword });
+      if (res.data?.data?.token) {
+        localStorage.setItem('token', res.data.data.token);
+      }
       toast({ type: 'success', message: 'Password changed successfully!' });
       setCurrentPassword('');
       setNewPassword('');
@@ -186,7 +195,7 @@ export default function ProfilePage() {
                 type="password"
                 className="input mt-1"
                 value={confirmPassword}
-                onChange={(e) => confirmPassword !== e.target.value && setConfirmPassword(e.target.value)}
+                onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Re-enter new password"
                 required
               />

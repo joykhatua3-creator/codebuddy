@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Bot, Code2, Map, Brain, ArrowRight, Zap, Shield, TrendingUp } from 'lucide-react';
+import { Bot, Code2, Map, Brain, ArrowRight, Zap, Shield } from 'lucide-react';
 
 const features = [
   { icon: Code2, title: 'AI Code Review', desc: 'Get instant, detailed analysis of your code with bug detection, hints, and guided solutions.' },

@@ -80,8 +80,20 @@ const submitQuiz = asyncHandler(async (req, res) => {
 
   const { answers } = req.validatedData;
 
+  // Deduplicate by questionIndex and restrict to valid question bounds
+  const uniqueAnswersMap = new Map();
+  for (const a of answers) {
+    if (a.questionIndex >= 0 && a.questionIndex < quiz.questions.length) {
+      uniqueAnswersMap.set(a.questionIndex, a.selectedOption);
+    }
+  }
+  const normalizedAnswers = Array.from(uniqueAnswersMap.entries()).map(([questionIndex, selectedOption]) => ({
+    questionIndex,
+    selectedOption,
+  }));
+
   let correctCount = 0;
-  const gradedAnswers = answers.map((a) => {
+  const gradedAnswers = normalizedAnswers.map((a) => {
     const question = quiz.questions[a.questionIndex];
     const isCorrect = question && a.selectedOption === question.correctAnswer;
     if (isCorrect) correctCount++;
@@ -93,9 +105,9 @@ const submitQuiz = asyncHandler(async (req, res) => {
     };
   });
 
-  const score = quiz.totalQuestions > 0 ? Math.round((correctCount / quiz.totalQuestions) * 100) : 0;
+  const score = quiz.totalQuestions > 0 ? Math.min(100, Math.round((correctCount / quiz.totalQuestions) * 100)) : 0;
 
-  quiz.answers = answers;
+  quiz.answers = normalizedAnswers;
   quiz.score = score;
   quiz.correctCount = correctCount;
   quiz.completed = true;

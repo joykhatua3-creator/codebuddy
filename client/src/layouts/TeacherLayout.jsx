@@ -9,54 +9,55 @@ const NAV = [
   { to: '/teacher/students', label: 'Students', icon: Users },
 ];
 
+const TeacherSidebarContent = ({ user, onNavigate, onLogout }) => (
+  <div className="flex flex-col h-full">
+    <div className="flex items-center gap-2.5 px-4 py-5 border-b border-gray-200">
+      <div className="p-1.5 bg-primary-600 rounded-lg"><Bot size={18} className="text-white" /></div>
+      <div>
+        <span className="text-sm font-bold text-gray-900 block">Code Review</span>
+        <span className="text-xs text-green-600 font-semibold">Teacher Portal</span>
+      </div>
+    </div>
+    <nav className="flex-1 p-3 space-y-0.5">
+      {NAV.map(({ to, label, icon: Icon, end }) => (
+        <NavLink key={to} to={to} end={end} onClick={onNavigate}
+          className={({ isActive }) => isActive ? 'sidebar-link-active' : 'sidebar-link'}>
+          <Icon size={16} /><span>{label}</span>
+        </NavLink>
+      ))}
+    </nav>
+    <div className="p-3 border-t border-gray-200">
+      <div className="px-3 py-2 mb-2">
+        <p className="text-xs font-medium text-gray-900 truncate">{user?.name}</p>
+        <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+      </div>
+      <button onClick={onLogout} className="sidebar-link w-full text-red-600 hover:bg-red-50 hover:text-red-700">
+        <LogOut size={16} /><span>Logout</span>
+      </button>
+    </div>
+  </div>
+);
+
 export default function TeacherLayout() {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
   const initials = user?.name?.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2) || 'T';
   const handleLogout = () => { logout(); navigate('/login'); };
-
-  const SidebarContent = () => (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center gap-2.5 px-4 py-5 border-b border-gray-200">
-        <div className="p-1.5 bg-primary-600 rounded-lg"><Bot size={18} className="text-white" /></div>
-        <div>
-          <span className="text-sm font-bold text-gray-900 block">Code Review</span>
-          <span className="text-xs text-green-600 font-semibold">Teacher Portal</span>
-        </div>
-      </div>
-      <nav className="flex-1 p-3 space-y-0.5">
-        {NAV.map(({ to, label, icon: Icon, end }) => (
-          <NavLink key={to} to={to} end={end} onClick={() => setSidebarOpen(false)}
-            className={({ isActive }) => isActive ? 'sidebar-link-active' : 'sidebar-link'}>
-            <Icon size={16} /><span>{label}</span>
-          </NavLink>
-        ))}
-      </nav>
-      <div className="p-3 border-t border-gray-200">
-        <div className="px-3 py-2 mb-2">
-          <p className="text-xs font-medium text-gray-900 truncate">{user?.name}</p>
-          <p className="text-xs text-gray-500 truncate">{user?.email}</p>
-        </div>
-        <button onClick={handleLogout} className="sidebar-link w-full text-red-600 hover:bg-red-50 hover:text-red-700">
-          <LogOut size={16} /><span>Logout</span>
-        </button>
-      </div>
-    </div>
-  );
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
       <aside className="hidden lg:flex flex-col w-56 bg-white border-r border-gray-200 shrink-0">
-        <SidebarContent />
+        <TeacherSidebarContent user={user} onNavigate={() => setSidebarOpen(false)} onLogout={handleLogout} />
       </aside>
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
           <div className="absolute inset-0 bg-black/40" onClick={() => setSidebarOpen(false)} />
           <aside className="relative z-50 flex flex-col w-56 h-full bg-white border-r border-gray-200">
-            <SidebarContent />
+            <TeacherSidebarContent user={user} onNavigate={() => setSidebarOpen(false)} onLogout={handleLogout} />
           </aside>
         </div>
       )}
@@ -65,12 +66,37 @@ export default function TeacherLayout() {
           <button onClick={() => setSidebarOpen(true)} className="lg:hidden btn btn-ghost p-1.5"><Menu size={20} /></button>
           <span className="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full">Teacher</span>
           <div className="flex-1" />
-          <button onClick={toggleTheme} className="btn btn-ghost p-2 rounded-lg">
+          <button onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'} className="btn btn-ghost p-2 rounded-lg">
             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
           </button>
-          <button className="btn btn-ghost p-2 rounded-lg"><Bell size={18} /></button>
           <div className="relative">
-            <button onClick={() => setUserMenuOpen((p) => !p)} className="flex items-center gap-2 btn btn-ghost px-2 py-1.5">
+            <button
+              onClick={() => { setNotifOpen((p) => !p); setUserMenuOpen(false); }}
+              className="btn btn-ghost p-2 rounded-lg relative"
+              title="Teacher Updates"
+            >
+              <Bell size={18} />
+            </button>
+            {notifOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
+                <div className="absolute right-0 top-full mt-1 w-64 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-50 space-y-2">
+                  <p className="text-xs font-semibold text-gray-900">Teacher Portal</p>
+                  <p className="text-xs text-gray-600">
+                    Review student rosters, average scores, and weak-topic trends from the Students view.
+                  </p>
+                  <button
+                    onClick={() => { navigate('/teacher/students'); setNotifOpen(false); }}
+                    className="w-full text-left text-xs text-primary-600 font-medium hover:underline"
+                  >
+                    View All Students →
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+          <div className="relative">
+            <button onClick={() => { setUserMenuOpen((p) => !p); setNotifOpen(false); }} className="flex items-center gap-2 btn btn-ghost px-2 py-1.5">
               <div className="w-7 h-7 rounded-full bg-green-600 flex items-center justify-center text-white text-xs font-bold">{initials}</div>
               <ChevronDown size={14} className="text-gray-400" />
             </button>

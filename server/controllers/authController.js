@@ -16,13 +16,19 @@ const DEMO_ACCOUNTS = {
   },
 };
 
+const getCookieOptions = (maxAge = 7 * 24 * 60 * 60 * 1000) => ({
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+  maxAge,
+});
+
 const setAuthCookie = (res, token) => {
-  res.cookie('token', token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
+  res.cookie('token', token, getCookieOptions());
+};
+
+const clearAuthCookie = (res) => {
+  res.cookie('token', '', { ...getCookieOptions(0), expires: new Date(0) });
 };
 
 const sendAuthResponse = (res, user, statusCode = 200) => {
@@ -120,11 +126,7 @@ const demoLogin = asyncHandler(async (req, res) => {
  * @access  Public
  */
 const logout = asyncHandler(async (req, res) => {
-  res.cookie('token', '', {
-    httpOnly: true,
-    expires: new Date(0),
-    sameSite: 'lax',
-  });
+  clearAuthCookie(res);
   res.json({ success: true, message: 'Logged out successfully' });
 });
 
@@ -156,13 +158,10 @@ const getMe = asyncHandler(async (req, res) => {
  * @access  Private
  */
 const updateProfile = asyncHandler(async (req, res) => {
-  const { name } = req.body;
-  if (!name || name.trim().length < 2) {
-    return res.status(400).json({ success: false, message: 'Name must be at least 2 characters' });
-  }
+  const { name } = req.validatedData;
 
   const user = await User.findById(req.user._id);
-  user.name = name.trim();
+  user.name = name;
   await user.save();
 
   res.json({
@@ -183,13 +182,7 @@ const updateProfile = asyncHandler(async (req, res) => {
  * @access  Private
  */
 const updatePassword = asyncHandler(async (req, res) => {
-  const { currentPassword, newPassword } = req.body;
-  if (!currentPassword || !newPassword) {
-    return res.status(400).json({ success: false, message: 'Current and new password are required' });
-  }
-  if (newPassword.length < 6) {
-    return res.status(400).json({ success: false, message: 'New password must be at least 6 characters' });
-  }
+  const { currentPassword, newPassword } = req.validatedData;
 
   const user = await User.findById(req.user._id).select('+password');
   const isMatch = await user.comparePassword(currentPassword);
@@ -203,7 +196,7 @@ const updatePassword = asyncHandler(async (req, res) => {
   const token = generateToken(user._id);
   setAuthCookie(res, token);
 
-  res.json({ success: true, message: 'Password updated successfully' });
+  res.json({ success: true, message: 'Password updated successfully', data: { token } });
 });
 
 /**
@@ -226,7 +219,7 @@ const deleteAccount = asyncHandler(async (req, res) => {
     User.findByIdAndDelete(userId),
   ]);
 
-  res.cookie('token', '', { httpOnly: true, expires: new Date(0) });
+  clearAuthCookie(res);
   res.json({ success: true, message: 'Account and associated learning data deleted successfully' });
 });
 

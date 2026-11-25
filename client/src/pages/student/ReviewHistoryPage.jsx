@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Eye, Trash2, Bookmark, BookmarkCheck, Filter, ChevronDown } from 'lucide-react';
+import { Search, Eye, Trash2, Bookmark, BookmarkCheck } from 'lucide-react';
 import { reviewService } from '../../services';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import ErrorMessage from '../../components/ui/ErrorMessage';
@@ -54,7 +54,11 @@ export default function ReviewHistoryPage() {
       await reviewService.delete(deleteId);
       setDeleteId(null);
       toast({ type: 'success', message: 'Review deleted' });
-      fetchReviews();
+      if (reviews.length === 1 && page > 1) {
+        setPage((p) => p - 1);
+      } else {
+        fetchReviews();
+      }
     } catch {
       toast({ type: 'error', message: 'Failed to delete review' });
     }

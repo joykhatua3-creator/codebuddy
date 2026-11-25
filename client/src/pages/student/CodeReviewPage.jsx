@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
-import { Code2, Trash2, Send, Radio, Sparkles, CheckCircle2, Clock, Moon, Sun, Maximize2, Minimize2, Globe } from 'lucide-react';
+import { Trash2, Radio, Sparkles, Moon, Sun, Maximize2, Minimize2, Globe } from 'lucide-react';
 import { reviewService } from '../../services';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { ALL_LANGUAGES, POPULAR_LANGUAGES, getMonacoLanguage, getLanguageLabel } from '../../utils/helpers';
@@ -84,6 +84,8 @@ export default function CodeReviewPage() {
     setStreamProgress('Starting code analysis...');
 
     if (useStreaming) {
+      let navigated = false;
+      let handledError = false;
       try {
         await reviewService.streamReview(
           { language, code },
@@ -94,19 +96,35 @@ export default function CodeReviewPage() {
             onComplete: (data) => {
               const reviewId = data.reviewId || data._id || data.data?._id;
               if (reviewId) {
+                navigated = true;
                 navigate(`/dashboard/review/${reviewId}`);
               } else {
                 fallbackSubmit();
               }
             },
             onError: (err) => {
+              handledError = true;
+              // Do not retry 4xx client/quota/auth rejections with a duplicate POST
+              if (err?.status && err.status >= 400 && err.status < 500) {
+                setError(err.message || 'Failed to submit code. Please try again.');
+                setLoading(false);
+                setStreamProgress(null);
+                return;
+              }
               console.warn('Streaming error, falling back to standard submit:', err.message);
               fallbackSubmit();
             },
           }
         );
+        if (!navigated && !handledError) {
+          setLoading(false);
+          setStreamProgress(null);
+        }
       } catch (err) {
-        fallbackSubmit();
+        if (!handledError) {
+          console.warn('Streaming exception, falling back to standard submit:', err?.message);
+          fallbackSubmit();
+        }
       }
     } else {
       fallbackSubmit();

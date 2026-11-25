@@ -97,10 +97,14 @@ export default function RoadmapPage() {
   };
 
   const handleCopyStarter = async (stepId, code) => {
-    await copyToClipboard(code);
-    setCopiedStep(stepId);
-    toast({ type: 'success', message: 'Starter code copied to clipboard!' });
-    setTimeout(() => setCopiedStep(null), 2000);
+    try {
+      await copyToClipboard(code);
+      setCopiedStep(stepId);
+      toast({ type: 'success', message: 'Starter code copied to clipboard!' });
+      setTimeout(() => setCopiedStep(null), 2000);
+    } catch {
+      toast({ type: 'error', message: 'Failed to copy starter code' });
+    }
   };
 
   const getLevelBadge = (level = 'Beginner') => {
@@ -245,7 +249,7 @@ export default function RoadmapPage() {
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-xs font-mono font-bold text-gray-400">
-                            STEP 0{idx + 1}
+                            STEP {String(idx + 1).padStart(2, '0')}
                           </span>
                           <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
                             {step.topic}

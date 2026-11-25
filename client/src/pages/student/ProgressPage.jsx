@@ -64,7 +64,12 @@ export default function ProgressPage() {
           <h3 className="section-title mb-4">Topic Strengths Radar</h3>
           {topics.length > 0 ? (
             <ResponsiveContainer width="100%" height={260}>
-              <RadarChart data={topics.slice(0, 8).map((t) => ({ topic: t.topic.split(' ')[0], level: t.level }))}>
+              <RadarChart
+                data={topics.slice(0, 8).map((t) => ({
+                  topic: t.topic.length > 14 ? `${t.topic.slice(0, 14)}…` : t.topic,
+                  level: t.level,
+                }))}
+              >
                 <PolarGrid />
                 <PolarAngleAxis dataKey="topic" tick={{ fontSize: 10 }} />
                 <Radar dataKey="level" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.25} />

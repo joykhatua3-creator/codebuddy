@@ -9,6 +9,8 @@ const { aiQueue } = require('./queueService');
 const { getQuizCache, setQuizCache } = require('../config/redis');
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+const hasGeminiKey = () =>
+  Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your_gemini_api_key_here');
 
 const reviewJsonSchema = {
   type: 'OBJECT',
@@ -183,14 +185,14 @@ const getStaticCodeReview = (code, language) => {
   // Check common issues
   lines.forEach((line, idx) => {
     const lineNum = idx + 1;
-    if (line.includes('==') && !line.includes('===') && !line.includes('!=') && !line.includes('!==') && language === 'javascript') {
+    if (/(^|[^=!<>])==([^=]|$)/.test(line) && language === 'javascript') {
       bugs.push({
         title: 'Loose equality comparison (==)',
         lineNumber: lineNum,
         description: 'Using loose equality (==) allows implicit type coercion which can trigger unexpected bugs.',
         whyItHappens: 'JavaScript converts types before comparing with ==, leading to subtle bugs like 0 == "".',
         hint: 'Use strict equality (===) to compare both value and type without coercion.',
-        solution: line.replace(/==/g, '===')
+        solution: line.replace(/(^|[^=!<>])==([^=]|$)/g, '$1===$2')
       });
     }
     if (line.trim().startsWith('var ') && language === 'javascript') {
@@ -326,6 +328,10 @@ STUDENT CODE (${language}):
 ${code}
 \`\`\`
 `;
+
+  if (!hasGeminiKey()) {
+    return getStaticCodeReview(code, language);
+  }
 
   try {
     const model = getReviewModel();
@@ -604,6 +610,10 @@ const generateQuizInternal = async (weakTopics = []) => {
   }
 
   // 2. Ultra-Fast AI Race (Capped at 3.5s)
+  if (!hasGeminiKey()) {
+    return getCuratedQuizForTopics(weakTopics);
+  }
+
   try {
     const topicList = weakTopics.length > 0 ? weakTopics.join(', ') : 'JavaScript Core Fundamentals';
     const prompt = `You are a programming quiz generator. Generate exactly 5 multiple-choice questions on these topics: ${topicList}. Return ONLY valid JSON matching the schema.`;
@@ -624,9 +634,7 @@ const generateQuizInternal = async (weakTopics = []) => {
     return validated;
   } catch (error) {
     console.warn('[AI Quiz Generation] Fast curated fallback activated:', error.message);
-    const curated = getCuratedQuizForTopics(weakTopics);
-    await setQuizCache(normalizedKey, curated, 3600);
-    return curated;
+    return getCuratedQuizForTopics(weakTopics);
   }
 };
 
@@ -759,6 +767,10 @@ Return ONLY valid JSON matching this structure:
   ]
 }
 `;
+
+  if (!hasGeminiKey()) {
+    return getFallbackRoadmap(weakTopics, studentName);
+  }
 
   try {
     const model = getRoadmapModel();

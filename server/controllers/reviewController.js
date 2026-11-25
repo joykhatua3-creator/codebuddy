@@ -6,7 +6,6 @@ const { generateCodeHash, asyncHandler } = require('../utils/helpers');
 const {
   getReviewCache,
   setReviewCache,
-  deleteReviewCache,
   checkQuotaGuard,
 } = require('../config/redis');
 
@@ -277,7 +276,7 @@ const getReview = asyncHandler(async (req, res) => {
  * @access  Private (owner only)
  */
 const updateReview = asyncHandler(async (req, res) => {
-  const { title, summary, notes, isBookmarked } = req.body;
+  const { title, notes, isBookmarked } = req.validatedData;
   const review = await Review.findById(req.params.id);
 
   if (!review) {
@@ -288,8 +287,7 @@ const updateReview = asyncHandler(async (req, res) => {
     return res.status(403).json({ success: false, message: 'Not authorized' });
   }
 
-  if (title !== undefined) review.title = String(title).trim();
-  if (summary !== undefined) review.summary = summary;
+  if (title !== undefined) review.title = title;
   if (notes !== undefined) review.notes = notes;
   if (isBookmarked !== undefined) review.isBookmarked = isBookmarked;
 
@@ -314,7 +312,6 @@ const deleteReview = asyncHandler(async (req, res) => {
     return res.status(403).json({ success: false, message: 'Not authorized to delete this review' });
   }
 
-  await deleteReviewCache(review.codeHash);
   await review.deleteOne();
 
   res.json({ success: true, data: { message: 'Review deleted successfully' } });

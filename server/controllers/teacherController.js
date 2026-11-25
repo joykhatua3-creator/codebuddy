@@ -98,7 +98,7 @@ const getStudentProgress = asyncHandler(async (req, res) => {
 
   const userId = student._id;
 
-  const [allReviewStats, reviews, topics, quizzes] = await Promise.all([
+  const [allReviewStats, reviews, topics, quizzes, totalQuizzes] = await Promise.all([
     Review.aggregate([
       { $match: { user: userId } },
       { $group: { _id: null, totalReviews: { $sum: 1 }, avgScore: { $avg: '$score' } } },
@@ -114,6 +114,7 @@ const getStudentProgress = asyncHandler(async (req, res) => {
       .sort('-completedAt')
       .limit(10)
       .lean(),
+    Quiz.countDocuments({ user: userId, completed: true }),
   ]);
 
   const totalReviews = allReviewStats[0]?.totalReviews || 0;
@@ -140,7 +141,7 @@ const getStudentProgress = asyncHandler(async (req, res) => {
       overview: {
         totalReviews,
         avgScore,
-        totalQuizzes: quizzes.length,
+        totalQuizzes,
         weakTopicsCount: topics.filter((t) => t.level < 50).length,
       },
       scoreTrend,

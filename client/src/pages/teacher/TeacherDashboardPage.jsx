@@ -4,7 +4,7 @@ import { Users, Code2, TrendingUp, AlertTriangle, Eye, Search } from 'lucide-rea
 import { teacherService } from '../../services';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import ErrorMessage from '../../components/ui/ErrorMessage';
-import { getScoreColor, getScoreLabel, getLanguageBadgeClass } from '../../utils/helpers';
+import { getScoreColor } from '../../utils/helpers';
 
 const StatCard = ({ label, value, icon: Icon, color }) => (
   <div className="card p-5 flex items-start gap-4">
@@ -39,9 +39,10 @@ export default function TeacherDashboardPage() {
   useEffect(() => { fetchStudents(); }, [fetchStudents]);
 
   const totalReviews = students.reduce((a, s) => a + s.totalReviews, 0);
-  const avgScore = students.length > 0
-    ? Math.round(students.reduce((a, s) => a + s.avgScore, 0) / students.length) : 0;
-  const needsHelp = students.filter((s) => s.avgScore < 60).length;
+  const activeStudents = students.filter((s) => s.totalReviews > 0);
+  const avgScore = activeStudents.length > 0
+    ? Math.round(activeStudents.reduce((a, s) => a + s.avgScore, 0) / activeStudents.length) : 0;
+  const needsHelp = activeStudents.filter((s) => s.avgScore < 60).length;
 
   const filtered = students.filter((s) =>
     s.name.toLowerCase().includes(search.toLowerCase()) ||
