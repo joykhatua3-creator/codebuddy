@@ -63,7 +63,10 @@ app.use(
 const globalRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: process.env.NODE_ENV === 'development' ? 10000 : 1000,
-  skip: (req) => process.env.NODE_ENV === 'development' || req.path === '/api/health',
+  skip: (req) =>
+    process.env.NODE_ENV === 'development' ||
+    req.path === '/api/health' ||
+    req.path === '/health',
   message: { success: false, message: 'Too many requests. Please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -76,7 +79,7 @@ app.use(express.json({ limit: '100kb' }));
 app.use(express.urlencoded({ extended: true, limit: '100kb' }));
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
-app.get('/api/health', (req, res) => {
+app.get(['/api/health', '/health'], (req, res) => {
   const mongoose = require('mongoose');
   res.json({
     success: true,
