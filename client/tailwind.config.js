@@ -9,21 +9,42 @@ export default {
     extend: {
       colors: {
         primary: {
-          50:  '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
+          50:  '#fff5f2',
+          100: '#ffe6de',
+          200: '#ffc9b8',
+          300: '#ffa387',
+          400: '#fb923c',
+          500: '#f97316',
+          600: '#e85d3f',
+          700: '#c9472b',
+          800: '#a33923',
+          900: '#843120',
+        },
+        paper: {
+          DEFAULT: '#F7F4EE',
+          surface: '#FFFFFF',
+          border: '#E5DFD5',
+          ink: '#141210',
+          muted: '#57534E',
+        },
+        obsidian: {
+          DEFAULT: '#0D0D11',
+          sidebar: '#111116',
+          card: '#16161D',
+          elevated: '#1C1C26',
+        },
+        copper: {
+          DEFAULT: '#E85D3F',
+          bright: '#F97316',
+        },
+        mint: {
+          DEFAULT: '#10B981',
+          electric: '#34D399',
         },
         success: {
-          50:  '#f0fdf4',
-          500: '#22c55e',
-          600: '#16a34a',
+          50:  '#ecfdf5',
+          500: '#10b981',
+          600: '#059669',
         },
         warning: {
           50:  '#fffbeb',
@@ -37,14 +58,15 @@ export default {
         },
       },
       fontFamily: {
+        serif: ['"Instrument Serif"', 'Georgia', 'serif'],
         sans: ['Inter', 'system-ui', 'sans-serif'],
-        mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+        mono: ['"JetBrains Mono"', 'Fira Code', 'monospace'],
       },
       boxShadow: {
-        card: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
-        'card-hover': '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+        card: '0 1px 2px 0 rgb(20 18 16 / 0.04), 0 1px 3px 0 rgb(20 18 16 / 0.06)',
+        'card-hover': '0 8px 24px -4px rgb(20 18 16 / 0.08), 0 2px 6px -1px rgb(20 18 16 / 0.04)',
       },
     },
   },
   plugins: [],
-}
+};

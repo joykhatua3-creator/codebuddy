@@ -174,10 +174,10 @@ export default function QuizPage() {
     return (
       <div className="max-w-4xl mx-auto space-y-6 pb-12">
         {/* Header */}
-        <div className="card p-6 md:p-8 bg-gradient-to-r from-blue-900/10 via-indigo-900/10 to-purple-900/10 border-blue-200/50 dark:border-blue-800/50">
+        <div className="card p-6 md:p-8 bg-gradient-to-r from-[#E85D3F]/10 via-[#F97316]/5 to-[#10B981]/10 border-[#E85D3F]/25 dark:border-[#F97316]/25">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300 mb-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-[#E85D3F]/10 text-[#E85D3F] dark:bg-orange-500/15 dark:text-orange-400 mb-2">
                 <Brain size={14} /> Gemini 3.8 AI Practice Arena
               </div>
               <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
@@ -230,7 +230,7 @@ export default function QuizPage() {
                       isSelected
                         ? 'bg-primary-600 text-white border-primary-600 shadow-md shadow-primary-500/20 ring-2 ring-primary-500/30'
                         : isMixed
-                        ? 'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 text-blue-900 dark:text-blue-200 border-blue-200 dark:border-blue-800 hover:border-blue-300'
+                        ? 'bg-gradient-to-r from-[#E85D3F]/10 to-[#10B981]/10 text-[#141210] dark:text-[#F8FAFC] border-[#E85D3F]/30 dark:border-[#F97316]/30 hover:border-[#E85D3F]'
                         : 'bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-750'
                     }`}
                   >

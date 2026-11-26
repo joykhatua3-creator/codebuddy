@@ -1,17 +1,40 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-
 @layer base {
+  :root {
+    --bg-canvas: #F7F4EE;
+    --bg-surface: #FFFFFF;
+    --border-subtle: #E5DFD5;
+    --text-primary: #141210;
+    --text-muted: #57534E;
+    --accent-primary: #E85D3F;
+    --accent-secondary: #10B981;
+  }
+
+  .dark {
+    --bg-canvas: #0D0D11;
+    --bg-surface: #16161D;
+    --border-subtle: rgba(255, 255, 255, 0.08);
+    --text-primary: #F8FAFC;
+    --text-muted: #94A3B8;
+    --accent-primary: #F97316;
+    --accent-secondary: #34D399;
+  }
+
   * {
-    @apply border-gray-200 dark:border-slate-700;
+    border-color: #E5DFD5;
+  }
+
+  .dark * {
+    border-color: rgba(255, 255, 255, 0.08);
   }
 
   body {
-    @apply bg-gray-50 text-gray-900 font-sans antialiased dark:bg-slate-950 dark:text-slate-100 transition-colors duration-200;
+    background-color: var(--bg-canvas);
+    color: var(--text-primary);
+    @apply font-sans antialiased transition-colors duration-200;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -25,15 +48,15 @@
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-xl transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .btn-primary {
-    @apply btn bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500;
+    @apply btn bg-[#E85D3F] text-white hover:bg-[#d54f32] focus:ring-[#E85D3F] dark:bg-[#F97316] dark:text-[#0D0D11] dark:font-semibold dark:hover:bg-[#fb923c] dark:focus:ring-[#F97316];
   }
 
   .btn-secondary {
-    @apply btn bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-primary-500 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700 dark:hover:bg-slate-700;
+    @apply btn bg-white text-[#141210] border border-[#E5DFD5] hover:bg-[#F7F4EE] focus:ring-[#E85D3F] dark:bg-[#1C1C26] dark:text-[#F8FAFC] dark:border-white/[0.1] dark:hover:bg-[#232330];
   }
 
   .btn-danger {
@@ -41,7 +64,7 @@
   }
 
   .btn-ghost {
-    @apply btn text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white;
+    @apply btn text-[#57534E] hover:bg-[#E5DFD5]/40 hover:text-[#141210] dark:text-[#94A3B8] dark:hover:bg-white/[0.06] dark:hover:text-[#F8FAFC];
   }
 
   .btn-sm {
@@ -53,19 +76,19 @@
   }
 
   .card {
-    @apply bg-white rounded-xl border border-gray-200 shadow-card dark:bg-slate-900 dark:border-slate-800;
+    @apply bg-white rounded-2xl border border-[#E5DFD5] shadow-card dark:bg-[#16161D] dark:border-white/[0.08] dark:shadow-none;
   }
 
   .card-hover {
-    @apply card hover:shadow-card-hover transition-shadow duration-200;
+    @apply card hover:shadow-card-hover transition-all duration-200 dark:hover:border-white/[0.14];
   }
 
   .input {
-    @apply w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100 dark:placeholder-slate-500;
+    @apply w-full px-3.5 py-2 text-sm border border-[#E5DFD5] rounded-xl bg-white text-[#141210] placeholder-[#57534E]/60 focus:outline-none focus:ring-2 focus:ring-[#E85D3F]/40 focus:border-[#E85D3F] transition-colors dark:bg-[#111116] dark:border-white/[0.1] dark:text-[#F8FAFC] dark:placeholder-[#94A3B8]/60 dark:focus:ring-[#F97316]/40 dark:focus:border-[#F97316];
   }
 
   .label {
-    @apply block text-sm font-medium text-gray-700 mb-1 dark:text-slate-300;
+    @apply block text-sm font-medium text-[#141210] mb-1 dark:text-[#F8FAFC];
   }
 
   .badge {
@@ -73,96 +96,116 @@
   }
 
   .badge-blue {
-    @apply badge bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300;
+    @apply badge bg-[#E85D3F]/10 text-[#E85D3F] dark:bg-orange-500/15 dark:text-orange-400;
   }
 
   .badge-green {
-    @apply badge bg-success-50 text-success-600 dark:bg-emerald-900/30 dark:text-emerald-300;
+    @apply badge bg-[#10B981]/10 text-[#059669] dark:bg-[#34D399]/15 dark:text-[#34D399];
   }
 
   .badge-yellow {
-    @apply badge bg-warning-50 text-warning-600 dark:bg-amber-900/30 dark:text-amber-300;
+    @apply badge bg-amber-500/10 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300;
   }
 
   .badge-red {
-    @apply badge bg-danger-50 text-danger-600 dark:bg-red-900/30 dark:text-red-300;
+    @apply badge bg-red-500/10 text-red-700 dark:bg-red-500/15 dark:text-red-300;
   }
 
   .badge-gray {
-    @apply badge bg-gray-100 text-gray-600 dark:bg-slate-800 dark:text-slate-300;
+    @apply badge bg-[#E5DFD5]/60 text-[#57534E] dark:bg-white/[0.06] dark:text-[#94A3B8];
   }
 
   .section-title {
-    @apply text-lg font-semibold text-gray-900 dark:text-slate-100;
+    @apply text-lg font-semibold text-[#141210] dark:text-[#F8FAFC];
   }
 
   .text-muted {
-    @apply text-gray-500 text-sm dark:text-slate-400;
+    @apply text-[#57534E] text-sm dark:text-[#94A3B8];
   }
 
   .divider {
-    @apply border-t border-gray-200 my-4 dark:border-slate-800;
+    @apply border-t border-[#E5DFD5] my-4 dark:border-white/[0.08];
   }
 
-  /* Sidebar styles */
+  /* Slim Minimalist Sidebar styles */
   .sidebar-link {
-    @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors cursor-pointer dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white;
+    @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-[#57534E] hover:bg-[#F7F4EE] hover:text-[#141210] border-l-2 border-transparent transition-all cursor-pointer dark:text-[#94A3B8] dark:hover:bg-white/[0.04] dark:hover:text-[#F8FAFC];
   }
 
   .sidebar-link-active {
-    @apply sidebar-link bg-primary-50 text-primary-700 hover:bg-primary-50 hover:text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 dark:hover:bg-primary-900/30;
+    @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold bg-[#E85D3F]/10 text-[#E85D3F] border-l-2 border-[#E85D3F] transition-all cursor-pointer dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500;
   }
 
   /* Score colors */
-  .score-excellent { @apply text-success-600; }
-  .score-good      { @apply text-primary-600; }
-  .score-fair      { @apply text-warning-600; }
-  .score-poor      { @apply text-danger-600; }
+  .score-excellent { @apply text-[#10B981] dark:text-[#34D399]; }
+  .score-good      { @apply text-[#E85D3F] dark:text-[#F97316]; }
+  .score-fair      { @apply text-amber-600 dark:text-amber-400; }
+  .score-poor      { @apply text-red-600 dark:text-red-400; }
 
   /* Monaco editor wrapper */
   .editor-wrapper {
-    @apply border border-gray-300 rounded-lg overflow-hidden dark:border-slate-700;
+    @apply border border-[#E5DFD5] rounded-xl overflow-hidden dark:border-white/[0.1];
   }
 }
 
-/* Global Dark Mode surface overrides for Tailwind utility backgrounds & text */
+/* Global Theme Surface Overrides for Workspace Pages */
 .dark aside,
 .dark header {
-  background-color: #0f172a;
-  border-color: #1e293b;
+  background-color: #111116;
+  border-color: rgba(255, 255, 255, 0.08);
 }
-.dark .bg-gray-50 {
-  background-color: #020617;
+.dark .bg-gray-50,
+.dark .bg-slate-950 {
+  background-color: #0D0D11;
 }
-.dark .bg-white {
-  background-color: #0f172a;
+.dark .bg-white,
+.dark .bg-slate-900 {
+  background-color: #16161D;
+}
+.dark .bg-slate-800 {
+  background-color: #1C1C26;
 }
 .dark .text-gray-900 {
-  color: #f1f5f9;
+  color: #F8FAFC;
 }
 .dark .text-gray-800 {
-  color: #e2e8f0;
+  color: #E2E8F0;
 }
 .dark .text-gray-700 {
-  color: #cbd5e1;
+  color: #CBD5E1;
 }
 .dark .text-gray-600,
 .dark .text-gray-500 {
-  color: #94a3b8;
+  color: #94A3B8;
 }
 .dark .border-gray-200,
-.dark .border-gray-100 {
-  border-color: #1e293b;
+.dark .border-gray-100,
+.dark .border-slate-800,
+.dark .border-slate-700 {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Light Warm Paper overrides for legacy gray utilities inside workspace */
+.bg-gray-50 {
+  background-color: #F7F4EE;
+}
+.border-gray-200 {
+  border-color: #E5DFD5;
 }
 
 @layer utilities {
+  .bg-dot-grid {
+    background-image: radial-gradient(rgba(20, 18, 16, 0.08) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: #cbd5e1 transparent;
+    scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
   }
-  .scrollbar-thin::-webkit-scrollbar { width: 6px; }
+  .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
   .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
-  .scrollbar-thin::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 3px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background-color: rgba(148, 163, 184, 0.35); border-radius: 3px; }
 }
 
 @media print {
@@ -177,7 +220,7 @@
   .card,
   .dark .card {
     background: #ffffff !important;
-    color: #0f172a !important;
+    color: #141210 !important;
     box-shadow: none !important;
   }
 }
