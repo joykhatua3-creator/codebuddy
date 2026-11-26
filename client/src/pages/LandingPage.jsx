@@ -262,9 +262,6 @@ export default function LandingPage() {
         {/* Equal-Height 3-Tile Liquid Glass Bento Grid */}
         <section id="features" className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
           <div className="text-center max-w-2xl mx-auto mb-10 space-y-2">
-            <span className="inline-block font-mono text-xs uppercase tracking-widest text-indigo-600 font-semibold">
-              Liquid Glass Learning Suite
-            </span>
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900">
               Three tools. One lucid workflow.
             </h2>
