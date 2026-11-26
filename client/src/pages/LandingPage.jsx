@@ -104,7 +104,7 @@ export default function LandingPage() {
             <div className="space-y-5 min-w-0">
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/80 backdrop-blur-xl border border-white/90 shadow-xs text-xs font-medium text-slate-700">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34D399]" />
-                <span>Gemini 3.8 Flash · Lucid Study Studio</span>
+                <span>Powered by Gemini 3.8 Flash</span>
               </div>
 
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold leading-[1.08] tracking-tight text-slate-900">
