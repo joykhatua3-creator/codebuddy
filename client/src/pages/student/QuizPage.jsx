@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Brain,
   ChevronLeft,
@@ -13,6 +14,7 @@ import {
   Flame,
 } from 'lucide-react';
 import { quizService } from '../../services';
+import { QUERY_KEYS } from '../../lib/queryClient';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import ErrorMessage from '../../components/ui/ErrorMessage';
 import { useToast } from '../../components/ui/Toast';
@@ -74,16 +76,47 @@ export default function QuizPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const toast = useToast();
+  const queryClient = useQueryClient();
 
   const urlTopic = searchParams.get('topic') || '';
+  const initialSelectedTopic = urlTopic
+    ? QUICK_TOPICS.includes(urlTopic)
+      ? urlTopic
+      : 'Custom'
+    : 'Mixed / Overall Coding Quiz';
+  const initialCustomTopic =
+    urlTopic && !QUICK_TOPICS.includes(urlTopic) ? urlTopic : '';
 
-  // Setup state
-  const [selectedTopic, setSelectedTopic] = useState(
-    urlTopic ? (QUICK_TOPICS.includes(urlTopic) ? urlTopic : 'Custom') : 'Mixed / Overall Coding Quiz'
-  );
-  const [customTopic, setCustomTopic] = useState(
-    urlTopic && !QUICK_TOPICS.includes(urlTopic) ? urlTopic : ''
-  );
+  // Setup state (tracks urlTopic overrides without effect cascade)
+  const [topicState, setTopicState] = useState({
+    urlSync: urlTopic,
+    selected: initialSelectedTopic,
+    custom: initialCustomTopic,
+  });
+
+  const resolvedTopicState =
+    topicState.urlSync === urlTopic
+      ? topicState
+      : {
+          urlSync: urlTopic,
+          selected: initialSelectedTopic,
+          custom: initialCustomTopic,
+        };
+  const selectedTopic = resolvedTopicState.selected;
+  const customTopic = resolvedTopicState.custom;
+  const setSelectedTopic = (next) =>
+    setTopicState((prev) => ({
+      urlSync: urlTopic,
+      selected: typeof next === 'function' ? next(prev.selected) : next,
+      custom: prev.urlSync === urlTopic ? prev.custom : initialCustomTopic,
+    }));
+  const setCustomTopic = (next) =>
+    setTopicState((prev) => ({
+      urlSync: urlTopic,
+      selected: prev.urlSync === urlTopic ? prev.selected : initialSelectedTopic,
+      custom: typeof next === 'function' ? next(prev.custom) : next,
+    }));
+
   const [selectedLevel, setSelectedLevel] = useState('Beginner');
   const [selectedLanguage, setSelectedLanguage] = useState('general');
 
@@ -96,19 +129,6 @@ export default function QuizPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [showSubmitModal, setShowSubmitModal] = useState(false);
-
-  // Sync if URL query param changes
-  useEffect(() => {
-    if (urlTopic) {
-      if (QUICK_TOPICS.includes(urlTopic)) {
-        setSelectedTopic(urlTopic);
-        setCustomTopic('');
-      } else {
-        setSelectedTopic('Custom');
-        setCustomTopic(urlTopic);
-      }
-    }
-  }, [urlTopic]);
 
   const activeLevelConfig =
     DIFFICULTY_LEVELS.find((l) => l.id === selectedLevel) || DIFFICULTY_LEVELS[0];
@@ -157,6 +177,8 @@ export default function QuizPage() {
 
     try {
       const res = await quizService.submit(quiz._id, { answers: answersArray });
+      queryClient.setQueryData(QUERY_KEYS.quizResult(quiz._id), res.data.data);
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.progress });
       navigate(`/dashboard/quiz/result/${quiz._id}`, { state: { result: res.data.data } });
     } catch (err) {
       toast({ type: 'error', message: err.response?.data?.message || 'Failed to submit quiz' });

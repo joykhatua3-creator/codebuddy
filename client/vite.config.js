@@ -15,6 +15,7 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
+    target: 'es2020',
     rollupOptions: {
       external: ['canvg'],
       output: {
@@ -22,7 +23,15 @@ export default defineConfig({
           if (id.includes('node_modules')) {
             if (id.includes('recharts') || id.includes('d3')) return 'charts';
             if (id.includes('@monaco-editor') || id.includes('monaco-editor')) return 'editor';
-            if (id.includes('react-dom') || id.includes('react-router')) return 'vendor';
+            if (
+              id.includes('/react/') ||
+              id.includes('\\react\\') ||
+              id.includes('react-dom') ||
+              id.includes('react-router') ||
+              id.includes('@tanstack/react-query')
+            ) {
+              return 'vendor';
+            }
           }
         },
       },

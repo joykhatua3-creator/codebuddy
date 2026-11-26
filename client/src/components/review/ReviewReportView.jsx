@@ -1,12 +1,13 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Editor, { DiffEditor } from '@monaco-editor/react';
 import {
   Bug, Shield, BookOpen, Copy, CheckCheck, AlertTriangle, Edit2, Check, X, Code2,
   RefreshCw, ArrowRight, GitCompare, MessageSquareCheck, Sparkles, FileDown,
   CheckCircle2, ListOrdered, Clock, Cpu, GitBranch, Boxes, ChevronDown, ChevronRight,
 } from 'lucide-react';
 import LoadingSpinner from '../ui/LoadingSpinner';
+
+const LazyMonacoCodeBlock = lazy(() => import('./LazyMonacoCodeBlock'));
 import {
   formatDate, getLanguageLabel, getLanguageBadgeClass,
   getConceptLevelClass, getSeverityClass, copyToClipboard,
@@ -581,51 +582,23 @@ export default function ReviewReportView({
           </div>
 
           <div style={{ height: `${diffEditorHeight}px` }}>
-            {codeViewMode === 'diff' ? (
-              <DiffEditor
-                height="100%"
+            <Suspense
+              fallback={
+                <div className="h-full flex items-center justify-center bg-[#0B1120]/90 text-xs text-slate-400 gap-2">
+                  <LoadingSpinner size="sm" />
+                  <span>Loading code diff viewer...</span>
+                </div>
+              }
+            >
+              <LazyMonacoCodeBlock
+                codeViewMode={codeViewMode}
                 language={getMonacoLanguage(review.language)}
-                original={originalCode}
-                modified={improvedCode || originalCode}
-                theme={monacoTheme}
-                options={{
-                  readOnly: true,
-                  renderSideBySide,
-                  fontSize: 13,
-                  fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-                  minimap: { enabled: false },
-                  overviewRulerLanes: 0,
-                  renderOverviewRuler: false,
-                  hideCursorInOverviewRuler: true,
-                  overviewRulerBorder: false,
-                  scrollBeyondLastLine: false,
-                  automaticLayout: true,
-                  padding: { top: 10, bottom: 10 },
-                }}
+                originalCode={originalCode}
+                improvedCode={improvedCode}
+                monacoTheme={monacoTheme}
+                renderSideBySide={renderSideBySide}
               />
-            ) : (
-              <Editor
-                height="100%"
-                language={getMonacoLanguage(review.language)}
-                value={originalCode}
-                theme={monacoTheme}
-                options={{
-                  readOnly: true,
-                  fontSize: 13,
-                  fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-                  minimap: { enabled: false },
-                  overviewRulerLanes: 0,
-                  hideCursorInOverviewRuler: true,
-                  overviewRulerBorder: false,
-                  scrollBeyondLastLine: false,
-                  lineNumbers: 'on',
-                  wordWrap: 'on',
-                  automaticLayout: true,
-                  domReadOnly: true,
-                  padding: { top: 10, bottom: 10 },
-                }}
-              />
-            )}
+            </Suspense>
           </div>
 
           {codeViewMode === 'diff' && (

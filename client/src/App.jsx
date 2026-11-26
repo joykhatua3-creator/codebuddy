@@ -5,9 +5,9 @@ import { warmUpBackend } from './services';
 import ProtectedRoute from './routes/ProtectedRoute';
 import LoadingSpinner from './components/ui/LoadingSpinner';
 
-// Layouts
-import StudentLayout from './layouts/StudentLayout';
-import TeacherLayout from './layouts/TeacherLayout';
+// Layouts (Lazy loaded so public routes stay slim)
+const StudentLayout = lazy(() => import('./layouts/StudentLayout'));
+const TeacherLayout = lazy(() => import('./layouts/TeacherLayout'));
 
 // Auth Pages (Lazy loaded for fast initial app render)
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'));

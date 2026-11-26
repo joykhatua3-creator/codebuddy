@@ -1,9 +1,11 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ClipboardList, Plus, Calendar, Users, Eye, Trash2, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import { assignmentService } from '../../services';
+import { QUERY_KEYS } from '../../lib/queryClient';
 import ErrorMessage from '../../components/ui/ErrorMessage';
 import EmptyState from '../../components/ui/EmptyState';
 import ConfirmModal from '../../components/ui/ConfirmModal';
@@ -17,9 +19,15 @@ const getDefaultDueDate = () => new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).t
 export default function TeacherAssignmentsPage() {
   const navigate = useNavigate();
   const toast = useToast();
-  const [assignments, setAssignments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const queryClient = useQueryClient();
+
+  const { data: assignments = [], isLoading, error, refetch } = useQuery({
+    queryKey: QUERY_KEYS.teacherAssignments,
+    queryFn: async () => {
+      const res = await assignmentService.getAll();
+      return res.data.data || [];
+    },
+  });
 
   const [showForm, setShowForm] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -35,23 +43,6 @@ export default function TeacherAssignmentsPage() {
   const [submissionsByAssignment, setSubmissionsByAssignment] = useState({});
   const [loadingSubsId, setLoadingSubsId] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
-
-  const fetchAssignments = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const res = await assignmentService.getAll();
-      setAssignments(res.data.data || []);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load assignments');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchAssignments();
-  }, [fetchAssignments]);
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -77,7 +68,7 @@ export default function TeacherAssignmentsPage() {
         dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       });
       setShowForm(false);
-      fetchAssignments();
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.teacherAssignments });
     } catch (err) {
       toast({ type: 'error', message: err.response?.data?.message || 'Failed to create assignment' });
     } finally {
@@ -93,10 +84,17 @@ export default function TeacherAssignmentsPage() {
     setExpandedId(assignmentId);
     setLoadingSubsId(assignmentId);
     try {
-      const res = await assignmentService.getSubmissions(assignmentId);
+      const subs = await queryClient.fetchQuery({
+        queryKey: QUERY_KEYS.assignmentSubmissions(assignmentId),
+        queryFn: async () => {
+          const res = await assignmentService.getSubmissions(assignmentId);
+          return res.data.data.submissions || [];
+        },
+        staleTime: 1000 * 60,
+      });
       setSubmissionsByAssignment((prev) => ({
         ...prev,
-        [assignmentId]: res.data.data.submissions || [],
+        [assignmentId]: subs,
       }));
     } catch (err) {
       toast({ type: 'error', message: err.response?.data?.message || 'Failed to load submissions' });
@@ -110,7 +108,7 @@ export default function TeacherAssignmentsPage() {
       await assignmentService.delete(deleteId);
       setDeleteId(null);
       toast({ type: 'success', message: 'Assignment deleted' });
-      fetchAssignments();
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.teacherAssignments });
     } catch {
       toast({ type: 'error', message: 'Failed to delete assignment' });
     }
@@ -207,10 +205,13 @@ export default function TeacherAssignmentsPage() {
       )}
 
       {/* Assignments List */}
-      {loading ? (
+      {isLoading && assignments.length === 0 ? (
         <ListSkeleton count={3} />
       ) : error ? (
-        <ErrorMessage message={error} onRetry={fetchAssignments} />
+        <ErrorMessage
+          message={error.response?.data?.message || 'Failed to load assignments'}
+          onRetry={refetch}
+        />
       ) : assignments.length === 0 ? (
         <EmptyState
           icon={ClipboardList}

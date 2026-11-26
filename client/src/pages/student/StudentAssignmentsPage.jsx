@@ -1,7 +1,9 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { ClipboardList, Calendar, Code2, CheckCircle2, Eye } from 'lucide-react';
 import { assignmentService } from '../../services';
+import { QUERY_KEYS } from '../../lib/queryClient';
 import ErrorMessage from '../../components/ui/ErrorMessage';
 import EmptyState from '../../components/ui/EmptyState';
 import { ListSkeleton } from '../../components/ui/Skeleton';
@@ -9,27 +11,15 @@ import { formatDate, getLanguageLabel, getLanguageBadgeClass } from '../../utils
 
 export default function StudentAssignmentsPage() {
   const navigate = useNavigate();
-  const [assignments, setAssignments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [nowTimestamp] = useState(() => Date.now());
 
-  const fetchAssignments = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
+  const { data: assignments = [], isLoading, error, refetch } = useQuery({
+    queryKey: QUERY_KEYS.studentAssignments,
+    queryFn: async () => {
       const res = await assignmentService.getAll();
-      setAssignments(res.data.data || []);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load assignments');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchAssignments();
-  }, [fetchAssignments]);
+      return res.data.data || [];
+    },
+  });
 
   return (
     <div className="space-y-5 w-full max-w-[1440px] mx-auto overflow-x-hidden">
@@ -40,10 +30,13 @@ export default function StudentAssignmentsPage() {
         </p>
       </div>
 
-      {loading ? (
+      {isLoading && assignments.length === 0 ? (
         <ListSkeleton count={3} />
       ) : error ? (
-        <ErrorMessage message={error} onRetry={fetchAssignments} />
+        <ErrorMessage
+          message={error.response?.data?.message || 'Failed to load assignments'}
+          onRetry={refetch}
+        />
       ) : assignments.length === 0 ? (
         <EmptyState
           icon={ClipboardList}

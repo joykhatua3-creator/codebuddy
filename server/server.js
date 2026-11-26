@@ -20,8 +20,17 @@ app.set('trust proxy', 1);
 // Disable X-Powered-By header for security and footprint reduction
 app.disable('x-powered-by');
 
-// Enable HTTP response compression (gzip / deflate) for faster response delivery
-app.use(compression());
+// Enable HTTP response compression (skip SSE streams so events flush immediately)
+app.use(
+  compression({
+    filter: (req, res) => {
+      if (req.path === '/api/reviews/stream' || req.headers.accept === 'text/event-stream') {
+        return false;
+      }
+      return compression.filter(req, res);
+    },
+  })
+);
 
 // ─── Security Middleware ──────────────────────────────────────────────────────
 app.use(helmet());

@@ -1,38 +1,57 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   LineChart, Line, RadarChart, Radar, PolarGrid, PolarAngleAxis,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 import { progressService } from '../../services';
+import { QUERY_KEYS } from '../../lib/queryClient';
 import ErrorMessage from '../../components/ui/ErrorMessage';
 import { RouteContentSkeleton } from '../../components/ui/Skeleton';
 import { getScoreColor, getLevelColor, formatDate } from '../../utils/helpers';
 
 export default function ProgressPage() {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  const fetchProgress = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: QUERY_KEYS.progress,
+    queryFn: async () => {
       const res = await progressService.get();
-      setData(res.data.data);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load progress');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      return res.data.data;
+    },
+  });
 
-  useEffect(() => { fetchProgress(); }, [fetchProgress]);
+  const scoreTrend = data?.scoreTrend || [];
+  const topics = data?.topics;
+  const recentQuizzes = data?.recentQuizzes;
 
-  if (loading) return <div className="w-full max-w-[1440px] mx-auto"><RouteContentSkeleton /></div>;
-  if (error) return <ErrorMessage message={error} onRetry={fetchProgress} />;
+  const radarData = useMemo(
+    () =>
+      (topics || []).slice(0, 8).map((t) => ({
+        topic: t.topic.length > 12 ? `${t.topic.slice(0, 12)}…` : t.topic,
+        level: t.level,
+      })),
+    [topics]
+  );
 
-  const { scoreTrend = [], topics = [], recentQuizzes = [] } = data || {};
-  const quizChartData = recentQuizzes.slice().reverse().map((q, i) => ({ name: `Q${i+1}`, score: q.score || 0 }));
+  const quizChartData = useMemo(
+    () =>
+      (recentQuizzes || [])
+        .slice()
+        .reverse()
+        .map((q, i) => ({ name: `Q${i + 1}`, score: q.score || 0 })),
+    [recentQuizzes]
+  );
+
+  if (isLoading && !data) return <div className="w-full max-w-[1440px] mx-auto"><RouteContentSkeleton /></div>;
+  if (error) {
+    return (
+      <ErrorMessage
+        message={error.response?.data?.message || 'Failed to load progress'}
+        onRetry={refetch}
+      />
+    );
+  }
+
+  const safeTopics = topics || [];
 
   return (
     <div className="space-y-5 w-full max-w-[1440px] mx-auto overflow-x-hidden">
@@ -62,13 +81,10 @@ export default function ProgressPage() {
         {/* Radar */}
         <div className="card p-5">
           <h3 className="section-title mb-4">Topic Strengths Radar</h3>
-          {topics.length > 0 ? (
+          {radarData.length > 0 ? (
             <ResponsiveContainer width="100%" height={260}>
               <RadarChart
-                data={topics.slice(0, 8).map((t) => ({
-                  topic: t.topic.length > 12 ? `${t.topic.slice(0, 12)}…` : t.topic,
-                  level: t.level,
-                }))}
+                data={radarData}
                 outerRadius="66%"
                 margin={{ top: 10, right: 28, bottom: 10, left: 28 }}
               >
@@ -100,7 +116,7 @@ export default function ProgressPage() {
       {/* Full topic table */}
       <div className="card p-5">
         <h3 className="section-title mb-4">All Topic Progress</h3>
-        {topics.length > 0 ? (
+        {safeTopics.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -114,7 +130,7 @@ export default function ProgressPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {topics.map((t) => (
+                {safeTopics.map((t) => (
                   <tr key={t.topic} className="hover:bg-gray-50">
                     <td className="py-2.5 font-medium text-gray-800">{t.topic}</td>
                     <td className="py-2.5 text-center text-red-600">{t.weakCount}</td>

@@ -159,7 +159,7 @@ const logout = asyncHandler(async (req, res) => {
  * @access  Private
  */
 const getMe = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user._id);
+  const user = req.user;
 
   res.json({
     success: true,
@@ -314,6 +314,7 @@ const upsertOAuthUser = async ({ email, name, provider, oauthId, role = 'student
  * @access  Public
  */
 const getOAuthProviders = asyncHandler(async (req, res) => {
+  res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
   res.json({
     success: true,
     data: {

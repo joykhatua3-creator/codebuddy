@@ -1,10 +1,11 @@
-import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Flame, Code2, Brain, TrendingUp, AlertTriangle, Eye } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 import { teacherService } from '../../services';
+import { QUERY_KEYS } from '../../lib/queryClient';
 import ErrorMessage from '../../components/ui/ErrorMessage';
 import ScoreBadge from '../../components/ui/ScoreBadge';
 import { DashboardSkeleton } from '../../components/ui/Skeleton';
@@ -13,27 +14,25 @@ import { getScoreColor, getLevelColor, formatDate, formatRelativeTime, getLangua
 export default function StudentProgressPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
-  const fetchProgress = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: QUERY_KEYS.teacherStudentProgress(id),
+    queryFn: async () => {
       const res = await teacherService.getStudentProgress(id);
-      setData(res.data.data);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load student progress');
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
+      return res.data.data;
+    },
+    enabled: Boolean(id),
+  });
 
-  useEffect(() => { fetchProgress(); }, [fetchProgress]);
-
-  if (loading) return <div className="w-full max-w-[1440px] mx-auto"><DashboardSkeleton cards={4} /></div>;
-  if (error) return <ErrorMessage message={error} onRetry={fetchProgress} />;
+  if (isLoading && !data) return <div className="w-full max-w-[1440px] mx-auto"><DashboardSkeleton cards={4} /></div>;
+  if (error) {
+    return (
+      <ErrorMessage
+        message={error.response?.data?.message || 'Failed to load student progress'}
+        onRetry={refetch}
+      />
+    );
+  }
   if (!data) return null;
 
   const { student, overview, scoreTrend = [], topics = [], recentReviews = [], quizzes = [] } = data;

@@ -11,15 +11,22 @@ import AuroraBackdrop from '../components/ui/AuroraBackdrop';
 import BrandLogo from '../components/ui/BrandLogo';
 
 const NAV = [
-  { to: '/dashboard', label: 'Overview', icon: LayoutDashboard, end: true },
-  { to: '/dashboard/code-review', label: 'Code Review', icon: Code2 },
-  { to: '/dashboard/assignments', label: 'Assignments', icon: ClipboardList },
-  { to: '/dashboard/history', label: 'Review History', icon: History },
-  { to: '/dashboard/roadmap', label: 'Learning Roadmap', icon: Map },
-  { to: '/dashboard/quiz', label: 'Practice Quizzes', icon: Brain },
-  { to: '/dashboard/progress', label: 'My Progress', icon: BarChart2 },
-  { to: '/dashboard/profile', label: 'Profile', icon: User },
+  { to: '/dashboard', label: 'Overview', icon: LayoutDashboard, end: true, prefetch: () => import('../pages/student/DashboardPage') },
+  { to: '/dashboard/code-review', label: 'Code Review', icon: Code2, prefetch: () => import('../pages/student/CodeReviewPage') },
+  { to: '/dashboard/assignments', label: 'Assignments', icon: ClipboardList, prefetch: () => import('../pages/student/StudentAssignmentsPage') },
+  { to: '/dashboard/history', label: 'Review History', icon: History, prefetch: () => import('../pages/student/ReviewHistoryPage') },
+  { to: '/dashboard/roadmap', label: 'Learning Roadmap', icon: Map, prefetch: () => import('../pages/student/RoadmapPage') },
+  { to: '/dashboard/quiz', label: 'Practice Quizzes', icon: Brain, prefetch: () => import('../pages/student/QuizPage') },
+  { to: '/dashboard/progress', label: 'My Progress', icon: BarChart2, prefetch: () => import('../pages/student/ProgressPage') },
+  { to: '/dashboard/profile', label: 'Profile', icon: User, prefetch: () => import('../pages/student/ProfilePage') },
 ];
+
+const prefetchedRoutes = new Set();
+const prefetchRoute = (to, loader) => {
+  if (!loader || prefetchedRoutes.has(to)) return;
+  prefetchedRoutes.add(to);
+  loader().catch(() => prefetchedRoutes.delete(to));
+};
 
 const getMobilePageTitle = (pathname) => {
   if (pathname.startsWith('/dashboard/code-review')) return 'Code Review';
@@ -34,7 +41,7 @@ const getMobilePageTitle = (pathname) => {
 };
 
 const StudentSidebarContent = ({ user, onNavigate, onLogout, showClose = false }) => (
-  <div className="flex flex-col h-full bg-white/75 dark:bg-[#0B1120]/85 backdrop-blur-2xl">
+  <div className="flex flex-col h-full bg-white/80 dark:bg-[#0B1120]/90 backdrop-blur-lg">
     {/* Logo + Mobile Close */}
     <div className="flex items-center justify-between gap-2 px-4 py-4 border-b border-white/70 dark:border-white/10">
       <BrandLogo variant="mark" subtitle="Lucid Studio" to="/" onClick={onNavigate} />
@@ -52,12 +59,14 @@ const StudentSidebarContent = ({ user, onNavigate, onLogout, showClose = false }
 
     {/* Nav links */}
     <nav className="flex-1 p-3 space-y-1 overflow-y-auto scrollbar-thin">
-      {NAV.map(({ to, label, icon: Icon, end }) => (
+      {NAV.map(({ to, label, icon: Icon, end, prefetch }) => (
         <NavLink
           key={to}
           to={to}
           end={end}
           onClick={onNavigate}
+          onMouseEnter={() => prefetchRoute(to, prefetch)}
+          onFocus={() => prefetchRoute(to, prefetch)}
           className={({ isActive }) => (isActive ? 'sidebar-link-active' : 'sidebar-link')}
         >
           <Icon size={16} />
@@ -124,7 +133,7 @@ export default function StudentLayout() {
       {/* Main area */}
       <div className="flex flex-col flex-1 min-w-0">
         {/* Top header */}
-        <header className="sticky top-0 z-30 flex items-center gap-2 sm:gap-3 px-3 sm:px-5 lg:px-6 py-2.5 sm:py-3 bg-white/70 dark:bg-[#0B1120]/75 backdrop-blur-xl border-b border-white/75 dark:border-white/10 shrink-0">
+        <header className="sticky top-0 z-30 flex items-center gap-2 sm:gap-3 px-3 sm:px-5 lg:px-6 py-2.5 sm:py-3 bg-white/75 dark:bg-[#0B1120]/80 backdrop-blur-md border-b border-white/75 dark:border-white/10 shrink-0">
           <button
             type="button"
             onClick={() => setSidebarOpen(true)}

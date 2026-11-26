@@ -20,21 +20,35 @@ export default function BrandLogo({
     variant === 'full' ? (
       <div className={`inline-flex flex-col items-center ${className}`}>
         <div className="rounded-2xl overflow-hidden bg-[#f7f5f0] border border-slate-200/80 dark:border-white/15 shadow-[0_8px_24px_-8px_rgba(15,23,42,0.12)]">
-          <img
-            src="/logo.jpg"
-            alt="CodeBuddy — Code • Build • Grow Together"
-            className="h-28 sm:h-32 w-auto object-contain block"
-          />
+          <picture>
+            <source srcSet="/logo.webp" type="image/webp" />
+            <img
+              src="/logo.jpg"
+              alt="CodeBuddy — Code • Build • Grow Together"
+              width={512}
+              height={341}
+              decoding="async"
+              fetchPriority="high"
+              className="h-28 sm:h-32 w-auto object-contain block"
+            />
+          </picture>
         </div>
       </div>
     ) : (
       <div className={`inline-flex items-center gap-2.5 group ${className}`}>
         <div className="w-9 h-9 rounded-xl overflow-hidden bg-[#f7f5f0] border border-slate-200/80 dark:border-white/15 shadow-sm shrink-0 flex items-center justify-center">
-          <img
-            src="/logo-mark.png"
-            alt="CodeBuddy Logo"
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-          />
+          <picture className="w-full h-full block">
+            <source srcSet="/logo-mark.webp" type="image/webp" />
+            <img
+              src="/logo-mark.png"
+              alt="CodeBuddy Logo"
+              width={36}
+              height={36}
+              decoding="async"
+              fetchPriority="high"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+            />
+          </picture>
         </div>
         <div className="leading-tight">
           <span className="font-bold text-sm sm:text-base tracking-tight text-slate-900 dark:text-white block">

@@ -110,6 +110,9 @@ const BRACE_LANGUAGES = new Set([
   'javascript', 'typescript', 'java', 'cpp', 'c', 'csharp', 'go', 'rust',
   'kotlin', 'swift', 'dart', 'php', 'scala', 'zig', 'solidity', 'groovy',
 ]);
+const HASH_COMMENT_LANGUAGES = new Set(['python', 'ruby', 'bash', 'perl', 'r', 'elixir', 'julia', 'mojo']);
+const DASH_COMMENT_LANGUAGES = new Set(['sql', 'lua', 'haskell']);
+const BACKTICK_STRING_LANGUAGES = new Set(['javascript', 'typescript', 'go']);
 
 /**
  * Scan for unbalanced (), {}, [] and unclosed string literals across lines.
@@ -120,6 +123,12 @@ const checkDelimitersAndStrings = (code, language) => {
   const pairs = { '(': ')', '{': '}', '[': ']' };
   const closingToOpening = { ')': '(', '}': '{', ']': '[' };
   const lines = code.split('\n');
+  const isHashCommentLang = HASH_COMMENT_LANGUAGES.has(language);
+  const isDashCommentLang = DASH_COMMENT_LANGUAGES.has(language);
+  const isBacktickLang = BACKTICK_STRING_LANGUAGES.has(language);
+  const isMatlab = language === 'matlab';
+  const isAssembly = language === 'assembly';
+  const allowSingleQuotes = language !== 'rust';
 
   let inBlockComment = false;
   let inBacktick = false;
@@ -163,15 +172,15 @@ const checkDelimitersAndStrings = (code, language) => {
       // Comment detection
       if (ch === '/' && next === '/') break;
       if (ch === '/' && next === '*') { inBlockComment = true; i++; continue; }
-      if (ch === '#' && ['python', 'ruby', 'bash', 'perl', 'r', 'elixir', 'julia', 'mojo'].includes(language)) break;
-      if (ch === '-' && next === '-' && ['sql', 'lua', 'haskell'].includes(language)) break;
-      if (ch === '%' && language === 'matlab') break;
-      if (ch === ';' && language === 'assembly') break;
+      if (ch === '#' && isHashCommentLang) break;
+      if (ch === '-' && next === '-' && isDashCommentLang) break;
+      if (ch === '%' && isMatlab) break;
+      if (ch === ';' && isAssembly) break;
 
       // String literal start
       if (ch === '"') { inDouble = true; continue; }
-      if (ch === "'" && language !== 'rust') { inSingle = true; continue; }
-      if (ch === '`' && ['javascript', 'typescript', 'go'].includes(language)) { inBacktick = true; continue; }
+      if (ch === "'" && allowSingleQuotes) { inSingle = true; continue; }
+      if (ch === '`' && isBacktickLang) { inBacktick = true; continue; }
 
       // Brackets
       if (pairs[ch]) {

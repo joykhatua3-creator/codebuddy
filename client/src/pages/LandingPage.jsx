@@ -25,7 +25,7 @@ export default function LandingPage() {
 
       {/* Outer Sticky Header Wrapper — Strictly Transparent (NO opaque bar behind pill) */}
       <header className="sticky top-0 z-40 px-3 sm:px-6 pt-3 sm:pt-4 bg-transparent border-none shadow-none">
-        <nav className="max-w-4xl mx-auto rounded-full bg-white/75 backdrop-blur-2xl border border-white/85 shadow-[0_8px_32px_-8px_rgba(15,23,42,0.08),inset_0_1px_0_0_rgba(255,255,255,0.9)] px-3.5 sm:px-6 py-2 flex items-center justify-between gap-2">
+        <nav className="max-w-4xl mx-auto rounded-full bg-white/80 backdrop-blur-lg border border-white/85 shadow-[0_8px_32px_-8px_rgba(15,23,42,0.08),inset_0_1px_0_0_rgba(255,255,255,0.9)] px-3.5 sm:px-6 py-2 flex items-center justify-between gap-2">
           <BrandLogo variant="mark" to="/" />
 
           {/* Desktop Center Links */}
@@ -64,7 +64,7 @@ export default function LandingPage() {
 
         {/* Mobile Dropdown Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden max-w-4xl mx-auto mt-2 rounded-2xl bg-white/90 backdrop-blur-2xl border border-white/90 shadow-lg p-3 space-y-1">
+          <div className="md:hidden max-w-4xl mx-auto mt-2 rounded-2xl bg-white/95 backdrop-blur-lg border border-white/90 shadow-lg p-3 space-y-1">
             <a
               href="#features"
               onClick={() => setMobileMenuOpen(false)}
@@ -96,7 +96,7 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
             {/* Left Column */}
             <div className="space-y-5 min-w-0">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/80 backdrop-blur-xl border border-white/90 shadow-xs text-xs font-medium text-slate-700">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/85 border border-white/90 shadow-xs text-xs font-medium text-slate-700">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34D399]" />
                 <span>Powered by Gemini 3.8 Flash</span>
               </div>
@@ -122,7 +122,7 @@ export default function LandingPage() {
                 </Link>
                 <Link
                   to="/login"
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-white/80 backdrop-blur-xl border border-white/90 hover:border-cyan-400/60 text-slate-800 px-7 py-3.5 min-h-[44px] text-sm sm:text-base font-semibold shadow-[inset_0_1px_0_0_rgba(255,255,255,0.85),0_4px_14px_rgba(15,23,42,0.06)] hover:shadow-[0_0_20px_rgba(56,189,248,0.2)] transition-all"
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-white/85 border border-white/90 hover:border-cyan-400/60 text-slate-800 px-7 py-3.5 min-h-[44px] text-sm sm:text-base font-semibold shadow-[inset_0_1px_0_0_rgba(255,255,255,0.85),0_4px_14px_rgba(15,23,42,0.06)] hover:shadow-[0_0_20px_rgba(56,189,248,0.2)] transition-all"
                 >
                   Sign In
                 </Link>
@@ -143,7 +143,7 @@ export default function LandingPage() {
 
             {/* Right Column: Sculpted Translucent Glass Window */}
             <div className="space-y-4 min-w-0">
-              <div className="p-2.5 sm:p-3 rounded-3xl bg-white/65 backdrop-blur-2xl border border-white/85 shadow-[0_20px_50px_-12px_rgba(15,23,42,0.14),inset_0_1px_0_0_rgba(255,255,255,0.85)]">
+              <div className="p-2.5 sm:p-3 rounded-3xl bg-white/75 backdrop-blur-lg border border-white/85 shadow-[0_20px_50px_-12px_rgba(15,23,42,0.14),inset_0_1px_0_0_rgba(255,255,255,0.85)]">
                 <div className="rounded-2xl bg-[#0B1120] text-slate-100 border border-white/10 overflow-hidden shadow-lg">
                   {/* Window Header */}
                   <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 sm:px-4 py-2.5 bg-white/[0.04] border-b border-white/10">
@@ -217,7 +217,7 @@ export default function LandingPage() {
                 </div>
 
                 {/* Floating Glass Explanation */}
-                <div className="mt-3 p-3.5 rounded-2xl bg-white/85 backdrop-blur-xl border border-white/95 flex items-start gap-3 shadow-xs">
+                <div className="mt-3 p-3.5 rounded-2xl bg-white/90 border border-white/95 flex items-start gap-3 shadow-xs">
                   <div className="p-1.5 rounded-xl bg-gradient-to-br from-cyan-500/15 to-indigo-500/15 text-indigo-600 shrink-0 mt-0.5">
                     <Sparkles size={15} />
                   </div>
@@ -233,7 +233,7 @@ export default function LandingPage() {
               </div>
 
               {/* Call-Flow Pill Nodes */}
-              <div className="px-3 sm:px-4 py-2.5 rounded-full bg-white/75 backdrop-blur-xl border border-white/85 shadow-xs flex items-center justify-between gap-1.5 text-[11px] sm:text-xs font-mono overflow-x-auto no-scrollbar">
+              <div className="px-3 sm:px-4 py-2.5 rounded-full bg-white/85 border border-white/85 shadow-xs flex items-center justify-between gap-1.5 text-[11px] sm:text-xs font-mono overflow-x-auto no-scrollbar">
                 <span className="inline-flex items-center gap-1.5 font-semibold text-slate-800 shrink-0">
                   <span className="w-2 h-2 rounded-full bg-cyan-500" />
                   Input
@@ -254,7 +254,7 @@ export default function LandingPage() {
         </section>
 
         {/* Equal-Height 3-Tile Liquid Glass Bento Grid */}
-        <section id="features" className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
+        <section id="features" className="cv-auto max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
           <div className="text-center max-w-2xl mx-auto mb-10 space-y-2">
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900">
               Three tools. One lucid workflow.
@@ -263,7 +263,7 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch">
             {/* Tile 1: 6-Part Study Notes PDF */}
-            <div className="rounded-2xl bg-white/70 backdrop-blur-2xl border border-white/85 shadow-[0_8px_32px_-8px_rgba(15,23,42,0.08),inset_0_1px_0_0_rgba(255,255,255,0.75)] p-5 sm:p-6 flex flex-col justify-between gap-5">
+            <div className="rounded-2xl bg-white/75 backdrop-blur-lg border border-white/85 shadow-[0_8px_32px_-8px_rgba(15,23,42,0.08),inset_0_1px_0_0_rgba(255,255,255,0.75)] p-5 sm:p-6 flex flex-col justify-between gap-5">
               <div className="space-y-2.5">
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-400/30 text-cyan-700 text-xs font-semibold">
                   <FileDown size={13} /> 1-Click PDF Export
@@ -292,7 +292,7 @@ export default function LandingPage() {
             {/* Tile 2: Skill Mastery Paths */}
             <div
               id="roadmap-tile"
-              className="rounded-2xl bg-white/70 backdrop-blur-2xl border border-white/85 shadow-[0_8px_32px_-8px_rgba(15,23,42,0.08),inset_0_1px_0_0_rgba(255,255,255,0.75)] p-5 sm:p-6 flex flex-col justify-between gap-5"
+              className="rounded-2xl bg-white/75 backdrop-blur-lg border border-white/85 shadow-[0_8px_32px_-8px_rgba(15,23,42,0.08),inset_0_1px_0_0_rgba(255,255,255,0.75)] p-5 sm:p-6 flex flex-col justify-between gap-5"
             >
               <div className="space-y-2.5">
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-400/30 text-emerald-700 text-xs font-semibold">
@@ -326,7 +326,7 @@ export default function LandingPage() {
             </div>
 
             {/* Tile 3: Adaptive Code Quizzes */}
-            <div className="rounded-2xl bg-white/70 backdrop-blur-2xl border border-white/85 shadow-[0_8px_32px_-8px_rgba(15,23,42,0.08),inset_0_1px_0_0_rgba(255,255,255,0.75)] p-5 sm:p-6 flex flex-col justify-between gap-5">
+            <div className="rounded-2xl bg-white/75 backdrop-blur-lg border border-white/85 shadow-[0_8px_32px_-8px_rgba(15,23,42,0.08),inset_0_1px_0_0_rgba(255,255,255,0.75)] p-5 sm:p-6 flex flex-col justify-between gap-5">
               <div className="space-y-2.5">
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-400/30 text-indigo-700 text-xs font-semibold">
                   <Code2 size={13} /> Practice Arena
@@ -360,7 +360,7 @@ export default function LandingPage() {
       </main>
 
       {/* Clean Minimal Footer */}
-      <footer className="border-t border-white/80 bg-white/50 backdrop-blur-xl py-7 px-4 sm:px-6 text-sm text-slate-600">
+      <footer className="cv-auto border-t border-white/80 bg-white/65 backdrop-blur-lg py-7 px-4 sm:px-6 text-sm text-slate-600">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
           <div className="flex items-center gap-3">
             <BrandLogo variant="mark" to="/" />

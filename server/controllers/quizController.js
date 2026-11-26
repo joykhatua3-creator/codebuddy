@@ -189,7 +189,7 @@ const submitQuiz = asyncHandler(async (req, res) => {
   await quiz.save();
 
   // Update user streak and XP on quiz completion
-  const user = await User.findById(req.user._id);
+  const user = await User.findById(req.user._id).select('streak lastActiveDate xp');
   if (user) {
     user.updateStreak();
     user.xp = (user.xp || 0) + xpEarned;

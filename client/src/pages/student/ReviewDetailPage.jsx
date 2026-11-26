@@ -1,7 +1,9 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft } from 'lucide-react';
 import { reviewService } from '../../services';
+import { QUERY_KEYS } from '../../lib/queryClient';
 import ErrorMessage from '../../components/ui/ErrorMessage';
 import { ReviewDetailSkeleton } from '../../components/ui/Skeleton';
 import { useToast } from '../../components/ui/Toast';
@@ -11,32 +13,27 @@ export default function ReviewDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
-  const [review, setReview] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const queryClient = useQueryClient();
   const [savingTitle, setSavingTitle] = useState(false);
   const [retryingGemini, setRetryingGemini] = useState(false);
 
-  const fetchReview = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
+  const { data: review, isLoading, error, refetch } = useQuery({
+    queryKey: QUERY_KEYS.reviewDetail(id),
+    queryFn: async () => {
       const res = await reviewService.getById(id);
-      setReview(res.data.data);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load review');
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
-  useEffect(() => { fetchReview(); }, [fetchReview]);
+      return res.data.data;
+    },
+    enabled: Boolean(id),
+  });
 
   const handleSaveTitle = async (newTitle) => {
     setSavingTitle(true);
     try {
       const res = await reviewService.update(id, { title: newTitle });
-      setReview((prev) => ({ ...prev, title: res.data.data.title }));
+      queryClient.setQueryData(QUERY_KEYS.reviewDetail(id), (prev) =>
+        prev ? { ...prev, title: res.data.data.title } : res.data.data
+      );
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.reviewsRoot });
       toast({ type: 'success', message: 'Title updated' });
       return true;
     } catch {
@@ -52,7 +49,9 @@ export default function ReviewDetailPage() {
     try {
       const res = await reviewService.retry(id);
       const updated = res.data.data;
-      setReview(updated);
+      queryClient.setQueryData(QUERY_KEYS.reviewDetail(id), updated);
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.reviewsRoot });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.progress });
       if (updated.isFallback) {
         toast({
           type: 'warning',
@@ -68,8 +67,15 @@ export default function ReviewDetailPage() {
     }
   };
 
-  if (loading) return <ReviewDetailSkeleton />;
-  if (error) return <ErrorMessage message={error} onRetry={fetchReview} />;
+  if (isLoading && !review) return <ReviewDetailSkeleton />;
+  if (error) {
+    return (
+      <ErrorMessage
+        message={error.response?.data?.message || 'Failed to load review'}
+        onRetry={refetch}
+      />
+    );
+  }
   if (!review) return null;
 
   return (

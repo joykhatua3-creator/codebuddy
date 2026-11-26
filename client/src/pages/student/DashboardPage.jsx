@@ -1,5 +1,6 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import {
   Code2, AlertTriangle, Brain, Flame, TrendingUp,
   Map, CheckCircle2,
@@ -9,6 +10,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 import { progressService } from '../../services';
+import { QUERY_KEYS } from '../../lib/queryClient';
 import ErrorMessage from '../../components/ui/ErrorMessage';
 import { DashboardSkeleton } from '../../components/ui/Skeleton';
 import { getScoreColor, getScoreLabel, getLevelColor } from '../../utils/helpers';
@@ -27,44 +29,60 @@ const StatCard = ({ label, value, icon: Icon, color, sub }) => (
 );
 
 export default function DashboardPage() {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const fetchProgress = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: QUERY_KEYS.progress,
+    queryFn: async () => {
       const res = await progressService.get();
-      setData(res.data.data);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load dashboard data');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      return res.data.data;
+    },
+  });
 
-  useEffect(() => { fetchProgress(); }, [fetchProgress]);
+  const overview = data?.overview;
+  const scoreTrend = data?.scoreTrend || [];
+  const topics = data?.topics;
+  const weakestTopics = data?.weakestTopics;
+  const recentQuizzes = data?.recentQuizzes;
 
-  if (loading) return <DashboardSkeleton cards={5} />;
-
-  if (error) return <ErrorMessage message={error} onRetry={fetchProgress} />;
-
-  const { overview, scoreTrend = [], topics = [], weakestTopics = [], recentQuizzes = [] } = data || {};
-  const unmasteredWeakTopics = weakestTopics.filter((t) => (t.level ?? 0) < 75);
+  const unmasteredWeakTopics = useMemo(
+    () => (weakestTopics || []).filter((t) => (t.level ?? 0) < 75),
+    [weakestTopics]
+  );
 
   // Radar data: top 6 topics
-  const radarData = topics.slice(0, 6).map((t) => ({
-    topic: t.topic.length > 12 ? t.topic.slice(0, 12) + '…' : t.topic,
-    level: t.level,
-  }));
+  const radarData = useMemo(
+    () =>
+      (topics || []).slice(0, 6).map((t) => ({
+        topic: t.topic.length > 12 ? t.topic.slice(0, 12) + '…' : t.topic,
+        level: t.level,
+      })),
+    [topics]
+  );
 
   // Quiz bar data
-  const quizBarData = recentQuizzes.slice().reverse().map((q, i) => ({
-    name: `Quiz ${i + 1}`,
-    score: q.score || 0,
-  }));
+  const quizBarData = useMemo(
+    () =>
+      (recentQuizzes || [])
+        .slice()
+        .reverse()
+        .map((q, i) => ({
+          name: `Quiz ${i + 1}`,
+          score: q.score || 0,
+        })),
+    [recentQuizzes]
+  );
+
+  if (isLoading && !data) return <DashboardSkeleton cards={5} />;
+
+  if (error) {
+    return (
+      <ErrorMessage
+        message={error.response?.data?.message || 'Failed to load dashboard data'}
+        onRetry={refetch}
+      />
+    );
+  }
 
   return (
     <div className="space-y-5 w-full max-w-[1440px] mx-auto overflow-x-hidden">

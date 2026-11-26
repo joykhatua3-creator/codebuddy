@@ -1,7 +1,9 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, MessageSquarePlus, Save } from 'lucide-react';
 import { reviewService, teacherService } from '../../services';
+import { QUERY_KEYS } from '../../lib/queryClient';
 import ErrorMessage from '../../components/ui/ErrorMessage';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { ReviewDetailSkeleton } from '../../components/ui/Skeleton';
@@ -13,39 +15,31 @@ export default function TeacherReviewDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
-  const [review, setReview] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const queryClient = useQueryClient();
 
-  const [comment, setComment] = useState('');
-  const [adjustedScore, setAdjustedScore] = useState('');
+  const { data: review, isLoading, error, refetch } = useQuery({
+    queryKey: QUERY_KEYS.reviewDetail(id),
+    queryFn: async () => {
+      const res = await reviewService.getById(id);
+      return res.data.data;
+    },
+    enabled: Boolean(id),
+  });
+
+  const [commentState, setCommentState] = useState({ id: null, value: null });
+  const [scoreState, setScoreState] = useState({ id: null, value: null });
   const [saving, setSaving] = useState(false);
 
-  const fetchReview = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const res = await reviewService.getById(id);
-      const data = res.data.data;
-      setReview(data);
-      setComment(data.teacherFeedback?.comment || '');
-      setAdjustedScore(
-        data.teacherFeedback?.adjustedScore != null
-          ? String(data.teacherFeedback.adjustedScore)
-          : data.score != null
-          ? String(data.score)
-          : ''
-      );
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load student review');
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    fetchReview();
-  }, [fetchReview]);
+  const comment =
+    (commentState.id === id ? commentState.value : null) ??
+    (review?.teacherFeedback?.comment || '');
+  const adjustedScore =
+    (scoreState.id === id ? scoreState.value : null) ??
+    (review?.teacherFeedback?.adjustedScore != null
+      ? String(review.teacherFeedback.adjustedScore)
+      : review?.score != null
+      ? String(review.score)
+      : '');
 
   const handleSubmitFeedback = async (e) => {
     e.preventDefault();
@@ -61,7 +55,11 @@ export default function TeacherReviewDetailPage() {
     setSaving(true);
     try {
       const res = await teacherService.addReviewFeedback(id, payload);
-      setReview(res.data.data);
+      queryClient.setQueryData(QUERY_KEYS.reviewDetail(id), res.data.data);
+      queryClient.invalidateQueries({ queryKey: ['teacher'] });
+      queryClient.invalidateQueries({ queryKey: ['assignments'] });
+      setCommentState({ id: null, value: null });
+      setScoreState({ id: null, value: null });
       toast({ type: 'success', message: 'Mentor feedback and score saved!' });
     } catch (err) {
       toast({ type: 'error', message: err.response?.data?.message || 'Failed to save feedback' });
@@ -70,8 +68,15 @@ export default function TeacherReviewDetailPage() {
     }
   };
 
-  if (loading) return <ReviewDetailSkeleton />;
-  if (error) return <ErrorMessage message={error} onRetry={fetchReview} />;
+  if (isLoading && !review) return <ReviewDetailSkeleton />;
+  if (error) {
+    return (
+      <ErrorMessage
+        message={error.response?.data?.message || 'Failed to load student review'}
+        onRetry={refetch}
+      />
+    );
+  }
   if (!review) return null;
 
   return (
@@ -101,7 +106,7 @@ export default function TeacherReviewDetailPage() {
               rows={3}
               className="input"
               value={comment}
-              onChange={(e) => setComment(e.target.value)}
+              onChange={(e) => setCommentState({ id, value: e.target.value })}
               placeholder="Write constructive feedback, guidance, or grading remarks..."
               required
             />
@@ -114,7 +119,7 @@ export default function TeacherReviewDetailPage() {
               max="100"
               className="input"
               value={adjustedScore}
-              onChange={(e) => setAdjustedScore(e.target.value)}
+              onChange={(e) => setScoreState({ id, value: e.target.value })}
             />
             {review.teacherFeedback?.originalScore != null && (
               <p className="text-[11px] text-gray-400 dark:text-slate-400 mt-1">

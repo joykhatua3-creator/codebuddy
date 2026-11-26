@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import Editor from '@monaco-editor/react';
 import { Trash2, Radio, Sparkles, Moon, Sun, Maximize2, Minimize2, Globe, AlertCircle, Upload, FileCode2 } from 'lucide-react';
 import { reviewService } from '../../services';
+import { QUERY_KEYS } from '../../lib/queryClient';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { ALL_LANGUAGES, POPULAR_LANGUAGES, getMonacoLanguage, getLanguageLabel } from '../../utils/helpers';
 import { useTheme } from '../../context/ThemeContext';
@@ -101,6 +103,7 @@ const DEFAULT_CODE = {
 export default function CodeReviewPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const { isDark } = useTheme();
   const assignmentId = location.state?.assignmentId || null;
   const assignmentTitle = location.state?.assignmentTitle || null;
@@ -238,6 +241,10 @@ export default function CodeReviewPage() {
               if (reviewId) {
                 navigated = true;
                 clearStoredDraft();
+                queryClient.setQueryData(QUERY_KEYS.reviewDetail(reviewId), data.data || data);
+                queryClient.invalidateQueries({ queryKey: QUERY_KEYS.reviewsRoot });
+                queryClient.invalidateQueries({ queryKey: QUERY_KEYS.progress });
+                queryClient.invalidateQueries({ queryKey: QUERY_KEYS.studentAssignments });
                 navigate(`/dashboard/review/${reviewId}`);
               } else {
                 fallbackSubmit();
@@ -275,9 +282,14 @@ export default function CodeReviewPage() {
   const fallbackSubmit = async () => {
     try {
       const res = await reviewService.submit({ language, code, ...(assignmentId ? { assignmentId } : {}) });
-      const reviewId = res.data?.data?._id || res.data?._id;
+      const reviewData = res.data?.data || res.data;
+      const reviewId = reviewData?._id;
       if (reviewId) {
         clearStoredDraft();
+        queryClient.setQueryData(QUERY_KEYS.reviewDetail(reviewId), reviewData);
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.reviewsRoot });
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.progress });
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.studentAssignments });
         navigate(`/dashboard/review/${reviewId}`);
       } else {
         setError('Review generated but could not open detail. Please check Review History.');

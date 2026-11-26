@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import {
   CheckCircle2,
   XCircle,
@@ -17,6 +18,7 @@ import {
   BookOpen,
 } from 'lucide-react';
 import { quizService } from '../../services';
+import { QUERY_KEYS } from '../../lib/queryClient';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { getScoreLabel } from '../../utils/helpers';
 
@@ -160,25 +162,20 @@ export default function QuizResultPage() {
   const { id } = useParams();
   const { state } = useLocation();
   const navigate = useNavigate();
-  const [result, setResult] = useState(state?.result || null);
-  const [loading, setLoading] = useState(!state?.result && Boolean(id));
 
-  useEffect(() => {
-    if (!result && id) {
-      quizService
-        .getById(id)
-        .then((res) => {
-          const data = res.data?.data;
-          if (data && data.completed) {
-            setResult(data);
-          }
-        })
-        .catch(() => {})
-        .finally(() => setLoading(false));
-    }
-  }, [id, result]);
+  const { data: result, isLoading } = useQuery({
+    queryKey: QUERY_KEYS.quizResult(id),
+    queryFn: async () => {
+      const res = await quizService.getById(id);
+      const data = res.data?.data;
+      return data && data.completed ? data : null;
+    },
+    enabled: Boolean(id) && !state?.result,
+    initialData: state?.result || undefined,
+    retry: false,
+  });
 
-  if (loading) {
+  if (isLoading && !result) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[300px] gap-3">
         <LoadingSpinner size="lg" />

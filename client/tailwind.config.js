@@ -46,7 +46,7 @@ export default {
         },
       },
       fontFamily: {
-        serif: ['"Instrument Serif"', 'Georgia', 'serif'],
+        serif: ['Georgia', 'serif'],
         sans: ['Inter', 'system-ui', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'Fira Code', 'monospace'],
       },

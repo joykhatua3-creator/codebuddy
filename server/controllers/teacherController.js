@@ -201,7 +201,7 @@ const getStudentProgress = asyncHandler(async (req, res) => {
       { $group: { _id: null, totalReviews: { $sum: 1 }, avgScore: { $avg: '$score' } } },
     ]),
     Review.find({ user: userId })
-      .select('score language summary createdAt bugs')
+      .select('score language summary createdAt bugs._id')
       .sort('-createdAt')
       .limit(20)
       .lean(),

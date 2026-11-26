@@ -1,7 +1,9 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { Search, Eye, Trash2, Bookmark, BookmarkCheck } from 'lucide-react';
 import { reviewService } from '../../services';
+import { QUERY_KEYS } from '../../lib/queryClient';
 import ErrorMessage from '../../components/ui/ErrorMessage';
 import EmptyState from '../../components/ui/EmptyState';
 import ConfirmModal from '../../components/ui/ConfirmModal';
@@ -20,44 +22,48 @@ const SORTS = [
 export default function ReviewHistoryPage() {
   const navigate = useNavigate();
   const toast = useToast();
-  const [reviews, setReviews] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const queryClient = useQueryClient();
   const [language, setLanguage] = useState('');
   const [sort, setSort] = useState('-createdAt');
   const [minScore, setMinScore] = useState('');
   const [deleteId, setDeleteId] = useState(null);
   const [page, setPage] = useState(1);
-  const [pagination, setPagination] = useState({});
 
-  const fetchReviews = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const params = { sort, page, limit: 10 };
-      if (language) params.language = language;
-      if (minScore) params.minScore = minScore;
-      const res = await reviewService.getAll(params);
-      setReviews(res.data.data.reviews || []);
-      setPagination(res.data.data.pagination || {});
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load reviews');
-    } finally {
-      setLoading(false);
-    }
+  const queryParams = useMemo(() => {
+    const params = { sort, page, limit: 10 };
+    if (language) params.language = language;
+    if (minScore) params.minScore = minScore;
+    return params;
   }, [language, sort, minScore, page]);
 
-  useEffect(() => { fetchReviews(); }, [fetchReviews]);
+  const queryKey = QUERY_KEYS.reviewsList(queryParams);
+
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey,
+    queryFn: async () => {
+      const res = await reviewService.getAll(queryParams);
+      return {
+        reviews: res.data.data.reviews || [],
+        pagination: res.data.data.pagination || {},
+      };
+    },
+    placeholderData: keepPreviousData,
+  });
+
+  const reviews = data?.reviews || [];
+  const pagination = data?.pagination || {};
 
   const handleDelete = async () => {
     try {
       await reviewService.delete(deleteId);
       setDeleteId(null);
       toast({ type: 'success', message: 'Review deleted' });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.reviewsRoot }),
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.progress }),
+      ]);
       if (reviews.length === 1 && page > 1) {
         setPage((p) => p - 1);
-      } else {
-        fetchReviews();
       }
     } catch {
       toast({ type: 'error', message: 'Failed to delete review' });
@@ -68,8 +74,15 @@ export default function ReviewHistoryPage() {
     e.stopPropagation();
     try {
       await reviewService.toggleBookmark(id);
-      setReviews((prev) =>
-        prev.map((r) => r._id === id ? { ...r, isBookmarked: !r.isBookmarked } : r)
+      queryClient.setQueryData(queryKey, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          reviews: old.reviews.map((r) => (r._id === id ? { ...r, isBookmarked: !r.isBookmarked } : r)),
+        };
+      });
+      queryClient.setQueryData(QUERY_KEYS.reviewDetail(id), (old) =>
+        old ? { ...old, isBookmarked: !old.isBookmarked } : old
       );
     } catch {
       toast({ type: 'error', message: 'Failed to update bookmark' });
@@ -111,10 +124,13 @@ export default function ReviewHistoryPage() {
       </div>
 
       {/* Results */}
-      {loading ? (
+      {isLoading && !data ? (
         <ListSkeleton count={4} />
       ) : error ? (
-        <ErrorMessage message={error} onRetry={fetchReviews} />
+        <ErrorMessage
+          message={error.response?.data?.message || 'Failed to load reviews'}
+          onRetry={refetch}
+        />
       ) : reviews.length === 0 ? (
         <EmptyState
           icon={Search}

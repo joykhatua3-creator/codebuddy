@@ -110,4 +110,6 @@ userSchema.methods.updateStreak = function () {
   }
 };
 
+userSchema.index({ role: 1, isDemo: 1, createdAt: -1 });
+
 module.exports = mongoose.model('User', userSchema);

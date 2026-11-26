@@ -1,11 +1,13 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Map, RefreshCw, CheckCircle2, Trash2, Clock, ChevronDown, ChevronUp,
   BookOpen, Code, Copy, CheckCheck, Sparkles, Brain, ArrowRight, Plus, X,
   RotateCcw, Layers, CheckSquare, Square, Target, Compass,
 } from 'lucide-react';
 import { roadmapService } from '../../services';
+import { QUERY_KEYS } from '../../lib/queryClient';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import ErrorMessage from '../../components/ui/ErrorMessage';
 import ConfirmModal from '../../components/ui/ConfirmModal';
@@ -98,64 +100,64 @@ function RoadmapGeneratingSkeleton({ skillName, level }) {
 export default function RoadmapPage() {
   const navigate = useNavigate();
   const toast = useToast();
+  const queryClient = useQueryClient();
 
-  const [roadmaps, setRoadmaps] = useState([]);
-  const [roadmap, setRoadmap] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [selectedRoadmapId, setSelectedRoadmapId] = useState(null);
   const [generating, setGenerating] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
   const [resetModalOpen, setResetModalOpen] = useState(false);
-  const [showSkillBuilder, setShowSkillBuilder] = useState(false);
+  const [showBuilderOverride, setShowBuilderOverride] = useState(null);
 
   const [selectedSkill, setSelectedSkill] = useState('Python Mastery');
   const [selectedLevel, setSelectedLevel] = useState('Beginner');
-  const [error, setError] = useState('');
-  const [expandedSteps, setExpandedSteps] = useState({});
+  const [expandedByRoadmap, setExpandedByRoadmap] = useState({});
   const [copiedStep, setCopiedStep] = useState(null);
 
-  const autoExpandFirstPending = useCallback((rm) => {
-    if (rm?.steps?.length > 0) {
-      const firstUncompleted = rm.steps.find((s) => !s.completed) || rm.steps[0];
-      setExpandedSteps({ [firstUncompleted._id || 0]: true });
-    } else {
-      setExpandedSteps({});
-    }
-  }, []);
-
-  const fetchRoadmap = useCallback(
-    async (roadmapId) => {
-      setLoading(true);
-      setError('');
+  const { data: roadmapPayload, isLoading, error, refetch } = useQuery({
+    queryKey: QUERY_KEYS.roadmap,
+    queryFn: async () => {
       try {
-        const res = await roadmapService.get(roadmapId);
+        const res = await roadmapService.get();
         const active = res.data?.data || null;
         const list = res.data?.roadmaps || (active ? [active] : []);
-        setRoadmaps(list);
-        setRoadmap(active);
-        if (!active) {
-          setShowSkillBuilder(true);
-        } else {
-          autoExpandFirstPending(active);
-        }
+        return { active, roadmaps: list };
       } catch (err) {
         if (err.response?.status === 404) {
-          setRoadmaps([]);
-          setRoadmap(null);
-          setShowSkillBuilder(true);
-        } else {
-          setError(err.response?.data?.message || 'Failed to load roadmap');
+          return { active: null, roadmaps: [] };
         }
-      } finally {
-        setLoading(false);
+        throw err;
       }
     },
-    [autoExpandFirstPending]
+  });
+
+  const roadmaps = useMemo(() => roadmapPayload?.roadmaps || [], [roadmapPayload]);
+  const roadmap = useMemo(() => {
+    if (selectedRoadmapId) {
+      const matched = roadmaps.find((r) => r._id === selectedRoadmapId);
+      if (matched) return matched;
+    }
+    return roadmapPayload?.active || roadmaps[0] || null;
+  }, [roadmaps, roadmapPayload, selectedRoadmapId]);
+
+  const showSkillBuilder = showBuilderOverride ?? !roadmap;
+  const setShowSkillBuilder = (next) => {
+    setShowBuilderOverride((prev) => {
+      const current = prev ?? !roadmap;
+      return typeof next === 'function' ? next(current) : next;
+    });
+  };
+
+  const firstPendingIndex = useMemo(
+    () => (roadmap?.steps?.length ? roadmap.steps.findIndex((s) => !s.completed) : -1),
+    [roadmap]
   );
 
-  useEffect(() => {
-    fetchRoadmap();
-  }, [fetchRoadmap]);
+  const defaultExpandedStepId = useMemo(() => {
+    if (!roadmap?.steps?.length) return null;
+    const idx = firstPendingIndex >= 0 ? firstPendingIndex : 0;
+    return roadmap.steps[idx]._id || idx;
+  }, [roadmap, firstPendingIndex]);
 
   const handleGenerateSkillRoadmap = async ({
     skillName = selectedSkill,
@@ -170,7 +172,6 @@ export default function RoadmapPage() {
     }
 
     setGenerating(true);
-    setError('');
     try {
       const res = await roadmapService.generate({
         skillName: cleanSkill,
@@ -180,10 +181,16 @@ export default function RoadmapPage() {
       });
       const created = res.data?.data || null;
       const list = res.data?.roadmaps || (created ? [created] : []);
-      setRoadmaps(list);
-      setRoadmap(created);
-      setShowSkillBuilder(false);
-      autoExpandFirstPending(created);
+      queryClient.setQueryData(QUERY_KEYS.roadmap, { active: created, roadmaps: list });
+      setSelectedRoadmapId(created?._id || null);
+      setShowBuilderOverride(false);
+      if (created?._id) {
+        setExpandedByRoadmap((prev) => {
+          const next = { ...prev };
+          delete next[created._id];
+          return next;
+        });
+      }
       toast({
         type: 'success',
         message: `${created?.skillName || cleanSkill} (${created?.level || level}) roadmap ready!`,
@@ -195,11 +202,10 @@ export default function RoadmapPage() {
     }
   };
 
-  const handleSelectSavedRoadmap = async (item) => {
+  const handleSelectSavedRoadmap = (item) => {
     if (!item || item._id === roadmap?._id) return;
-    setRoadmap(item);
-    setShowSkillBuilder(false);
-    autoExpandFirstPending(item);
+    setSelectedRoadmapId(item._id);
+    setShowBuilderOverride(false);
   };
 
   const handleResetProgress = async () => {
@@ -209,9 +215,15 @@ export default function RoadmapPage() {
       const res = await roadmapService.resetProgress(roadmap._id);
       const updated = res.data?.data;
       if (updated) {
-        setRoadmap(updated);
-        setRoadmaps((prev) => prev.map((r) => (r._id === updated._id ? updated : r)));
-        autoExpandFirstPending(updated);
+        queryClient.setQueryData(QUERY_KEYS.roadmap, (old) => ({
+          active: updated,
+          roadmaps: (old?.roadmaps || []).map((r) => (r._id === updated._id ? updated : r)),
+        }));
+        setExpandedByRoadmap((prev) => {
+          const next = { ...prev };
+          delete next[updated._id];
+          return next;
+        });
       }
       setResetModalOpen(false);
       toast({ type: 'success', message: 'Milestone progress reset to 0%' });
@@ -230,11 +242,10 @@ export default function RoadmapPage() {
       const res = await roadmapService.delete(idToDelete);
       const nextActive = res.data?.data || null;
       const list = res.data?.roadmaps || [];
-      setRoadmaps(list);
+      queryClient.setQueryData(QUERY_KEYS.roadmap, { active: nextActive, roadmaps: list });
       if (roadmap?._id === idToDelete) {
-        setRoadmap(nextActive);
-        autoExpandFirstPending(nextActive);
-        if (!nextActive) setShowSkillBuilder(true);
+        setSelectedRoadmapId(nextActive?._id || null);
+        if (!nextActive) setShowBuilderOverride(true);
       }
       toast({ type: 'success', message: 'Saved roadmap removed' });
     } catch (err) {
@@ -246,8 +257,10 @@ export default function RoadmapPage() {
 
   const applyStepUpdateResponse = (updatedRoadmap) => {
     if (!updatedRoadmap) return;
-    setRoadmap(updatedRoadmap);
-    setRoadmaps((prev) => prev.map((r) => (r._id === updatedRoadmap._id ? updatedRoadmap : r)));
+    queryClient.setQueryData(QUERY_KEYS.roadmap, (old) => ({
+      active: updatedRoadmap,
+      roadmaps: (old?.roadmaps || []).map((r) => (r._id === updatedRoadmap._id ? updatedRoadmap : r)),
+    }));
   };
 
   const handleToggleStep = async (stepId, currentState) => {
@@ -283,8 +296,20 @@ export default function RoadmapPage() {
     }
   };
 
-  const toggleExpand = (id) => {
-    setExpandedSteps((prev) => ({ ...prev, [id]: !prev[id] }));
+  const toggleExpand = (stepId) => {
+    if (!roadmap?._id) return;
+    setExpandedByRoadmap((prev) => {
+      const currentMap =
+        prev[roadmap._id] ||
+        (defaultExpandedStepId !== null ? { [defaultExpandedStepId]: true } : {});
+      return {
+        ...prev,
+        [roadmap._id]: {
+          ...currentMap,
+          [stepId]: !currentMap[stepId],
+        },
+      };
+    });
   };
 
   const handleCopyStarter = async (stepId, code) => {
@@ -298,7 +323,7 @@ export default function RoadmapPage() {
     }
   };
 
-  if (loading) {
+  if (isLoading && !roadmapPayload) {
     return (
       <div className="w-full max-w-[1440px] mx-auto">
         <RouteContentSkeleton />
@@ -306,7 +331,14 @@ export default function RoadmapPage() {
     );
   }
 
-  if (error) return <ErrorMessage message={error} onRetry={() => fetchRoadmap()} />;
+  if (error) {
+    return (
+      <ErrorMessage
+        message={error.response?.data?.message || 'Failed to load roadmap'}
+        onRetry={() => refetch()}
+      />
+    );
+  }
 
   const completedCount = roadmap?.steps?.filter((s) => s.completed).length || 0;
   const totalCount = roadmap?.steps?.length || 0;
@@ -566,8 +598,10 @@ export default function RoadmapPage() {
           <div className="relative pl-7 sm:pl-9 space-y-6 before:content-[''] before:absolute before:left-3.5 sm:before:left-4 before:top-5 before:bottom-5 before:w-0.5 before:bg-gradient-to-b before:from-emerald-400 before:via-primary-500 before:to-gray-200 dark:before:to-slate-700">
             {roadmap.steps.map((step, idx) => {
               const stepId = step._id || idx;
-              const isExpanded = Boolean(expandedSteps[stepId]);
-              const firstPendingIndex = roadmap.steps.findIndex((s) => !s.completed);
+              const roadmapExpanded = expandedByRoadmap[roadmap._id];
+              const isExpanded = roadmapExpanded
+                ? Boolean(roadmapExpanded[stepId])
+                : stepId === defaultExpandedStepId;
               const isCurrent = !step.completed && idx === firstPendingIndex;
               const paddedNum = String(idx + 1).padStart(2, '0');
               const stepLang = resolveStepLanguage(step.language, roadmap.language, roadmap.skillName);

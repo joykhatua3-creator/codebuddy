@@ -21,35 +21,61 @@ const { reviewSubmitSchema } = require('../validators/schemas');
 const updateTopicProgress = async (userId, concepts) => {
   if (!Array.isArray(concepts) || concepts.length === 0) return;
 
-  await Promise.all(
-    concepts.map(async (concept) => {
-      if (!concept?.name) return;
-      const inc = {};
-      if (concept.level === 'weak') inc.weakCount = 1;
-      else if (concept.level === 'ok') inc.okCount = 1;
-      else if (concept.level === 'strong') inc.strongCount = 1;
+  const aggregatedByTopic = new Map();
+  for (const concept of concepts) {
+    const topicName = concept?.name?.trim();
+    if (!topicName) continue;
+    const entry = aggregatedByTopic.get(topicName) || { weak: 0, ok: 0, strong: 0 };
+    if (concept.level === 'weak') entry.weak += 1;
+    else if (concept.level === 'ok') entry.ok += 1;
+    else if (concept.level === 'strong') entry.strong += 1;
+    aggregatedByTopic.set(topicName, entry);
+  }
 
-      const updated = await TopicProgress.findOneAndUpdate(
-        { user: userId, topic: concept.name.trim() },
-        { ...(Object.keys(inc).length ? { $inc: inc } : {}), $set: { lastSeen: new Date() } },
-        { upsert: true, new: true }
-      );
+  if (aggregatedByTopic.size === 0) return;
 
-      if (updated) {
-        const total = updated.weakCount + updated.okCount + updated.strongCount;
-        const computedLevel =
-          total === 0 ? 0 : Math.round((100 * (updated.okCount * 0.5 + updated.strongCount)) / total);
-        if (updated.level !== computedLevel) {
-          updated.level = computedLevel;
-          await updated.save();
-        }
-      }
-    })
-  );
+  const now = new Date();
+  const operations = Array.from(aggregatedByTopic.entries()).map(([topic, counts]) => ({
+    updateOne: {
+      filter: { user: userId, topic },
+      update: [
+        {
+          $set: {
+            weakCount: { $add: [{ $ifNull: ['$weakCount', 0] }, counts.weak] },
+            okCount: { $add: [{ $ifNull: ['$okCount', 0] }, counts.ok] },
+            strongCount: { $add: [{ $ifNull: ['$strongCount', 0] }, counts.strong] },
+            lastSeen: now,
+          },
+        },
+        {
+          $set: {
+            level: {
+              $let: {
+                vars: {
+                  total: { $add: ['$weakCount', '$okCount', '$strongCount'] },
+                  weighted: { $add: [{ $multiply: ['$okCount', 0.5] }, '$strongCount'] },
+                },
+                in: {
+                  $cond: [
+                    { $eq: ['$$total', 0] },
+                    0,
+                    { $round: [{ $divide: [{ $multiply: [100, '$$weighted'] }, '$$total'] }, 0] },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      ],
+      upsert: true,
+    },
+  }));
+
+  await TopicProgress.bulkWrite(operations, { ordered: false });
 };
 
 const updateUserStreak = async (userId) => {
-  const user = await User.findById(userId);
+  const user = await User.findById(userId).select('streak lastActiveDate');
   if (user) {
     user.updateStreak();
     await user.save();
@@ -329,7 +355,7 @@ const getReviews = asyncHandler(async (req, res) => {
 
   const [reviews, total] = await Promise.all([
     Review.find(filter)
-      .select('-code -bugs.solution')
+      .select('score language createdAt summary title isBookmarked analysisEngine isFallback fromCache teacherFeedback bugs._id')
       .sort(safeSort)
       .skip(skip)
       .limit(safeLimit)

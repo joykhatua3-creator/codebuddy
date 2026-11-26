@@ -1,7 +1,9 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Users, Code2, TrendingUp, AlertTriangle, Eye, Search, Download } from 'lucide-react';
 import { teacherService } from '../../services';
+import { QUERY_KEYS } from '../../lib/queryClient';
 import ErrorMessage from '../../components/ui/ErrorMessage';
 import { DashboardSkeleton } from '../../components/ui/Skeleton';
 import { useToast } from '../../components/ui/Toast';
@@ -20,37 +22,35 @@ const StatCard = ({ label, value, icon: Icon, color }) => (
 export default function TeacherDashboardPage() {
   const navigate = useNavigate();
   const toast = useToast();
-  const [students, setStudents] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
-  const [error, setError] = useState('');
   const [search, setSearch] = useState('');
 
-  const fetchStudents = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
+  const { data: students = [], isLoading, error, refetch } = useQuery({
+    queryKey: QUERY_KEYS.teacherStudents,
+    queryFn: async () => {
       const res = await teacherService.getStudents();
-      setStudents(res.data.data || []);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load students');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      return res.data.data || [];
+    },
+  });
 
-  useEffect(() => { fetchStudents(); }, [fetchStudents]);
+  const { totalReviews, avgScore, needsHelp } = useMemo(() => {
+    const reviewsSum = students.reduce((a, s) => a + s.totalReviews, 0);
+    const active = students.filter((s) => s.totalReviews > 0);
+    const avg =
+      active.length > 0
+        ? Math.round(active.reduce((a, s) => a + s.avgScore, 0) / active.length)
+        : 0;
+    const needing = active.filter((s) => s.avgScore < 60).length;
+    return { totalReviews: reviewsSum, avgScore: avg, needsHelp: needing };
+  }, [students]);
 
-  const totalReviews = students.reduce((a, s) => a + s.totalReviews, 0);
-  const activeStudents = students.filter((s) => s.totalReviews > 0);
-  const avgScore = activeStudents.length > 0
-    ? Math.round(activeStudents.reduce((a, s) => a + s.avgScore, 0) / activeStudents.length) : 0;
-  const needsHelp = activeStudents.filter((s) => s.avgScore < 60).length;
-
-  const filtered = students.filter((s) =>
-    s.name.toLowerCase().includes(search.toLowerCase()) ||
-    s.email.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return students;
+    return students.filter(
+      (s) => s.name.toLowerCase().includes(q) || s.email.toLowerCase().includes(q)
+    );
+  }, [students, search]);
 
   const handleExportCsv = async () => {
     setExporting(true);
@@ -73,7 +73,7 @@ export default function TeacherDashboardPage() {
     }
   };
 
-  if (loading && students.length === 0) {
+  if (isLoading && students.length === 0) {
     return <DashboardSkeleton cards={4} />;
   }
 
@@ -114,7 +114,10 @@ export default function TeacherDashboardPage() {
         </div>
 
         {error ? (
-          <ErrorMessage message={error} onRetry={fetchStudents} />
+          <ErrorMessage
+            message={error.response?.data?.message || 'Failed to load students'}
+            onRetry={refetch}
+          />
         ) : filtered.length === 0 ? (
           <p className="text-center text-gray-400 py-10 text-sm">No students found</p>
         ) : (

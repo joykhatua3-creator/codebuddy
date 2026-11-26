@@ -1,28 +1,24 @@
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { authService } from '../../services';
 import { API_BASE_URL } from '../../services/api';
+import { QUERY_KEYS } from '../../lib/queryClient';
+
+const oauthDisabled = import.meta.env.VITE_ENABLE_OAUTH === 'false';
 
 export default function OAuthButtons({ role = 'student', disabled = false }) {
-  const [providers, setProviders] = useState({ google: false, github: false });
-
-  useEffect(() => {
-    if (import.meta.env.VITE_ENABLE_OAUTH === 'false') return;
-    let mounted = true;
-    authService
-      .getOAuthProviders()
-      .then((res) => {
-        if (mounted && res.data?.data) {
-          setProviders({
-            google: Boolean(res.data.data.google),
-            github: Boolean(res.data.data.github),
-          });
-        }
-      })
-      .catch(() => {});
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  const { data: providers = { google: false, github: false } } = useQuery({
+    queryKey: QUERY_KEYS.oauthProviders,
+    queryFn: async () => {
+      const res = await authService.getOAuthProviders();
+      return {
+        google: Boolean(res.data?.data?.google),
+        github: Boolean(res.data?.data?.github),
+      };
+    },
+    enabled: !oauthDisabled,
+    staleTime: 1000 * 60 * 10,
+    retry: false,
+  });
 
   if (!providers.google && !providers.github) {
     return null;

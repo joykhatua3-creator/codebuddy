@@ -8,10 +8,17 @@ import AuroraBackdrop from '../components/ui/AuroraBackdrop';
 import BrandLogo from '../components/ui/BrandLogo';
 
 const NAV = [
-  { to: '/teacher', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/teacher/students', label: 'Students', icon: Users },
-  { to: '/teacher/assignments', label: 'Assignments', icon: ClipboardList },
+  { to: '/teacher', label: 'Dashboard', icon: LayoutDashboard, end: true, prefetch: () => import('../pages/teacher/TeacherDashboardPage') },
+  { to: '/teacher/students', label: 'Students', icon: Users, prefetch: () => import('../pages/teacher/StudentsPage') },
+  { to: '/teacher/assignments', label: 'Assignments', icon: ClipboardList, prefetch: () => import('../pages/teacher/TeacherAssignmentsPage') },
 ];
+
+const prefetchedTeacherRoutes = new Set();
+const prefetchTeacherRoute = (to, loader) => {
+  if (!loader || prefetchedTeacherRoutes.has(to)) return;
+  prefetchedTeacherRoutes.add(to);
+  loader().catch(() => prefetchedTeacherRoutes.delete(to));
+};
 
 const getTeacherMobileTitle = (pathname) => {
   if (pathname.startsWith('/teacher/students')) return 'Students';
@@ -21,7 +28,7 @@ const getTeacherMobileTitle = (pathname) => {
 };
 
 const TeacherSidebarContent = ({ user, onNavigate, onLogout, showClose = false }) => (
-  <div className="flex flex-col h-full bg-white/75 dark:bg-[#0B1120]/85 backdrop-blur-2xl">
+  <div className="flex flex-col h-full bg-white/80 dark:bg-[#0B1120]/90 backdrop-blur-lg">
     <div className="flex items-center justify-between gap-2 px-4 py-4 border-b border-white/70 dark:border-white/10">
       <BrandLogo variant="mark" subtitle="Teacher Portal" to="/" onClick={onNavigate} />
       {showClose && (
@@ -36,12 +43,14 @@ const TeacherSidebarContent = ({ user, onNavigate, onLogout, showClose = false }
       )}
     </div>
     <nav className="flex-1 p-3 space-y-1">
-      {NAV.map(({ to, label, icon: Icon, end }) => (
+      {NAV.map(({ to, label, icon: Icon, end, prefetch }) => (
         <NavLink
           key={to}
           to={to}
           end={end}
           onClick={onNavigate}
+          onMouseEnter={() => prefetchTeacherRoute(to, prefetch)}
+          onFocus={() => prefetchTeacherRoute(to, prefetch)}
           className={({ isActive }) => (isActive ? 'sidebar-link-active' : 'sidebar-link')}
         >
           <Icon size={16} />
@@ -100,7 +109,7 @@ export default function TeacherLayout() {
       )}
 
       <div className="flex flex-col flex-1 min-w-0">
-        <header className="sticky top-0 z-30 flex items-center gap-2 sm:gap-3 px-3 sm:px-5 lg:px-6 py-2.5 sm:py-3 bg-white/70 dark:bg-[#0B1120]/75 backdrop-blur-xl border-b border-white/75 dark:border-white/10 shrink-0">
+        <header className="sticky top-0 z-30 flex items-center gap-2 sm:gap-3 px-3 sm:px-5 lg:px-6 py-2.5 sm:py-3 bg-white/75 dark:bg-[#0B1120]/80 backdrop-blur-md border-b border-white/75 dark:border-white/10 shrink-0">
           <button
             type="button"
             onClick={() => setSidebarOpen(true)}
