@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Editor, { DiffEditor } from '@monaco-editor/react';
 import {
@@ -16,14 +16,23 @@ import { downloadStudyNotesPdf, normalizeReviewSections } from '../../utils/stud
 import { useToast } from '../ui/Toast';
 import { useTheme } from '../../context/ThemeContext';
 
+const unescapeCodeText = (str) => {
+  if (typeof str !== 'string' || !str) return '';
+  if (!str.includes('\n') && (str.includes('\\n') || str.includes('\\t'))) {
+    return str.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n').replace(/\\t/g, '\t');
+  }
+  return str;
+};
+
 const ErrorStudyCard = ({ err, index }) => {
   const [copied, setCopied] = useState(false);
   const toast = useToast();
   const isWarning = err.severity === 'WARNING';
+  const cleanFix = useMemo(() => unescapeCodeText(err.fix), [err.fix]);
 
   const handleCopyFix = async () => {
     try {
-      await copyToClipboard(err.fix);
+      await copyToClipboard(cleanFix);
       setCopied(true);
       toast({ type: 'success', message: 'Suggested fix copied to clipboard' });
       setTimeout(() => setCopied(false), 2000);
@@ -34,27 +43,27 @@ const ErrorStudyCard = ({ err, index }) => {
 
   return (
     <div
-      className={`border rounded-xl overflow-hidden bg-white dark:bg-[#111116] ${
+      className={`border rounded-xl overflow-hidden bg-white/75 dark:bg-white/[0.04] backdrop-blur-xl ${
         isWarning
-          ? 'border-amber-300/70 dark:border-amber-500/30'
-          : 'border-red-300/70 dark:border-red-500/30'
+          ? 'border-amber-300/70 dark:border-amber-400/30'
+          : 'border-rose-300/70 dark:border-rose-400/30'
       }`}
     >
       <div
-        className={`flex items-start gap-3 p-4 border-b ${
+        className={`flex items-start gap-3 p-3.5 border-b ${
           isWarning
-            ? 'bg-amber-50/80 dark:bg-amber-500/10 border-amber-200/70 dark:border-amber-500/20'
-            : 'bg-red-50/80 dark:bg-red-500/10 border-red-200/70 dark:border-red-500/20'
+            ? 'bg-amber-500/10 border-amber-300/40 dark:border-amber-400/20'
+            : 'bg-rose-500/10 border-rose-300/40 dark:border-rose-400/20'
         }`}
       >
         <div
           className={`p-1.5 rounded-lg shrink-0 mt-0.5 ${
-            isWarning ? 'bg-amber-100 dark:bg-amber-500/20' : 'bg-red-100 dark:bg-red-500/20'
+            isWarning ? 'bg-amber-500/20' : 'bg-rose-500/20'
           }`}
         >
           <Bug
             size={15}
-            className={isWarning ? 'text-amber-700 dark:text-amber-300' : 'text-red-600 dark:text-red-400'}
+            className={isWarning ? 'text-amber-700 dark:text-amber-300' : 'text-rose-600 dark:text-rose-400'}
           />
         </div>
         <div className="flex-1 min-w-0">
@@ -62,31 +71,31 @@ const ErrorStudyCard = ({ err, index }) => {
             <span
               className={`px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wide ${
                 isWarning
-                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300'
-                  : 'bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-300'
+                  ? 'bg-amber-500/20 text-amber-800 dark:text-amber-200'
+                  : 'bg-rose-500/20 text-rose-800 dark:text-rose-200'
               }`}
             >
               {err.severity}
             </span>
             {err.line > 0 && (
-              <span className="bg-[#141210] dark:bg-white/10 text-white text-xs px-2 py-0.5 rounded font-mono">
+              <span className="bg-slate-900 dark:bg-white/10 text-white text-xs px-2 py-0.5 rounded-full font-mono">
                 Line {err.line}
               </span>
             )}
-            <h4 className="font-semibold text-[#141210] dark:text-[#F8FAFC] text-sm">
+            <h4 className="font-semibold text-slate-900 dark:text-white text-sm">
               #{index + 1} · {err.title}
             </h4>
           </div>
-          <p className="text-sm text-[#57534E] dark:text-[#94A3B8] mt-1.5 leading-relaxed">
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
             {err.explanation}
           </p>
         </div>
       </div>
 
-      {err.fix && (
-        <div className="p-4 bg-[#F7F4EE]/70 dark:bg-[#0D0D11]/70 space-y-2">
+      {cleanFix && (
+        <div className="p-3.5 bg-white/50 dark:bg-[#070B14]/60 space-y-2">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wide text-[#059669] dark:text-[#34D399]">
+            <span className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
               Exact Fix
             </span>
             <button
@@ -94,12 +103,12 @@ const ErrorStudyCard = ({ err, index }) => {
               onClick={handleCopyFix}
               className="btn btn-ghost btn-sm py-1 px-2 text-xs gap-1"
             >
-              {copied ? <CheckCheck size={13} className="text-[#10B981]" /> : <Copy size={13} />}
+              {copied ? <CheckCheck size={13} className="text-emerald-500" /> : <Copy size={13} />}
               <span>{copied ? 'Copied' : 'Copy Fix'}</span>
             </button>
           </div>
-          <pre className="p-3 rounded-xl bg-[#141210] dark:bg-[#0D0D11] text-[#34D399] border border-black/10 dark:border-white/[0.08] text-xs font-mono overflow-x-auto leading-relaxed">
-            <code>{err.fix}</code>
+          <pre className="p-3 rounded-xl bg-[#0B1120] text-emerald-300 border border-white/10 text-xs font-mono overflow-x-auto leading-relaxed">
+            <code>{cleanFix}</code>
           </pre>
         </div>
       )}
@@ -110,14 +119,14 @@ const ErrorStudyCard = ({ err, index }) => {
 const FunctionStudyCard = ({ fn, defaultOpen = true }) => {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="border border-[#E5DFD5] dark:border-white/[0.08] rounded-xl bg-white dark:bg-[#111116] overflow-hidden">
+    <div className="border border-white/75 dark:border-white/15 rounded-xl bg-white/60 dark:bg-white/[0.04] backdrop-blur-xl overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen((p) => !p)}
-        className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left bg-[#F7F4EE]/70 dark:bg-white/[0.03] hover:bg-[#F7F4EE] dark:hover:bg-white/[0.05] transition-colors"
+        className="w-full flex items-center justify-between gap-3 px-4 py-2.5 text-left bg-white/60 dark:bg-white/[0.04] hover:bg-white/80 dark:hover:bg-white/[0.08] transition-colors"
       >
         <div className="flex items-center gap-2.5 flex-wrap min-w-0">
-          <span className="font-mono text-sm font-bold text-[#E85D3F] dark:text-[#F97316]">
+          <span className="font-mono text-sm font-bold text-cyan-700 dark:text-cyan-300 truncate">
             {fn.name}({fn.parameters === 'None' ? '' : fn.parameters})
           </span>
           <span className="badge badge-gray text-[11px] font-mono">
@@ -125,35 +134,38 @@ const FunctionStudyCard = ({ fn, defaultOpen = true }) => {
           </span>
         </div>
         {open ? (
-          <ChevronDown size={16} className="text-[#57534E] dark:text-[#94A3B8] shrink-0" />
+          <ChevronDown size={16} className="text-slate-500 dark:text-slate-400 shrink-0" />
         ) : (
-          <ChevronRight size={16} className="text-[#57534E] dark:text-[#94A3B8] shrink-0" />
+          <ChevronRight size={16} className="text-slate-500 dark:text-slate-400 shrink-0" />
         )}
       </button>
 
       {open && (
-        <div className="p-4 grid sm:grid-cols-3 gap-3 text-sm border-t border-[#E5DFD5] dark:border-white/[0.08]">
-          <div className="p-3 rounded-xl bg-[#F7F4EE] dark:bg-[#16161D] border border-[#E5DFD5] dark:border-white/[0.06]">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-[#57534E] dark:text-[#94A3B8] mb-1">
-              Parameters
-            </p>
-            <p className="font-mono text-xs text-[#141210] dark:text-[#F8FAFC] break-words">
-              {fn.parameters || 'None'}
-            </p>
+        <div className="p-3.5 space-y-2.5 text-sm border-t border-white/70 dark:border-white/10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="px-3 py-2 rounded-lg bg-white/75 dark:bg-[#0B1120]/60 border border-white/80 dark:border-white/10 flex items-center justify-between gap-2">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 shrink-0">
+                Params
+              </span>
+              <span className="font-mono text-xs text-slate-900 dark:text-slate-100 truncate">
+                {fn.parameters || 'None'}
+              </span>
+            </div>
+            <div className="px-3 py-2 rounded-lg bg-white/75 dark:bg-[#0B1120]/60 border border-white/80 dark:border-white/10 flex items-center justify-between gap-2">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 shrink-0">
+                Returns
+              </span>
+              <span className="font-mono text-xs text-slate-900 dark:text-slate-100 truncate">
+                {fn.returns || 'None / void'}
+              </span>
+            </div>
           </div>
-          <div className="p-3 rounded-xl bg-[#F7F4EE] dark:bg-[#16161D] border border-[#E5DFD5] dark:border-white/[0.06]">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-[#57534E] dark:text-[#94A3B8] mb-1">
-              Return Value
-            </p>
-            <p className="font-mono text-xs text-[#141210] dark:text-[#F8FAFC] break-words">
-              {fn.returns || 'None / void'}
-            </p>
-          </div>
-          <div className="sm:col-span-1 p-3 rounded-xl bg-[#E85D3F]/5 dark:bg-orange-500/10 border border-[#E85D3F]/20 dark:border-orange-500/20">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-[#E85D3F] dark:text-orange-400 mb-1">
+
+          <div className="p-3 rounded-lg bg-cyan-500/10 border border-cyan-400/25">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-cyan-700 dark:text-cyan-300 mb-1">
               What It Does
             </p>
-            <p className="text-xs text-[#141210] dark:text-[#E2E8F0] leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 leading-relaxed">
               {fn.explanation}
             </p>
           </div>
@@ -164,21 +176,25 @@ const FunctionStudyCard = ({ fn, defaultOpen = true }) => {
 };
 
 const synthesizeImprovedCode = (review) => {
-  if (review?.improvedCode && review.improvedCode.trim()) return review.improvedCode;
-  if (!review?.code) return '';
-  const lines = review.code.split('\n');
+  if (review?.improvedCode && review.improvedCode.trim()) {
+    return unescapeCodeText(review.improvedCode);
+  }
+  const cleanOriginal = unescapeCodeText(review?.code || '');
+  if (!cleanOriginal) return '';
+  const lines = cleanOriginal.split('\n');
   for (const b of review.bugs || []) {
     const idx = (b.lineNumber || 1) - 1;
+    const sol = unescapeCodeText(b.solution || '');
     if (
       b.lineNumber > 0 &&
       idx >= 0 &&
       idx < lines.length &&
-      b.solution &&
-      !b.solution.trim().startsWith('//') &&
-      !b.solution.trim().startsWith('#') &&
-      !b.solution.includes('\n')
+      sol &&
+      !sol.trim().startsWith('//') &&
+      !sol.trim().startsWith('#') &&
+      !sol.includes('\n')
     ) {
-      lines[idx] = b.solution;
+      lines[idx] = sol;
     }
   }
   return lines.join('\n');
@@ -217,16 +233,29 @@ export default function ReviewReportView({
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState(review?.title || '');
   const [codeViewMode, setCodeViewMode] = useState('diff');
-  const [renderSideBySide, setRenderSideBySide] = useState(true);
+  const [renderSideBySide, setRenderSideBySide] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth >= 768 : true
+  );
   const [copiedImproved, setCopiedImproved] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setRenderSideBySide(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const studyData = useMemo(() => normalizeReviewSections(review), [review]);
   const { errors, howItWorks, complexity, callGraph, functionBreakdown, isGemini } = studyData;
   const callChain = useMemo(() => buildCallChainPreview(callGraph), [callGraph]);
 
+  const originalCode = useMemo(() => unescapeCodeText(review?.code || ''), [review?.code]);
   const improvedCode = useMemo(() => synthesizeImprovedCode(review), [review]);
-  const hasDiffChanges = Boolean(review?.code && improvedCode && improvedCode !== review.code);
+  const hasDiffChanges = Boolean(originalCode && improvedCode && improvedCode !== originalCode);
   const improvementNotes = useMemo(() => {
     if (review?.improvementNotes?.length > 0) return review.improvementNotes;
     return errors
@@ -242,7 +271,7 @@ export default function ReviewReportView({
 
   const handleCopyImproved = async () => {
     try {
-      await copyToClipboard(improvedCode || review.code);
+      await copyToClipboard(improvedCode || originalCode);
       setCopiedImproved(true);
       toast({ type: 'success', message: 'Improved code copied to clipboard' });
       setTimeout(() => setCopiedImproved(false), 2000);
@@ -263,6 +292,10 @@ export default function ReviewReportView({
     }
   };
 
+  const jumpTo = (id) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   const primaryPracticeTopic =
     review?.concepts?.find((c) => c.level === 'weak' || c.level === 'ok')?.name ||
     review?.concepts?.[0]?.name ||
@@ -271,18 +304,29 @@ export default function ReviewReportView({
   const scoreVal = Number(review?.score ?? 0);
   const scoreRingClass =
     scoreVal >= 80
-      ? 'border-[#10B981] bg-[#10B981]/10 text-[#059669] dark:border-[#34D399] dark:bg-[#34D399]/15 dark:text-[#34D399]'
+      ? 'border-emerald-400 bg-emerald-400/15 text-emerald-700 dark:text-emerald-300 shadow-[0_0_24px_rgba(52,211,153,0.28)]'
       : scoreVal >= 60
-      ? 'border-[#E85D3F] bg-[#E85D3F]/10 text-[#E85D3F] dark:border-[#F97316] dark:bg-[#F97316]/15 dark:text-[#F97316]'
-      : 'border-red-500 bg-red-500/10 text-red-600 dark:text-red-400';
+      ? 'border-cyan-400 bg-cyan-400/15 text-cyan-700 dark:text-cyan-300 shadow-[0_0_24px_rgba(56,189,248,0.25)]'
+      : 'border-rose-400 bg-rose-400/15 text-rose-700 dark:text-rose-300 shadow-[0_0_24px_rgba(244,63,94,0.25)]';
+
+  const monacoTheme = isDark ? 'vs-dark' : 'light';
+
+  const sectionTabs = [
+    ...(originalCode ? [{ id: 'section-code-diff', label: 'Code Diff' }] : []),
+    { id: 'section-errors', label: `Errors (${errors.length})` },
+    { id: 'section-complexity', label: 'Complexity' },
+    { id: 'section-how-it-works', label: `Walkthrough (${howItWorks.length})` },
+    { id: 'section-functions', label: `Functions (${functionBreakdown.length})` },
+    { id: 'section-call-flow', label: 'Call Flow' },
+  ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 overflow-x-hidden">
       {/* Fallback Banner + Retry with Gemini */}
       {!isGemini && (
-        <div className="card p-4 bg-amber-50/90 dark:bg-amber-500/10 border border-amber-300/70 dark:border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 no-print">
+        <div className="liquid-glass p-4 bg-amber-500/10 border-amber-400/35 flex flex-col sm:flex-row sm:items-center justify-between gap-3 no-print">
           <div className="flex items-start gap-2.5 text-sm text-amber-900 dark:text-amber-100">
-            <AlertTriangle size={18} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <AlertTriangle size={18} className="text-amber-500 shrink-0 mt-0.5" />
             <div>
               <p className="font-semibold">Analyzed using Static Syntax Analyzer (Fallback)</p>
               <p className="text-xs text-amber-800 dark:text-amber-200 mt-0.5">
@@ -295,7 +339,7 @@ export default function ReviewReportView({
               type="button"
               onClick={onRetryGemini}
               disabled={retryingGemini}
-              className="btn btn-primary btn-sm shrink-0 gap-1.5"
+              className="btn btn-primary btn-sm rounded-full shrink-0 gap-1.5"
             >
               {retryingGemini ? (
                 <><LoadingSpinner size="sm" /> Retrying Gemini...</>
@@ -309,13 +353,13 @@ export default function ReviewReportView({
 
       {/* Teacher Mentor Feedback Card */}
       {review.teacherFeedback?.comment && (
-        <div className="card p-5 border-l-4 border-l-[#10B981] bg-[#10B981]/5 dark:bg-[#34D399]/10 space-y-2">
+        <div className="liquid-glass p-4 sm:p-5 border-l-4 border-l-emerald-400 bg-emerald-500/10 space-y-2">
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-2 text-[#059669] dark:text-[#34D399] font-semibold text-sm">
+            <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300 font-semibold text-sm">
               <MessageSquareCheck size={17} />
               <span>Teacher Mentor Feedback — {review.teacherFeedback.teacherName || 'Instructor'}</span>
             </div>
-            <div className="flex items-center gap-2 text-xs text-[#059669] dark:text-[#34D399]">
+            <div className="flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-300">
               {review.teacherFeedback.originalScore != null &&
                 review.teacherFeedback.adjustedScore != null &&
                 review.teacherFeedback.originalScore !== review.teacherFeedback.adjustedScore && (
@@ -328,28 +372,28 @@ export default function ReviewReportView({
               )}
             </div>
           </div>
-          <p className="text-sm text-[#141210] dark:text-[#F8FAFC] leading-relaxed whitespace-pre-wrap">
+          <p className="text-sm text-slate-900 dark:text-slate-100 leading-relaxed whitespace-pre-wrap">
             {review.teacherFeedback.comment}
           </p>
         </div>
       )}
 
-      {/* CLEAN BENTO HEADER */}
-      <div className="card p-6 space-y-4">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-          <div className="space-y-2 flex-1 min-w-0">
+      {/* CLEAN LUCID GLASS HEADER */}
+      <div className="liquid-glass p-4 sm:p-5 space-y-3">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="space-y-1.5 flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className={`badge ${getLanguageBadgeClass(review.language)} font-mono text-xs uppercase`}>
                 {getLanguageLabel(review.language)} Study Report
               </span>
               {isGemini ? (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-[#10B981]/10 text-[#059669] border border-[#10B981]/25 dark:bg-[#34D399]/15 dark:text-[#34D399] dark:border-[#34D399]/30">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-emerald-500/15 text-emerald-700 border border-emerald-400/30 dark:text-emerald-300">
                   <Sparkles size={12} /> Gemini 3.8 Flash
                 </span>
               ) : (
                 <span className="badge badge-yellow text-xs font-mono">Static Syntax Analyzer</span>
               )}
-              <span className="text-xs text-[#57534E] dark:text-[#94A3B8]">{formatDate(review.createdAt)}</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400">{formatDate(review.createdAt)}</span>
             </div>
 
             {editableTitle && editingTitle ? (
@@ -376,7 +420,7 @@ export default function ReviewReportView({
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <h2 className="text-xl sm:text-2xl font-bold text-[#141210] dark:text-[#F8FAFC]">
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white truncate">
                   {review.title || `${getLanguageLabel(review.language)} Study Report`}
                 </h2>
                 {editableTitle && (
@@ -385,7 +429,7 @@ export default function ReviewReportView({
                       setTitleValue(review.title || '');
                       setEditingTitle(true);
                     }}
-                    className="text-[#57534E] hover:text-[#141210] dark:text-[#94A3B8] dark:hover:text-white no-print"
+                    className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white no-print shrink-0"
                     title="Edit report title"
                   >
                     <Edit2 size={14} />
@@ -394,30 +438,30 @@ export default function ReviewReportView({
               </div>
             )}
 
-            <p className="text-sm text-[#57534E] dark:text-[#94A3B8] leading-relaxed">{review.summary}</p>
+            <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{review.summary}</p>
           </div>
 
-          <div className="shrink-0 flex flex-wrap items-center gap-4">
-            {/* Emerald Circular Score Pill */}
-            <div className={`w-20 h-20 rounded-full border-2 flex flex-col items-center justify-center shrink-0 ${scoreRingClass}`}>
-              <span className="text-xl font-bold font-mono leading-none tabular-nums">
+          <div className="shrink-0 flex flex-wrap items-center gap-3">
+            {/* Glowing Emerald Circular Score Ring */}
+            <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 flex flex-col items-center justify-center shrink-0 backdrop-blur-xl ${scoreRingClass}`}>
+              <span className="text-lg sm:text-xl font-bold font-mono leading-none tabular-nums">
                 {scoreVal}
-                <span className="text-xs opacity-70">/100</span>
+                <span className="text-[10px] sm:text-xs opacity-75">/100</span>
               </span>
-              <span className="text-[10px] font-semibold uppercase tracking-wider mt-1">Score</span>
+              <span className="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider mt-0.5">Score</span>
             </div>
 
-            <div className="flex flex-col gap-2 no-print">
+            <div className="flex flex-wrap sm:flex-col gap-2 no-print">
               <button
                 type="button"
                 onClick={handleDownloadPdf}
                 disabled={exportingPdf}
-                className="btn bg-[#141210] text-white hover:bg-[#2a2622] dark:bg-white dark:text-[#0D0D11] dark:hover:bg-slate-200 font-semibold px-4 py-2.5 text-xs sm:text-sm gap-2 shadow-sm"
+                className="liquid-pill px-4 py-2 text-xs sm:text-sm font-semibold text-slate-900 dark:text-white"
               >
                 {exportingPdf ? (
                   <><LoadingSpinner size="sm" /> Preparing PDF...</>
                 ) : (
-                  <><FileDown size={15} /> Export PDF Notes</>
+                  <><FileDown size={15} className="text-cyan-600 dark:text-cyan-300" /> Export PDF Notes</>
                 )}
               </button>
               {!isGemini && onRetryGemini && (
@@ -425,7 +469,7 @@ export default function ReviewReportView({
                   type="button"
                   onClick={onRetryGemini}
                   disabled={retryingGemini}
-                  className="btn btn-secondary btn-sm gap-1.5"
+                  className="btn btn-secondary btn-sm rounded-full gap-1.5"
                 >
                   <RefreshCw size={13} className={retryingGemini ? 'animate-spin' : ''} />
                   <span>{retryingGemini ? 'Retrying...' : 'Retry with Gemini'}</span>
@@ -434,276 +478,290 @@ export default function ReviewReportView({
             </div>
           </div>
         </div>
+
+        {/* Horizontal Scrollable Section Jump Tabs */}
+        <div className="pt-2.5 border-t border-white/70 dark:border-white/10 flex items-center gap-2 overflow-x-auto scrollbar-thin pb-1 no-print">
+          {sectionTabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => jumpTo(tab.id)}
+              className="liquid-pill px-3 py-1 text-xs font-medium whitespace-nowrap shrink-0 text-slate-700 dark:text-slate-200"
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* TWO-COLUMN BENTO GRID */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-        {/* LEFT COLUMN (Code Diff, Errors, 3-Card Walkthrough, Function Breakdown) */}
-        <div className="xl:col-span-7 space-y-6">
-          {/* Before vs. After Code Diff Card */}
-          {review.code && (
-            <div id="section-code-diff" className="card overflow-hidden no-print">
-              <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 bg-[#141210] dark:bg-[#111116] border-b border-white/[0.08] text-slate-300">
-                <div className="flex items-center gap-2">
-                  {codeViewMode === 'diff' ? (
-                    <GitCompare size={16} className="text-[#34D399]" />
-                  ) : (
-                    <Code2 size={16} className="text-[#F97316]" />
-                  )}
-                  <span className="text-xs font-mono font-semibold text-white">
-                    {codeViewMode === 'diff' ? 'Before vs. After Code Diff' : 'Submitted Code'}
-                  </span>
-                  <span className="text-xs text-[#94A3B8] font-mono">
-                    ({getLanguageLabel(review.language)})
-                  </span>
-                </div>
+      {/* TOP FULL-WIDTH GLASS DIFF CARD (col-span-full) */}
+      {originalCode && (
+        <div id="section-code-diff" className="w-full liquid-glass overflow-hidden no-print">
+          <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 bg-white/70 dark:bg-[#0B1120]/80 border-b border-white/70 dark:border-white/10">
+            <div className="flex items-center gap-2">
+              {codeViewMode === 'diff' ? (
+                <GitCompare size={16} className="text-emerald-600 dark:text-emerald-300" />
+              ) : (
+                <Code2 size={16} className="text-cyan-600 dark:text-cyan-300" />
+              )}
+              <span className="text-xs font-mono font-semibold text-slate-900 dark:text-white">
+                {codeViewMode === 'diff' ? 'Before vs. After Code Diff' : 'Submitted Code'}
+              </span>
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
+                ({getLanguageLabel(review.language)})
+              </span>
+            </div>
 
-                <div className="flex items-center gap-2 flex-wrap">
-                  <div className="inline-flex rounded-lg bg-white/5 p-0.5 text-[11px] font-mono border border-white/[0.08]">
-                    <button
-                      type="button"
-                      onClick={() => setCodeViewMode('diff')}
-                      className={`px-2.5 py-1 rounded-md transition-colors ${
-                        codeViewMode === 'diff'
-                          ? 'bg-[#F97316] text-[#0D0D11] font-semibold'
-                          : 'text-slate-300 hover:text-white'
-                      }`}
-                    >
-                      Diff View
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCodeViewMode('original')}
-                      className={`px-2.5 py-1 rounded-md transition-colors ${
-                        codeViewMode === 'original'
-                          ? 'bg-[#F97316] text-[#0D0D11] font-semibold'
-                          : 'text-slate-300 hover:text-white'
-                      }`}
-                    >
-                      Original
-                    </button>
-                  </div>
-
-                  {codeViewMode === 'diff' && (
-                    <button
-                      type="button"
-                      onClick={() => setRenderSideBySide((p) => !p)}
-                      className="text-slate-300 hover:text-white text-[11px] font-mono px-2 py-1 rounded hover:bg-white/10"
-                    >
-                      {renderSideBySide ? 'Inline' : 'Side-by-Side'}
-                    </button>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={handleCopyImproved}
-                    className="inline-flex items-center gap-1 text-xs font-medium text-[#34D399] hover:text-emerald-300 px-2 py-1 rounded hover:bg-white/5"
-                  >
-                    {copiedImproved ? <CheckCheck size={13} /> : <Copy size={13} />}
-                    <span>{copiedImproved ? 'Copied' : 'Copy Improved Code'}</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="h-80">
-                {codeViewMode === 'diff' ? (
-                  <DiffEditor
-                    height="100%"
-                    language={getMonacoLanguage(review.language)}
-                    original={review.code}
-                    modified={improvedCode || review.code}
-                    theme={isDark ? 'vs-dark' : 'vs-dark'}
-                    options={{
-                      readOnly: true,
-                      renderSideBySide,
-                      fontSize: 12.5,
-                      fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-                      minimap: { enabled: false },
-                      scrollBeyondLastLine: false,
-                      automaticLayout: true,
-                      padding: { top: 10, bottom: 10 },
-                    }}
-                  />
-                ) : (
-                  <Editor
-                    height="100%"
-                    language={getMonacoLanguage(review.language)}
-                    value={review.code}
-                    theme="vs-dark"
-                    options={{
-                      readOnly: true,
-                      fontSize: 13,
-                      fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-                      minimap: { enabled: false },
-                      scrollBeyondLastLine: false,
-                      lineNumbers: 'on',
-                      wordWrap: 'on',
-                      automaticLayout: true,
-                      domReadOnly: true,
-                      padding: { top: 10, bottom: 10 },
-                    }}
-                  />
-                )}
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="inline-flex rounded-full bg-white/80 dark:bg-white/[0.06] p-0.5 text-[11px] font-mono border border-white/80 dark:border-white/15">
+                <button
+                  type="button"
+                  onClick={() => setCodeViewMode('diff')}
+                  className={`px-3 py-1 rounded-full transition-colors ${
+                    codeViewMode === 'diff'
+                      ? 'bg-gradient-to-r from-cyan-500 to-indigo-600 text-white font-semibold'
+                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  Diff View
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCodeViewMode('original')}
+                  className={`px-3 py-1 rounded-full transition-colors ${
+                    codeViewMode === 'original'
+                      ? 'bg-gradient-to-r from-cyan-500 to-indigo-600 text-white font-semibold'
+                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  Original
+                </button>
               </div>
 
               {codeViewMode === 'diff' && (
-                <div className="p-4 bg-[#F7F4EE]/70 dark:bg-[#111116] border-t border-[#E5DFD5] dark:border-white/[0.08] space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-[#57534E] dark:text-[#94A3B8]">
-                    {hasDiffChanges ? 'Line-Level Improvement Notes' : 'Comparison Status'}
-                  </p>
-                  {improvementNotes.length > 0 ? (
-                    <ul className="space-y-1.5">
-                      {improvementNotes.map((note, idx) => (
-                        <li key={idx} className="text-xs text-[#141210] dark:text-[#E2E8F0] flex items-start gap-2">
-                          <span className="px-1.5 py-0.5 rounded bg-[#10B981]/15 text-[#059669] dark:bg-[#34D399]/15 dark:text-[#34D399] font-mono shrink-0">
-                            Line {note.lineNumber}
-                          </span>
-                          <span className="leading-relaxed">{note.explanation}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-xs text-[#57534E] dark:text-[#94A3B8]">
-                      {hasDiffChanges
-                        ? 'Compare highlighted additions (green) and removals (red) in the diff above.'
-                        : 'No structural line changes needed—your code already matches the suggested baseline.'}
-                    </p>
-                  )}
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setRenderSideBySide((p) => !p)}
+                  className="liquid-pill px-3 py-1 text-[11px] font-mono text-slate-700 dark:text-slate-200"
+                >
+                  {renderSideBySide ? 'Inline' : 'Side-by-Side'}
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={handleCopyImproved}
+                className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 hover:opacity-80 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/30"
+              >
+                {copiedImproved ? <CheckCheck size={13} /> : <Copy size={13} />}
+                <span>{copiedImproved ? 'Copied' : 'Copy Improved Code'}</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="h-[340px] sm:h-[380px]">
+            {codeViewMode === 'diff' ? (
+              <DiffEditor
+                height="100%"
+                language={getMonacoLanguage(review.language)}
+                original={originalCode}
+                modified={improvedCode || originalCode}
+                theme={monacoTheme}
+                options={{
+                  readOnly: true,
+                  renderSideBySide,
+                  fontSize: 13,
+                  fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                  minimap: { enabled: false },
+                  overviewRulerLanes: 0,
+                  renderOverviewRuler: false,
+                  hideCursorInOverviewRuler: true,
+                  overviewRulerBorder: false,
+                  scrollBeyondLastLine: false,
+                  automaticLayout: true,
+                  padding: { top: 10, bottom: 10 },
+                }}
+              />
+            ) : (
+              <Editor
+                height="100%"
+                language={getMonacoLanguage(review.language)}
+                value={originalCode}
+                theme={monacoTheme}
+                options={{
+                  readOnly: true,
+                  fontSize: 13,
+                  fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                  minimap: { enabled: false },
+                  overviewRulerLanes: 0,
+                  hideCursorInOverviewRuler: true,
+                  overviewRulerBorder: false,
+                  scrollBeyondLastLine: false,
+                  lineNumbers: 'on',
+                  wordWrap: 'on',
+                  automaticLayout: true,
+                  domReadOnly: true,
+                  padding: { top: 10, bottom: 10 },
+                }}
+              />
+            )}
+          </div>
+
+          {codeViewMode === 'diff' && (
+            <div className="p-3.5 sm:p-4 bg-white/60 dark:bg-[#0B1120]/70 border-t border-white/70 dark:border-white/10 space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                {hasDiffChanges ? 'Line-Level Improvement Notes' : 'Comparison Status'}
+              </p>
+              {improvementNotes.length > 0 ? (
+                <ul className="space-y-1.5">
+                  {improvementNotes.map((note, idx) => (
+                    <li key={idx} className="text-xs text-slate-800 dark:text-slate-200 flex items-start gap-2">
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-400/30 font-mono shrink-0">
+                        Line {note.lineNumber}
+                      </span>
+                      <span className="leading-relaxed">{note.explanation}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {hasDiffChanges
+                    ? 'Compare highlighted additions (green) and removals (red) in the diff above.'
+                    : 'No structural line changes needed—your code already matches the suggested baseline.'}
+                </p>
               )}
             </div>
           )}
+        </div>
+      )}
 
-          {/* Horizontal Step-by-Step Walkthrough (01., 02., 03. Copper-Numbered Cards) */}
-          <section id="section-how-it-works" className="card p-5 space-y-4">
-            <div className="flex items-center justify-between gap-2">
-              <h3 className="text-base font-bold text-[#141210] dark:text-[#F8FAFC] flex items-center gap-2">
-                <ListOrdered size={18} className="text-[#E85D3F] dark:text-[#F97316]" />
-                <span>Step-by-Step Walkthrough</span>
-              </h3>
-              <span className="badge badge-gray font-mono text-xs">{howItWorks.length} steps</span>
+      {/* ROW 1: Errors & Bugs (Left) + Complexity Analysis (Right: Cyan Time & Violet Space Glass Tiles) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+        <section id="section-errors" className="liquid-glass p-4 sm:p-5 space-y-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <Bug
+                size={18}
+                className={errors.length === 0 ? 'text-emerald-500' : 'text-rose-500'}
+              />
+              <span>Errors &amp; Bugs Found</span>
+            </h3>
+            <span className={errors.length === 0 ? 'badge-green' : 'badge-red'}>
+              {errors.length} {errors.length === 1 ? 'issue' : 'issues'}
+            </span>
+          </div>
+
+          {errors.length === 0 ? (
+            <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-400/30 flex items-center gap-3">
+              <CheckCircle2 size={20} className="text-emerald-500 shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                  No syntax or logic errors found!
+                </p>
+                <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
+                  Your logic is clean. Review complexity and call flow on the right to optimize further.
+                </p>
+              </div>
             </div>
-
-            <div className="grid sm:grid-cols-3 gap-3">
-              {howItWorks.map((step, idx) => (
-                <div
-                  key={idx}
-                  className="p-4 rounded-xl bg-[#F7F4EE]/80 dark:bg-[#111116] border border-[#E5DFD5] dark:border-white/[0.08] space-y-2 flex flex-col justify-between"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-lg font-bold text-[#E85D3F] dark:text-[#F97316]">
-                      {String(idx + 1).padStart(2, '0')}.
-                    </span>
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#E85D3F]/60 dark:bg-[#F97316]/60" />
-                  </div>
-                  <p className="text-xs sm:text-sm text-[#141210] dark:text-[#E2E8F0] leading-relaxed">
-                    {step}
-                  </p>
-                </div>
+          ) : (
+            <div className="space-y-3">
+              {errors.map((err, i) => (
+                <ErrorStudyCard key={i} err={err} index={i} />
               ))}
             </div>
-          </section>
+          )}
+        </section>
 
-          {/* Errors & Bugs Found */}
-          <section id="section-errors" className="card p-5 space-y-4">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <h3 className="text-base font-bold text-[#141210] dark:text-[#F8FAFC] flex items-center gap-2">
-                <Bug
-                  size={18}
-                  className={errors.length === 0 ? 'text-[#10B981] dark:text-[#34D399]' : 'text-red-500'}
-                />
-                <span>Errors &amp; Bugs Found</span>
-              </h3>
-              <span className={errors.length === 0 ? 'badge-green' : 'badge-red'}>
-                {errors.length} {errors.length === 1 ? 'issue' : 'issues'}
+        {/* Complexity Analysis: Luminous Cyan Time & Violet Space Glass Tiles */}
+        <section id="section-complexity" className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="liquid-glass p-4 sm:p-5 space-y-2.5 border-t-2 border-t-cyan-400">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                <Clock size={14} className="text-cyan-500 dark:text-cyan-300" /> Time
+              </span>
+              <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/15 border border-cyan-400/35 text-cyan-700 dark:text-cyan-200 font-mono text-sm font-bold shadow-[0_0_16px_rgba(56,189,248,0.18)]">
+                {complexity.time}
               </span>
             </div>
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+              {complexity.timeReason}
+            </p>
+          </div>
 
-            {errors.length === 0 ? (
-              <div className="p-4 rounded-xl bg-[#10B981]/10 dark:bg-[#34D399]/10 border border-[#10B981]/25 dark:border-[#34D399]/25 flex items-center gap-3">
-                <CheckCircle2 size={20} className="text-[#10B981] dark:text-[#34D399] shrink-0" />
-                <div>
-                  <p className="text-sm font-semibold text-[#141210] dark:text-[#F8FAFC]">
-                    No syntax or logic errors found!
-                  </p>
-                  <p className="text-xs text-[#57534E] dark:text-[#94A3B8] mt-0.5">
-                    Your logic is clean. Review complexity and call flow on the right to optimize further.
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {errors.map((err, i) => (
-                  <ErrorStudyCard key={i} err={err} index={i} />
-                ))}
-              </div>
-            )}
-          </section>
-
-          {/* Complete Function & Method Breakdown */}
-          <section id="section-functions" className="card p-5 space-y-4">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <h3 className="text-base font-bold text-[#141210] dark:text-[#F8FAFC] flex items-center gap-2">
-                <Boxes size={18} className="text-[#E85D3F] dark:text-[#F97316]" />
-                <span>Complete Function Breakdown</span>
-              </h3>
-              <span className="badge badge-gray font-mono text-xs">
-                {functionBreakdown.length} function{functionBreakdown.length !== 1 ? 's' : ''}
+          <div className="liquid-glass p-4 sm:p-5 space-y-2.5 border-t-2 border-t-violet-400">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                <Cpu size={14} className="text-violet-500 dark:text-violet-300" /> Space
+              </span>
+              <span className="px-2.5 py-0.5 rounded-full bg-violet-500/15 border border-violet-400/35 text-violet-700 dark:text-violet-200 font-mono text-sm font-bold shadow-[0_0_16px_rgba(129,140,248,0.18)]">
+                {complexity.space}
               </span>
             </div>
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+              {complexity.spaceReason}
+            </p>
+          </div>
+        </section>
+      </div>
 
-            {functionBreakdown.length === 0 ? (
-              <p className="text-sm text-[#57534E] dark:text-[#94A3B8] p-4 rounded-xl bg-[#F7F4EE] dark:bg-[#111116] border border-[#E5DFD5] dark:border-white/[0.06]">
-                No standalone functions or methods were declared—this snippet executes as top-level statements.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {functionBreakdown.map((fn, idx) => (
-                  <FunctionStudyCard key={`${fn.name}-${idx}`} fn={fn} defaultOpen />
-                ))}
-              </div>
-            )}
-          </section>
+      {/* ROW 2: Full-Width Step-by-Step Walkthrough (Compact Sleek Glass Rows) */}
+      <section id="section-how-it-works" className="liquid-glass p-4 sm:p-5 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <ListOrdered size={18} className="text-cyan-500 dark:text-cyan-300" />
+            <span>Step-by-Step Walkthrough</span>
+          </h3>
+          <span className="badge badge-gray font-mono text-xs">{howItWorks.length} steps</span>
         </div>
 
-        {/* RIGHT COLUMN (Time & Space Complexity, Method Call Flow, Practice CTA) */}
-        <div className="xl:col-span-5 space-y-6">
-          {/* Side-by-Side Time (Mint) & Space (Copper) Complexity Cards */}
-          <section id="section-complexity" className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="card p-5 space-y-3 border-t-2 border-t-[#10B981] dark:border-t-[#34D399]">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-semibold uppercase tracking-wide text-[#57534E] dark:text-[#94A3B8] flex items-center gap-1.5">
-                  <Clock size={14} className="text-[#10B981] dark:text-[#34D399]" /> Time
-                </span>
-                <span className="px-2.5 py-1 rounded-lg bg-[#10B981]/10 text-[#059669] dark:bg-[#34D399]/15 dark:text-[#34D399] font-mono text-sm font-bold">
-                  {complexity.time}
-                </span>
-              </div>
-              <p className="text-xs sm:text-sm text-[#57534E] dark:text-[#94A3B8] leading-relaxed">
-                {complexity.timeReason}
+        <div className="space-y-2">
+          {howItWorks.map((step, idx) => (
+            <div
+              key={idx}
+              className="px-3.5 py-2.5 rounded-xl bg-white/60 dark:bg-white/[0.04] border border-white/80 dark:border-white/10 flex items-start gap-3"
+            >
+              <span className="font-mono text-xs font-bold px-2 py-0.5 rounded-full bg-cyan-500/15 border border-cyan-400/30 text-cyan-700 dark:text-cyan-200 shrink-0 mt-0.5">
+                Step {idx + 1}
+              </span>
+              <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 leading-relaxed">
+                {step}
               </p>
             </div>
+          ))}
+        </div>
+      </section>
 
-            <div className="card p-5 space-y-3 border-t-2 border-t-[#E85D3F] dark:border-t-[#F97316]">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-semibold uppercase tracking-wide text-[#57534E] dark:text-[#94A3B8] flex items-center gap-1.5">
-                  <Cpu size={14} className="text-[#E85D3F] dark:text-[#F97316]" /> Space
-                </span>
-                <span className="px-2.5 py-1 rounded-lg bg-[#E85D3F]/10 text-[#E85D3F] dark:bg-[#F97316]/15 dark:text-[#F97316] font-mono text-sm font-bold">
-                  {complexity.space}
-                </span>
-              </div>
-              <p className="text-xs sm:text-sm text-[#57534E] dark:text-[#94A3B8] leading-relaxed">
-                {complexity.spaceReason}
-              </p>
+      {/* ROW 3: Function Breakdown (Left 7 cols) + Method Call Flow & Practice CTA (Right 5 cols) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+        <section id="section-functions" className="lg:col-span-7 liquid-glass p-4 sm:p-5 space-y-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <Boxes size={18} className="text-indigo-500 dark:text-indigo-300" />
+              <span>Complete Function Breakdown</span>
+            </h3>
+            <span className="badge badge-gray font-mono text-xs">
+              {functionBreakdown.length} function{functionBreakdown.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+
+          {functionBreakdown.length === 0 ? (
+            <p className="text-sm text-slate-600 dark:text-slate-400 p-4 rounded-xl bg-white/60 dark:bg-white/[0.04] border border-white/75 dark:border-white/10">
+              No standalone functions or methods were declared—this snippet executes as top-level statements.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {functionBreakdown.map((fn, idx) => (
+                <FunctionStudyCard key={`${fn.name}-${idx}`} fn={fn} defaultOpen />
+              ))}
             </div>
-          </section>
+          )}
+        </section>
 
-          {/* Visual Node-Based Method Call Flow Diagram */}
-          <section id="section-call-flow" className="card p-5 space-y-4">
+        <div className="lg:col-span-5 space-y-4">
+          <section id="section-call-flow" className="liquid-glass p-4 sm:p-5 space-y-3">
             <div className="flex items-center justify-between gap-2">
-              <h3 className="text-base font-bold text-[#141210] dark:text-[#F8FAFC] flex items-center gap-2">
-                <GitBranch size={18} className="text-[#10B981] dark:text-[#34D399]" />
+              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <GitBranch size={18} className="text-emerald-500 dark:text-emerald-300" />
                 <span>Method Call Flow</span>
               </h3>
               {callGraph.length > 0 && (
@@ -714,50 +772,49 @@ export default function ReviewReportView({
             </div>
 
             {callGraph.length === 0 ? (
-              <p className="text-xs sm:text-sm text-[#57534E] dark:text-[#94A3B8] p-4 rounded-xl bg-[#F7F4EE] dark:bg-[#111116] border border-[#E5DFD5] dark:border-white/[0.06]">
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 p-3.5 rounded-xl bg-white/60 dark:bg-white/[0.04] border border-white/75 dark:border-white/10">
                 Single-block script or standalone function — no nested function-to-function calls detected.
               </p>
             ) : (
-              <div className="space-y-4">
-                {/* Visual Connected Node Flow with Glowing Connector Dots */}
+              <div className="space-y-3">
                 {callChain.length >= 2 && (
-                  <div className="p-4 rounded-xl bg-[#141210] dark:bg-[#0D0D11] border border-white/[0.08] flex items-center gap-2 flex-wrap">
+                  <div className="p-3.5 rounded-xl bg-[#0B1120] border border-white/10 flex items-center gap-2 flex-wrap">
                     {callChain.map((node, i) => (
                       <span key={`${node}-${i}`} className="inline-flex items-center gap-2">
-                        <span className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-[#1C1C26] border border-white/[0.1] font-mono text-xs font-semibold text-white">
+                        <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-white/[0.08] border border-white/15 font-mono text-xs font-semibold text-white">
                           <span
                             className={`w-2 h-2 rounded-full ${
                               i === 0
-                                ? 'bg-[#F97316] shadow-[0_0_8px_#F97316]'
-                                : 'bg-[#34D399] shadow-[0_0_8px_#34D399]'
+                                ? 'bg-cyan-400 shadow-[0_0_8px_#38BDF8]'
+                                : 'bg-emerald-400 shadow-[0_0_8px_#34D399]'
                             }`}
                           />
                           {node}()
                         </span>
                         {i < callChain.length - 1 && (
-                          <ArrowRight size={14} className="text-[#94A3B8] shrink-0" />
+                          <ArrowRight size={14} className="text-slate-400 shrink-0" />
                         )}
                       </span>
                     ))}
                   </div>
                 )}
 
-                <div className="space-y-2.5">
+                <div className="space-y-2">
                   {callGraph.map((edge, idx) => (
                     <div
                       key={idx}
-                      className="p-3.5 rounded-xl bg-[#F7F4EE]/80 dark:bg-[#111116] border border-[#E5DFD5] dark:border-white/[0.08] space-y-1.5"
+                      className="p-3 rounded-xl bg-white/60 dark:bg-white/[0.04] border border-white/75 dark:border-white/10 space-y-1"
                     >
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="px-2 py-0.5 rounded bg-white dark:bg-[#16161D] border border-[#E5DFD5] dark:border-white/[0.08] font-mono text-xs font-semibold text-[#141210] dark:text-white">
+                        <span className="px-2.5 py-0.5 rounded-full bg-white/85 dark:bg-white/[0.08] border border-white/90 dark:border-white/15 font-mono text-xs font-semibold text-slate-900 dark:text-white">
                           {edge.caller}()
                         </span>
-                        <ArrowRight size={13} className="text-[#E85D3F] dark:text-[#F97316] shrink-0" />
-                        <span className="px-2 py-0.5 rounded bg-[#10B981]/10 dark:bg-[#34D399]/15 border border-[#10B981]/25 dark:border-[#34D399]/30 font-mono text-xs font-semibold text-[#059669] dark:text-[#34D399]">
+                        <ArrowRight size={13} className="text-cyan-500 shrink-0" />
+                        <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-400/30 font-mono text-xs font-semibold text-emerald-700 dark:text-emerald-300">
                           {edge.callee}()
                         </span>
                       </div>
-                      <p className="text-xs text-[#57534E] dark:text-[#94A3B8] leading-relaxed">
+                      <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
                         {edge.purpose}
                       </p>
                     </div>
@@ -768,15 +825,15 @@ export default function ReviewReportView({
           </section>
 
           {/* Practice This Topic CTA Card + Concepts */}
-          <section className="card p-5 space-y-4 border border-[#E85D3F]/25 dark:border-[#F97316]/30 bg-gradient-to-br from-[#E85D3F]/5 to-transparent dark:from-[#F97316]/10 dark:to-transparent no-print">
+          <section className="liquid-glass p-4 sm:p-5 space-y-3 border border-cyan-400/30 bg-gradient-to-br from-cyan-500/10 to-indigo-500/10 no-print">
             <div className="space-y-1">
-              <div className="flex items-center gap-2 text-[#E85D3F] dark:text-[#F97316] font-bold text-sm">
+              <div className="flex items-center gap-2 text-cyan-700 dark:text-cyan-300 font-bold text-sm">
                 <BookOpen size={16} />
                 <span>Practice This Topic</span>
               </div>
-              <p className="text-xs text-[#57534E] dark:text-[#94A3B8] leading-relaxed">
+              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
                 Reinforce what you learned with a targeted quiz on{' '}
-                <strong className="text-[#141210] dark:text-white">{primaryPracticeTopic}</strong>.
+                <strong className="text-slate-900 dark:text-white">{primaryPracticeTopic}</strong>.
               </p>
             </div>
 
@@ -807,7 +864,7 @@ export default function ReviewReportView({
               <button
                 type="button"
                 onClick={() => navigate(`/dashboard/quiz?topic=${encodeURIComponent(primaryPracticeTopic)}`)}
-                className="btn btn-primary w-full py-2.5 font-semibold gap-2 shadow-sm"
+                className="btn btn-primary rounded-full w-full py-2.5 font-semibold gap-2"
               >
                 <span>Practice {primaryPracticeTopic}</span>
                 <ArrowRight size={15} />
@@ -817,7 +874,7 @@ export default function ReviewReportView({
 
           {/* Security Analysis */}
           {(review.security?.length > 0 || review.securityIssues?.length > 0) && (
-            <div className="card p-5 border-l-4 border-l-amber-500 space-y-3">
+            <div className="liquid-glass p-4 sm:p-5 border-l-4 border-l-amber-400 space-y-2.5">
               <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300 font-semibold text-sm">
                 <Shield size={17} />
                 <span>Security Considerations ({(review.security || review.securityIssues).length})</span>
@@ -826,7 +883,7 @@ export default function ReviewReportView({
                 {(review.security || review.securityIssues).map((item, idx) => (
                   <div
                     key={idx}
-                    className="p-3 bg-amber-50/70 dark:bg-amber-500/10 rounded-xl text-xs text-amber-950 dark:text-amber-100 space-y-1 border border-amber-200/70 dark:border-amber-500/20"
+                    className="p-3 bg-amber-500/10 rounded-xl text-xs text-amber-950 dark:text-amber-100 space-y-1 border border-amber-400/25"
                   >
                     <div className="flex items-center gap-2">
                       <span className="font-semibold">{item.title || item.issue || 'Security Note'}</span>

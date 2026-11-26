@@ -98,8 +98,12 @@ export default function CodeReviewPage() {
   const challengePrompt = location.state?.challengePrompt || null;
   const hasExplicitStarter = Boolean(location.state?.starterCode || assignmentId);
 
-  const [editorTheme, setEditorTheme] = useState(isDark ? 'vs-dark' : 'vs-dark'); // VS Code Dark default
+  const [editorTheme, setEditorTheme] = useState(isDark ? 'vs-dark' : 'light');
   const [fontSize, setFontSize] = useState(14);
+
+  useEffect(() => {
+    setEditorTheme(isDark ? 'vs-dark' : 'light');
+  }, [isDark]);
   const [language, setLanguage] = useState(() => {
     const incoming = String(location.state?.language || '').toLowerCase();
     if (incoming && ALL_LANGUAGES.some((l) => l.id === incoming)) return incoming;
@@ -281,33 +285,35 @@ export default function CodeReviewPage() {
   };
 
   return (
-    <div className="space-y-5 max-w-5xl mx-auto">
+    <div className="space-y-4 w-full max-w-[1440px] mx-auto px-2 sm:px-4 lg:px-6 overflow-x-hidden">
       {/* Header */}
-      <div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300">
-            30 Languages Supported
-          </span>
-          {!isDefaultTemplate && (
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
-              Draft auto-saved
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
+        <div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-cyan-500/15 text-cyan-700 border border-cyan-400/30 dark:bg-cyan-400/15 dark:text-cyan-200 dark:border-cyan-400/30">
+              30 Languages Supported
             </span>
-          )}
-          {uploadedFileName && (
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-mono bg-gray-100 text-gray-700 dark:bg-slate-800 dark:text-slate-200 flex items-center gap-1">
-              <FileCode2 size={12} /> {uploadedFileName}
-            </span>
-          )}
+            {!isDefaultTemplate && (
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/15 text-emerald-700 border border-emerald-400/30 dark:bg-emerald-400/15 dark:text-emerald-300">
+                Draft auto-saved
+              </span>
+            )}
+            {uploadedFileName && (
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-mono bg-white/75 text-slate-800 border border-white/80 dark:bg-white/[0.08] dark:text-slate-100 dark:border-white/15 flex items-center gap-1">
+                <FileCode2 size={12} /> {uploadedFileName}
+              </span>
+            )}
+          </div>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white mt-1">AI Code Review</h2>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">
+            Select any of the 30 programming languages or drop a code file into the editor for instant AI feedback
+          </p>
         </div>
-        <h2 className="text-xl font-bold text-gray-900 dark:text-slate-100 mt-1">AI Code Review</h2>
-        <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">
-          Select any of the 30 programming languages or drop a code file into the editor for instant AI feedback
-        </p>
       </div>
 
       {assignmentId && (
-        <div className="card p-3.5 bg-primary-50/80 dark:bg-primary-950/30 border border-primary-200 dark:border-primary-800/60 flex items-center justify-between gap-3">
-          <div className="text-xs sm:text-sm text-primary-900 dark:text-primary-100">
+        <div className="card p-3.5 bg-cyan-500/10 border border-cyan-400/30 flex items-center justify-between gap-3">
+          <div className="text-xs sm:text-sm text-slate-900 dark:text-slate-100">
             <span className="font-semibold">Solving Assignment:</span> {assignmentTitle || 'Course Assignment'}
           </div>
           <span className="badge badge-blue text-[11px]">Linked Submission</span>
@@ -315,62 +321,45 @@ export default function CodeReviewPage() {
       )}
 
       {!assignmentId && challengePrompt && (
-        <div className="card p-4 bg-indigo-50/80 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/60 space-y-1">
+        <div className="card p-4 bg-emerald-500/10 border border-emerald-400/30 space-y-1">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-xs sm:text-sm font-semibold text-indigo-900 dark:text-indigo-100">
+            <span className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white">
               Roadmap Challenge: {assignmentTitle || 'Milestone Practice'}
             </span>
-            <span className="badge badge-blue text-[11px]">Guided Challenge</span>
+            <span className="badge badge-green text-[11px]">Guided Challenge</span>
           </div>
-          <p className="text-xs sm:text-sm text-indigo-800 dark:text-indigo-200">{challengePrompt}</p>
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300">{challengePrompt}</p>
         </div>
       )}
 
       {/* Language selector & Stream mode */}
       <div className="card p-4 space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 dark:border-slate-800 pb-2">
-          <label className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-slate-400 flex items-center gap-1.5">
-            <Globe size={14} className="text-primary-600 dark:text-primary-400" />
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/60 dark:border-white/10 pb-3">
+          <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+            <Globe size={14} className="text-cyan-600 dark:text-cyan-400" />
             <span>Select Programming Language ({ALL_LANGUAGES.length})</span>
           </label>
 
-          {/* SSE Streaming Toggle */}
-          <label className="flex items-center gap-2 cursor-pointer select-none text-xs font-semibold text-gray-700 dark:text-slate-300">
-            <input
-              type="checkbox"
-              checked={useStreaming}
-              onChange={(e) => setUseStreaming(e.target.checked)}
-              className="rounded text-primary-600 focus:ring-primary-500"
-            />
-            <span className="flex items-center gap-1">
-              <Radio size={14} className={useStreaming ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400'} />
-              Live Stream (SSE)
-            </span>
-          </label>
-        </div>
+          <div className="flex flex-wrap items-center gap-3 ml-auto">
+            {/* SSE Streaming Toggle */}
+            <label className="flex items-center gap-2 cursor-pointer select-none text-xs font-semibold text-slate-700 dark:text-slate-200">
+              <input
+                type="checkbox"
+                checked={useStreaming}
+                onChange={(e) => setUseStreaming(e.target.checked)}
+                className="rounded accent-cyan-500 focus:ring-cyan-500"
+              />
+              <span className="flex items-center gap-1">
+                <Radio size={14} className={useStreaming ? 'text-cyan-600 dark:text-cyan-400' : 'text-slate-400'} />
+                Live Stream (SSE)
+              </span>
+            </label>
 
-        {/* Quick Popular Pills + All 30 Dropdown */}
-        <div className="flex flex-wrap items-center gap-2">
-          {POPULAR_LANGUAGES.map((lang) => (
-            <button
-              key={lang}
-              onClick={() => handleLanguageChange(lang)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-                language === lang
-                  ? 'border-primary-600 bg-primary-600 text-white shadow-xs'
-                  : 'border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-200 hover:border-primary-400 bg-white dark:bg-slate-800 dark:hover:bg-slate-700'
-              }`}
-            >
-              {getLanguageLabel(lang)}
-            </button>
-          ))}
-
-          {/* All 30 Languages Dropdown */}
-          <div className="relative inline-block ml-auto">
+            {/* All 30 Languages Dropdown in Header Row */}
             <select
               value={language}
               onChange={(e) => handleLanguageChange(e.target.value)}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-100 shadow-2xs hover:border-primary-500 focus:outline-hidden focus:ring-2 focus:ring-primary-500"
+              className="px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200/80 dark:border-white/15 bg-white/80 dark:bg-[#0B1120]/80 text-slate-800 dark:text-slate-100 hover:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
             >
               <option value="" disabled>Browse all 30 languages...</option>
               {ALL_LANGUAGES.map((l) => (
@@ -380,6 +369,24 @@ export default function CodeReviewPage() {
               ))}
             </select>
           </div>
+        </div>
+
+        {/* 10 Quick Popular Pills Compactly Wrapped Underneath */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          {POPULAR_LANGUAGES.map((lang) => (
+            <button
+              key={lang}
+              type="button"
+              onClick={() => handleLanguageChange(lang)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                language === lang
+                  ? 'border-cyan-400/60 bg-gradient-to-r from-cyan-500 to-indigo-600 text-white shadow-[0_4px_14px_rgba(14,165,233,0.35)]'
+                  : 'border-white/70 dark:border-white/15 text-slate-700 dark:text-slate-300 hover:border-cyan-400/50 hover:text-slate-900 dark:hover:text-white bg-white/60 dark:bg-white/[0.06]'
+              }`}
+            >
+              {getLanguageLabel(lang)}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -401,40 +408,49 @@ export default function CodeReviewPage() {
           if (droppedFile) handleFileImport(droppedFile);
         }}
         className={`relative card overflow-hidden transition-all duration-200 ${
-          isExpanded ? 'ring-2 ring-primary-500 shadow-xl' : ''
-        } ${isDragging ? 'ring-2 ring-primary-500' : ''}`}
+          isExpanded ? 'ring-2 ring-cyan-400 shadow-xl' : ''
+        } ${isDragging ? 'ring-2 ring-cyan-400' : ''}`}
       >
         {isDragging && (
-          <div className="absolute inset-0 z-30 bg-primary-900/80 backdrop-blur-[1px] flex flex-col items-center justify-center text-white pointer-events-none">
-            <Upload size={34} className="mb-2 animate-bounce" />
+          <div className="absolute inset-0 z-30 bg-[#070B14]/85 backdrop-blur-sm flex flex-col items-center justify-center text-white pointer-events-none p-4 text-center">
+            <Upload size={34} className="mb-2 animate-bounce text-cyan-400" />
             <p className="text-sm font-semibold">Drop your source file here to load it into the editor</p>
-            <p className="text-xs text-primary-200 mt-1">
+            <p className="text-xs text-slate-300 mt-1">
               Supports .py, .js, .ts, .java, .cpp, .c, .cs, .go, .rs, .sql, .kt (max 100 KB / 15,000 chars)
             </p>
           </div>
         )}
         {/* Editor Toolbar */}
-        <div className={`flex items-center justify-between px-4 py-2.5 border-b ${editorTheme === 'vs-dark' ? 'bg-gray-900 border-gray-800 text-gray-300' : 'bg-gray-50 border-gray-200 text-gray-600'}`}>
+        <div
+          className={`flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 border-b ${
+            editorTheme === 'vs-dark'
+              ? 'bg-[#0B1120]/85 border-white/10 text-slate-300'
+              : 'bg-white/75 border-white/80 text-slate-600'
+          }`}
+        >
           <div className="flex items-center gap-3">
             <div className="flex gap-1.5">
-              <span className="w-3 h-3 rounded-full bg-red-500 inline-block" />
-              <span className="w-3 h-3 rounded-full bg-yellow-500 inline-block" />
-              <span className="w-3 h-3 rounded-full bg-green-500 inline-block" />
+              <span className="w-2.5 h-2.5 rounded-full bg-rose-400 inline-block" />
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block" />
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block" />
             </div>
             <span className="text-xs font-mono font-medium">
-              Monaco Editor • <span className="text-primary-400 font-bold">{getLanguageLabel(language)}</span>
+              Monaco Editor ·{' '}
+              <span className="text-cyan-600 dark:text-cyan-300 font-bold">
+                {getLanguageLabel(language)}
+              </span>
             </span>
           </div>
 
-          <div className="flex items-center gap-3 text-xs">
+          <div className="flex items-center gap-2.5 text-xs flex-wrap">
             {/* Font size picker */}
             <select
               value={fontSize}
               onChange={(e) => setFontSize(Number(e.target.value))}
-              className={`rounded px-2 py-0.5 border text-xs font-mono ${
+              className={`rounded-lg px-2 py-1 border text-xs font-mono ${
                 editorTheme === 'vs-dark'
-                  ? 'bg-gray-800 border-gray-700 text-gray-200'
-                  : 'bg-white border-gray-300 text-gray-700'
+                  ? 'bg-white/[0.08] border-white/15 text-slate-100'
+                  : 'bg-white/80 border-slate-200 text-slate-800'
               }`}
             >
               <option value={12}>12px</option>
@@ -444,39 +460,54 @@ export default function CodeReviewPage() {
 
             {/* Monaco Theme Switcher (Dark / Light) */}
             <button
-              onClick={() => setEditorTheme((p) => (p === 'vs-dark' ? 'vs-light' : 'vs-dark'))}
-              title={`Switch to ${editorTheme === 'vs-dark' ? 'VS Light' : 'VS Dark'} theme`}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded border transition-colors ${
+              type="button"
+              onClick={() => setEditorTheme((p) => (p === 'vs-dark' ? 'light' : 'vs-dark'))}
+              title={`Switch to ${editorTheme === 'vs-dark' ? 'Light' : 'Dark'} editor theme`}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-colors ${
                 editorTheme === 'vs-dark'
-                  ? 'bg-gray-800 border-gray-700 hover:bg-gray-700 text-yellow-400'
-                  : 'bg-white border-gray-300 hover:bg-gray-100 text-gray-700'
+                  ? 'bg-white/[0.08] border-white/15 hover:bg-white/[0.14] text-cyan-200'
+                  : 'bg-white/85 border-slate-200 hover:bg-white text-indigo-700'
               }`}
             >
-              {editorTheme === 'vs-dark' ? <Sun size={13} /> : <Moon size={13} />}
-              <span className="font-mono text-[11px]">{editorTheme === 'vs-dark' ? 'Dark' : 'Light'}</span>
+              {editorTheme === 'vs-dark' ? (
+                <>
+                  <Moon size={13} className="text-cyan-300" />
+                  <span className="font-mono text-[11px]">Dark</span>
+                </>
+              ) : (
+                <>
+                  <Sun size={13} className="text-amber-500" />
+                  <span className="font-mono text-[11px]">Light</span>
+                </>
+              )}
             </button>
 
             {/* Expand / Minimize Height */}
             <button
+              type="button"
               onClick={() => setIsExpanded((p) => !p)}
               title={isExpanded ? 'Shrink Editor' : 'Expand Editor'}
-              className="p-1 rounded hover:opacity-80 transition-opacity"
+              className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
             >
               {isExpanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
             </button>
 
             {/* Character & Line Counters */}
-            <span className={`font-mono ${lines > MAX_LINES ? 'text-red-500 font-bold' : ''}`}>
+            <span className={`font-mono ${lines > MAX_LINES ? 'text-rose-500 font-bold' : ''}`}>
               {lines}/{MAX_LINES}L
             </span>
-            <span className={`font-mono ${chars > MAX_CHARS ? 'text-red-500 font-bold' : ''}`}>
+            <span className={`font-mono ${chars > MAX_CHARS ? 'text-rose-500 font-bold' : ''}`}>
               {chars}/{MAX_CHARS}C
             </span>
           </div>
         </div>
 
-        {/* Monaco Editor Container */}
-        <div className={`w-full transition-all duration-200 ${isExpanded ? 'h-[550px]' : 'h-96'}`}>
+        {/* Monaco Editor Container (Dynamic Viewport Height) */}
+        <div
+          className={`w-full transition-all duration-200 ${
+            isExpanded ? 'min-h-[540px] h-[calc(100vh-190px)]' : 'min-h-[420px] h-[calc(100vh-300px)]'
+          }`}
+        >
           <Editor
             height="100%"
             language={getMonacoLanguage(language)}
@@ -488,16 +519,23 @@ export default function CodeReviewPage() {
             onMount={handleEditorDidMount}
             theme={editorTheme}
             loading={
-              <div className={`flex flex-col items-center justify-center h-full space-y-2 ${editorTheme === 'vs-dark' ? 'bg-gray-900 text-gray-400' : 'bg-gray-50 text-gray-500'}`}>
+              <div
+                className={`flex flex-col items-center justify-center h-full space-y-2 ${
+                  editorTheme === 'vs-dark' ? 'bg-[#070B14] text-slate-400' : 'bg-[#F4F7FB] text-slate-500'
+                }`}
+              >
                 <LoadingSpinner size="md" />
                 <span className="text-xs font-mono">Loading Monaco Editor ({getLanguageLabel(language)})...</span>
               </div>
             }
             options={{
               fontSize,
-              fontFamily: "'Fira Code', 'Cascadia Code', Consolas, 'Courier New', monospace",
+              fontFamily: "'JetBrains Mono', 'Fira Code', Consolas, monospace",
               fontLigatures: true,
               minimap: { enabled: isExpanded },
+              overviewRulerLanes: 0,
+              hideCursorInOverviewRuler: true,
+              overviewRulerBorder: false,
               scrollBeyondLastLine: false,
               lineNumbers: 'on',
               tabSize: 2,
@@ -515,7 +553,7 @@ export default function CodeReviewPage() {
         </div>
 
         {/* Bottom Actions Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 bg-gray-50 dark:bg-slate-900 border-t border-gray-200 dark:border-slate-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 bg-white/70 dark:bg-[#0B1120]/80 backdrop-blur-xl border-t border-white/70 dark:border-white/10">
           <div className="flex items-center gap-2 flex-wrap">
             <input
               ref={fileInputRef}
@@ -540,19 +578,26 @@ export default function CodeReviewPage() {
               type="button"
               onClick={handleClear}
               disabled={loading}
-              className="btn btn-secondary btn-sm gap-1.5 text-gray-600 dark:text-slate-300"
+              className="btn btn-secondary btn-sm gap-1.5"
             >
               <Trash2 size={14} /> Clear Code
             </button>
-            <span className="text-[11px] text-gray-400 dark:text-slate-400 font-mono hidden sm:inline">
-              Shortcut: <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-slate-200 rounded text-[10px]">Ctrl</kbd> + <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-slate-200 rounded text-[10px]">Enter</kbd>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono hidden md:inline">
+              Shortcut:{' '}
+              <kbd className="px-1.5 py-0.5 bg-white/80 dark:bg-white/[0.08] border border-slate-200 dark:border-white/15 text-slate-800 dark:text-slate-100 rounded text-[10px]">
+                Ctrl
+              </kbd>{' '}
+              +{' '}
+              <kbd className="px-1.5 py-0.5 bg-white/80 dark:bg-white/[0.08] border border-slate-200 dark:border-white/15 text-slate-800 dark:text-slate-100 rounded text-[10px]">
+                Enter
+              </kbd>
             </span>
           </div>
 
           <button
             onClick={handleSubmit}
             disabled={isEmpty || isOverLimit || loading}
-            className="btn btn-primary gap-2"
+            className="btn btn-primary rounded-full w-full sm:w-auto px-6 gap-2"
           >
             {loading ? (
               <>
@@ -571,13 +616,13 @@ export default function CodeReviewPage() {
 
       {/* Streaming / Loading Progress Banner */}
       {loading && (
-        <div className="card p-4 bg-primary-50 dark:bg-primary-950/40 border border-primary-200 dark:border-primary-800/60 flex items-center gap-3 animate-pulse">
+        <div className="card p-4 bg-cyan-500/10 border border-cyan-400/30 flex items-center gap-3 animate-pulse">
           <LoadingSpinner size="sm" />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-primary-900 dark:text-primary-100">
+            <p className="text-sm font-semibold text-slate-900 dark:text-white">
               {streamProgress || `Gemini AI is analyzing ${getLanguageLabel(language)} code structure and identifying bugs...`}
             </p>
-            <p className="text-xs text-primary-700 dark:text-primary-300 mt-0.5">
+            <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
               Evaluating bugs, step-by-step flow, time/space complexity, call hierarchy, and function breakdown.
             </p>
           </div>

@@ -12,15 +12,15 @@ const NAV = [
 ];
 
 const TeacherSidebarContent = ({ user, onNavigate, onLogout }) => (
-  <div className="flex flex-col h-full bg-white dark:bg-[#111116]">
-    <div className="flex items-center gap-2.5 px-4 py-5 border-b border-[#E5DFD5] dark:border-white/[0.08]">
+  <div className="flex flex-col h-full bg-white/65 dark:bg-[#0B1120]/75 backdrop-blur-2xl">
+    <div className="flex items-center gap-2.5 px-4 py-5 border-b border-white/70 dark:border-white/10">
       <Link to="/" className="flex items-center gap-2.5">
-        <span className="font-mono text-xs font-bold px-2 py-1.5 rounded-lg bg-[#E85D3F]/10 text-[#E85D3F] dark:bg-orange-500/15 dark:text-orange-400 border border-[#E85D3F]/20 dark:border-orange-500/25">
+        <span className="font-mono text-xs font-bold px-2.5 py-1.5 rounded-full bg-gradient-to-r from-cyan-500 to-indigo-600 text-white shadow-sm">
           &lt;/&gt;
         </span>
         <div>
-          <span className="text-sm font-bold text-[#141210] dark:text-[#F8FAFC] block">CodeBuddy</span>
-          <span className="text-[11px] font-mono text-[#10B981] dark:text-[#34D399] font-medium">Teacher Portal</span>
+          <span className="text-sm font-bold text-slate-900 dark:text-white block">CodeBuddy</span>
+          <span className="text-[11px] font-mono text-emerald-600 dark:text-emerald-300 font-medium">Teacher Portal</span>
         </div>
       </Link>
     </div>
@@ -38,14 +38,14 @@ const TeacherSidebarContent = ({ user, onNavigate, onLogout }) => (
         </NavLink>
       ))}
     </nav>
-    <div className="p-3 border-t border-[#E5DFD5] dark:border-white/[0.08]">
-      <div className="px-3 py-2 mb-1.5 rounded-xl bg-[#F7F4EE] dark:bg-white/[0.03] border border-[#E5DFD5] dark:border-white/[0.06]">
-        <p className="text-xs font-semibold text-[#141210] dark:text-[#F8FAFC] truncate">{user?.name}</p>
-        <p className="text-[11px] text-[#57534E] dark:text-[#94A3B8] truncate">{user?.email}</p>
+    <div className="p-3 border-t border-white/70 dark:border-white/10">
+      <div className="px-3 py-2 mb-1.5 rounded-xl bg-white/60 dark:bg-white/[0.05] border border-white/80 dark:border-white/10">
+        <p className="text-xs font-semibold text-slate-900 dark:text-white truncate">{user?.name}</p>
+        <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{user?.email}</p>
       </div>
       <button
         onClick={onLogout}
-        className="sidebar-link w-full text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-700"
+        className="sidebar-link w-full text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 hover:text-rose-700"
       >
         <LogOut size={16} />
         <span>Logout</span>
@@ -65,49 +65,49 @@ export default function TeacherLayout() {
   const handleLogout = () => { logout(); navigate('/login'); };
 
   return (
-    <div className="flex h-screen bg-[#F7F4EE] dark:bg-[#0D0D11] overflow-hidden">
-      <aside className="hidden lg:flex flex-col w-56 bg-white dark:bg-[#111116] border-r border-[#E5DFD5] dark:border-white/[0.08] shrink-0">
+    <div className="flex h-screen bg-transparent overflow-hidden">
+      <aside className="hidden md:flex flex-col w-56 border-r border-white/70 dark:border-white/10 shrink-0">
         <TeacherSidebarContent user={user} onNavigate={() => setSidebarOpen(false)} onLogout={handleLogout} />
       </aside>
       {sidebarOpen && (
-        <div className="fixed inset-0 z-40 lg:hidden">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setSidebarOpen(false)} />
-          <aside className="relative z-50 flex flex-col w-56 h-full bg-white dark:bg-[#111116] border-r border-[#E5DFD5] dark:border-white/[0.08]">
+        <div className="fixed inset-0 z-40 md:hidden">
+          <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-xs" onClick={() => setSidebarOpen(false)} />
+          <aside className="relative z-50 flex flex-col w-56 h-full border-r border-white/70 dark:border-white/10">
             <TeacherSidebarContent user={user} onNavigate={() => setSidebarOpen(false)} onLogout={handleLogout} />
           </aside>
         </div>
       )}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-        <header className="flex items-center gap-3 px-4 lg:px-6 py-3 bg-white dark:bg-[#111116] border-b border-[#E5DFD5] dark:border-white/[0.08] shrink-0">
-          <button onClick={() => setSidebarOpen(true)} className="lg:hidden btn btn-ghost p-1.5"><Menu size={20} /></button>
+        <header className="flex items-center gap-3 px-4 lg:px-6 py-3 bg-white/60 dark:bg-[#0B1120]/70 backdrop-blur-xl border-b border-white/70 dark:border-white/10 shrink-0">
+          <button onClick={() => setSidebarOpen(true)} className="md:hidden btn btn-ghost p-1.5"><Menu size={20} /></button>
           <span className="badge-green text-xs font-mono">Teacher</span>
           <div className="flex-1" />
           <button
             onClick={toggleTheme}
-            title={theme === 'dark' ? 'Switch to Warm Paper Light Mode' : 'Switch to Matte Obsidian Dark Mode'}
-            className="btn btn-ghost p-2 rounded-xl"
+            title={theme === 'dark' ? 'Switch to Lucid Light Mode' : 'Switch to Deep Lucid Dark Mode'}
+            className="liquid-pill p-2"
           >
-            {theme === 'dark' ? <Sun size={17} className="text-orange-400" /> : <Moon size={17} />}
+            {theme === 'dark' ? <Sun size={16} className="text-cyan-300" /> : <Moon size={16} className="text-indigo-600" />}
           </button>
           <div className="relative">
             <button
               onClick={() => { setNotifOpen((p) => !p); setUserMenuOpen(false); }}
-              className="btn btn-ghost p-2 rounded-xl relative"
+              className="liquid-pill p-2 relative"
               title="Teacher Updates"
             >
-              <Bell size={17} />
+              <Bell size={16} />
             </button>
             {notifOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
-                <div className="absolute right-0 top-full mt-1.5 w-64 bg-white dark:bg-[#16161D] border border-[#E5DFD5] dark:border-white/[0.08] rounded-xl shadow-xl p-3 z-50 space-y-2">
-                  <p className="text-xs font-semibold text-[#141210] dark:text-[#F8FAFC]">Teacher Portal</p>
-                  <div className="text-xs text-[#141210] dark:text-[#F8FAFC] bg-[#F7F4EE] dark:bg-white/[0.04] p-2.5 rounded-lg border border-[#E5DFD5] dark:border-white/[0.08]">
+                <div className="absolute right-0 top-full mt-2 w-64 liquid-glass p-3 z-50 space-y-2">
+                  <p className="text-xs font-semibold text-slate-900 dark:text-white">Teacher Portal</p>
+                  <div className="text-xs text-slate-800 dark:text-slate-100 bg-cyan-500/10 p-2.5 rounded-xl border border-cyan-400/25">
                     Review student rosters, average scores, and weak-topic trends from the Students view.
                   </div>
                   <button
                     onClick={() => { navigate('/teacher/students'); setNotifOpen(false); }}
-                    className="w-full text-left text-xs text-[#E85D3F] dark:text-orange-400 font-medium hover:underline"
+                    className="w-full text-left text-xs text-cyan-600 dark:text-cyan-300 font-medium hover:underline"
                   >
                     View All Students →
                   </button>
@@ -116,15 +116,15 @@ export default function TeacherLayout() {
             )}
           </div>
           <div className="relative">
-            <button onClick={() => { setUserMenuOpen((p) => !p); setNotifOpen(false); }} className="flex items-center gap-2 btn btn-ghost px-2 py-1.5 rounded-xl">
-              <div className="w-7 h-7 rounded-full bg-[#10B981] dark:bg-[#34D399] flex items-center justify-center text-white dark:text-[#0D0D11] text-xs font-bold">{initials}</div>
-              <ChevronDown size={14} className="text-[#57534E] dark:text-[#94A3B8]" />
+            <button onClick={() => { setUserMenuOpen((p) => !p); setNotifOpen(false); }} className="liquid-pill px-2.5 py-1.5 flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500 flex items-center justify-center text-white text-xs font-bold">{initials}</div>
+              <ChevronDown size={14} className="text-slate-500 dark:text-slate-400" />
             </button>
             {userMenuOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
-                <div className="absolute right-0 top-full mt-1.5 w-44 bg-white dark:bg-[#16161D] border border-[#E5DFD5] dark:border-white/[0.08] rounded-xl shadow-xl py-1 z-50">
-                  <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center gap-2">
+                <div className="absolute right-0 top-full mt-2 w-44 liquid-glass py-1 z-50">
+                  <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 flex items-center gap-2">
                     <LogOut size={14} /> Logout
                   </button>
                 </div>
@@ -132,7 +132,7 @@ export default function TeacherLayout() {
             )}
           </div>
         </header>
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6 scrollbar-thin">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-6 scrollbar-thin">
           <Suspense fallback={<RouteContentSkeleton />}>
             <Outlet />
           </Suspense>

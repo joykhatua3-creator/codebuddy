@@ -20,19 +20,19 @@ const NAV = [
 ];
 
 const StudentSidebarContent = ({ user, onNavigate, onLogout }) => (
-  <div className="flex flex-col h-full bg-white dark:bg-[#111116]">
+  <div className="flex flex-col h-full bg-white/65 dark:bg-[#0B1120]/75 backdrop-blur-2xl">
     {/* Logo */}
-    <div className="flex items-center gap-2.5 px-4 py-5 border-b border-[#E5DFD5] dark:border-white/[0.08]">
+    <div className="flex items-center gap-2.5 px-4 py-5 border-b border-white/70 dark:border-white/10">
       <Link to="/" className="flex items-center gap-2.5 group">
-        <span className="font-mono text-xs font-bold px-2 py-1.5 rounded-lg bg-[#E85D3F]/10 text-[#E85D3F] dark:bg-orange-500/15 dark:text-orange-400 border border-[#E85D3F]/20 dark:border-orange-500/25">
+        <span className="font-mono text-xs font-bold px-2.5 py-1.5 rounded-full bg-gradient-to-r from-cyan-500 to-indigo-600 text-white shadow-sm">
           &lt;/&gt;
         </span>
         <div>
-          <span className="text-sm font-bold text-[#141210] dark:text-[#F8FAFC] leading-tight block">
+          <span className="text-sm font-bold text-slate-900 dark:text-white leading-tight block">
             CodeBuddy
           </span>
-          <span className="text-[11px] font-mono text-[#E85D3F] dark:text-orange-400 font-medium">
-            Study Studio
+          <span className="text-[11px] font-mono text-cyan-600 dark:text-cyan-300 font-medium">
+            Lucid Studio
           </span>
         </div>
       </Link>
@@ -55,14 +55,14 @@ const StudentSidebarContent = ({ user, onNavigate, onLogout }) => (
     </nav>
 
     {/* Logout */}
-    <div className="p-3 border-t border-[#E5DFD5] dark:border-white/[0.08]">
-      <div className="px-3 py-2 mb-1.5 rounded-xl bg-[#F7F4EE] dark:bg-white/[0.03] border border-[#E5DFD5] dark:border-white/[0.06]">
-        <p className="text-xs font-semibold text-[#141210] dark:text-[#F8FAFC] truncate">{user?.name}</p>
-        <p className="text-[11px] text-[#57534E] dark:text-[#94A3B8] truncate">{user?.email}</p>
+    <div className="p-3 border-t border-white/70 dark:border-white/10">
+      <div className="px-3 py-2 mb-1.5 rounded-xl bg-white/60 dark:bg-white/[0.05] border border-white/80 dark:border-white/10">
+        <p className="text-xs font-semibold text-slate-900 dark:text-white truncate">{user?.name}</p>
+        <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{user?.email}</p>
       </div>
       <button
         onClick={onLogout}
-        className="sidebar-link w-full text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-700 dark:hover:text-red-300"
+        className="sidebar-link w-full text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 hover:text-rose-700 dark:hover:text-rose-300"
       >
         <LogOut size={16} />
         <span>Logout</span>
@@ -84,17 +84,17 @@ export default function StudentLayout() {
   const handleLogout = () => { logout(); navigate('/login'); };
 
   return (
-    <div className="flex h-screen bg-[#F7F4EE] dark:bg-[#0D0D11] overflow-hidden">
+    <div className="flex h-screen bg-transparent overflow-hidden">
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex flex-col w-56 bg-white dark:bg-[#111116] border-r border-[#E5DFD5] dark:border-white/[0.08] shrink-0">
+      <aside className="hidden md:flex flex-col w-56 border-r border-white/70 dark:border-white/10 shrink-0">
         <StudentSidebarContent user={user} onNavigate={() => setSidebarOpen(false)} onLogout={handleLogout} />
       </aside>
 
-      {/* Mobile sidebar overlay */}
+      {/* Mobile slide-over drawer (< 768px) */}
       {sidebarOpen && (
-        <div className="fixed inset-0 z-40 lg:hidden">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setSidebarOpen(false)} />
-          <aside className="relative z-50 flex flex-col w-56 h-full bg-white dark:bg-[#111116] border-r border-[#E5DFD5] dark:border-white/[0.08]">
+        <div className="fixed inset-0 z-40 md:hidden">
+          <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-xs" onClick={() => setSidebarOpen(false)} />
+          <aside className="relative z-50 flex flex-col w-56 h-full border-r border-white/70 dark:border-white/10">
             <StudentSidebarContent user={user} onNavigate={() => setSidebarOpen(false)} onLogout={handleLogout} />
           </aside>
         </div>
@@ -103,8 +103,8 @@ export default function StudentLayout() {
       {/* Main area */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         {/* Top header */}
-        <header className="flex items-center gap-3 px-4 lg:px-6 py-3 bg-white dark:bg-[#111116] border-b border-[#E5DFD5] dark:border-white/[0.08] shrink-0">
-          <button onClick={() => setSidebarOpen(true)} className="lg:hidden btn btn-ghost p-1.5">
+        <header className="flex items-center gap-3 px-4 lg:px-6 py-3 bg-white/60 dark:bg-[#0B1120]/70 backdrop-blur-xl border-b border-white/70 dark:border-white/10 shrink-0">
+          <button onClick={() => setSidebarOpen(true)} className="md:hidden btn btn-ghost p-1.5">
             <Menu size={20} />
           </button>
 
@@ -113,33 +113,33 @@ export default function StudentLayout() {
           {/* Theme toggle */}
           <button
             onClick={toggleTheme}
-            title={theme === 'dark' ? 'Switch to Warm Paper Light Mode' : 'Switch to Matte Obsidian Dark Mode'}
-            className="btn btn-ghost p-2 rounded-xl text-xs gap-1.5"
+            title={theme === 'dark' ? 'Switch to Lucid Light Mode' : 'Switch to Deep Lucid Dark Mode'}
+            className="liquid-pill p-2 text-xs"
           >
-            {theme === 'dark' ? <Sun size={17} className="text-orange-400" /> : <Moon size={17} />}
+            {theme === 'dark' ? <Sun size={16} className="text-cyan-300" /> : <Moon size={16} className="text-indigo-600" />}
           </button>
 
           {/* Notifications */}
           <div className="relative">
             <button
               onClick={() => { setNotifOpen((p) => !p); setUserMenuOpen(false); }}
-              className="btn btn-ghost p-2 rounded-xl relative"
+              className="liquid-pill p-2 relative"
               title="Learning Status"
             >
-              <Bell size={17} />
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-[#E85D3F] dark:bg-[#F97316] rounded-full" />
+              <Bell size={16} />
+              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-cyan-500 rounded-full" />
             </button>
             {notifOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
-                <div className="absolute right-0 top-full mt-1.5 w-64 bg-white dark:bg-[#16161D] border border-[#E5DFD5] dark:border-white/[0.08] rounded-xl shadow-xl p-3 z-50 space-y-2">
-                  <p className="text-xs font-semibold text-[#141210] dark:text-[#F8FAFC]">Learning Updates</p>
-                  <div className="text-xs text-[#141210] dark:text-[#F8FAFC] bg-[#F7F4EE] dark:bg-white/[0.04] p-2.5 rounded-lg border border-[#E5DFD5] dark:border-white/[0.08]">
+                <div className="absolute right-0 top-full mt-2 w-64 liquid-glass p-3 z-50 space-y-2">
+                  <p className="text-xs font-semibold text-slate-900 dark:text-white">Learning Updates</p>
+                  <div className="text-xs text-slate-800 dark:text-slate-100 bg-cyan-500/10 p-2.5 rounded-xl border border-cyan-400/25">
                     🔥 Current Streak: <strong>{user?.streak || 0} days</strong>. Keep submitting code reviews or quizzes!
                   </div>
                   <button
                     onClick={() => { navigate('/dashboard/roadmap'); setNotifOpen(false); }}
-                    className="w-full text-left text-xs text-[#E85D3F] dark:text-orange-400 font-medium hover:underline"
+                    className="w-full text-left text-xs text-cyan-600 dark:text-cyan-300 font-medium hover:underline"
                   >
                     View Personalized Roadmap →
                   </button>
@@ -152,30 +152,30 @@ export default function StudentLayout() {
           <div className="relative">
             <button
               onClick={() => { setUserMenuOpen((p) => !p); setNotifOpen(false); }}
-              className="flex items-center gap-2 btn btn-ghost px-2 py-1.5 rounded-xl"
+              className="liquid-pill px-2.5 py-1.5 flex items-center gap-2"
             >
-              <div className="w-7 h-7 rounded-full bg-[#E85D3F] dark:bg-[#F97316] flex items-center justify-center text-white dark:text-[#0D0D11] text-xs font-bold">
+              <div className="w-6 h-6 rounded-full bg-gradient-to-r from-cyan-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold">
                 {initials}
               </div>
-              <span className="hidden sm:block text-sm font-medium text-[#141210] dark:text-[#F8FAFC] max-w-[100px] truncate">
+              <span className="hidden sm:block text-xs font-semibold text-slate-800 dark:text-slate-100 max-w-[100px] truncate">
                 {user?.name}
               </span>
-              <ChevronDown size={14} className="text-[#57534E] dark:text-[#94A3B8]" />
+              <ChevronDown size={14} className="text-slate-500 dark:text-slate-400" />
             </button>
             {userMenuOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
-                <div className="absolute right-0 top-full mt-1.5 w-44 bg-white dark:bg-[#16161D] border border-[#E5DFD5] dark:border-white/[0.08] rounded-xl shadow-xl py-1 z-50">
+                <div className="absolute right-0 top-full mt-2 w-44 liquid-glass py-1 z-50">
                   <button
                     onClick={() => { navigate('/dashboard/profile'); setUserMenuOpen(false); }}
-                    className="w-full text-left px-4 py-2 text-sm text-[#141210] dark:text-[#F8FAFC] hover:bg-[#F7F4EE] dark:hover:bg-white/[0.04] flex items-center gap-2"
+                    className="w-full text-left px-4 py-2 text-sm text-slate-800 dark:text-slate-100 hover:bg-white/60 dark:hover:bg-white/[0.06] flex items-center gap-2"
                   >
                     <User size={14} /> Profile
                   </button>
-                  <div className="border-t border-[#E5DFD5] dark:border-white/[0.08] my-1" />
+                  <div className="border-t border-white/60 dark:border-white/10 my-1" />
                   <button
                     onClick={handleLogout}
-                    className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center gap-2"
+                    className="w-full text-left px-4 py-2 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 flex items-center gap-2"
                   >
                     <LogOut size={14} /> Logout
                   </button>
@@ -186,7 +186,7 @@ export default function StudentLayout() {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6 scrollbar-thin">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-6 scrollbar-thin">
           <Suspense fallback={<RouteContentSkeleton />}>
             <Outlet />
           </Suspense>

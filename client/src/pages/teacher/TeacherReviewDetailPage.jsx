@@ -75,8 +75,8 @@ export default function TeacherReviewDetailPage() {
   if (!review) return null;
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
-      <button onClick={() => navigate(-1)} className="btn btn-ghost btn-sm gap-1.5 text-gray-500">
+    <div className="space-y-4 w-full max-w-[1440px] mx-auto px-2 sm:px-4 lg:px-6 overflow-x-hidden">
+      <button onClick={() => navigate(-1)} className="btn btn-ghost btn-sm gap-1.5">
         <ArrowLeft size={16} /> Back
       </button>
 

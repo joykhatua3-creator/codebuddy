@@ -335,12 +335,16 @@ const normalizeAiReviewPayload = (raw) => {
           }
     );
 
-  const improvedCode =
+  const rawImproved =
     typeof raw.improvedCode === 'string'
       ? raw.improvedCode
       : typeof raw.refactoredCode === 'string'
         ? raw.refactoredCode
         : '';
+  const improvedCode =
+    !rawImproved.includes('\n') && (rawImproved.includes('\\n') || rawImproved.includes('\\t'))
+      ? rawImproved.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n').replace(/\\t/g, '\t')
+      : rawImproved;
 
   const notesSrc = Array.isArray(raw.improvementNotes)
     ? raw.improvementNotes
