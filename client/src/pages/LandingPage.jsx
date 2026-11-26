@@ -371,7 +371,7 @@ export default function LandingPage() {
       {/* Clean Minimal Footer */}
       <footer className="border-t border-white/80 bg-white/50 backdrop-blur-xl py-7 px-4 sm:px-6 text-sm text-slate-600">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
-          <p className="font-medium">© 2026 CodeBuddy · Lucid Liquid Glass Studio</p>
+          <p className="font-medium">© 2026 CodeBuddy · AI Code Review &amp; Learning Platform</p>
           <div className="flex flex-wrap items-center justify-center gap-5 sm:gap-6 font-medium">
             <a href="#features" className="hover:text-slate-900 transition-colors py-1">
               Features

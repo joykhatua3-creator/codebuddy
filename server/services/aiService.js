@@ -1545,9 +1545,10 @@ LANGUAGE: ${langPrompt}
 
 CRITICAL RULES:
 1. CODE SNIPPETS: At least 40% to 50% of the questions MUST include a clean, concise code snippet (in the "codeSnippet" field). The question can ask what it outputs, which line has a bug, or its Big-O time complexity. For purely conceptual questions without code, set "codeSnippet" to "".
-2. OPTIONS: Provide exactly 4 distinct, plausible options. Only ONE option must be correct. Avoid low-effort distractors like "All of the above" or "None of the above".
-3. CORRECT ANSWER: "correctAnswer" must be the 0-indexed integer (0, 1, 2, or 3) of the correct option in "options".
-4. EXPLANATION: Provide a beginner-friendly explanation ("explanation") explaining why the correct choice is right and why common distractors are wrong.
+2. CODE-OUTPUT VERIFICATION: For every code-output question, trace the exact execution step by step (including operator precedence and type coercion) BEFORE writing the 4 options, and guarantee the exact runtime output appears verbatim at options[correctAnswer] (options[correctIndex]).
+3. OPTIONS: Provide exactly 4 distinct, plausible options. Only ONE option must be correct. Avoid low-effort distractors like "All of the above" or "None of the above".
+4. CORRECT ANSWER: "correctAnswer" must be the 0-indexed integer (0, 1, 2, or 3) of the correct option in "options".
+5. EXPLANATION: Provide a beginner-friendly explanation ("explanation") explaining why the correct choice is right and why common distractors are wrong.
 
 Return ONLY a valid JSON object matching the schema.`;
 

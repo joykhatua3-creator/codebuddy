@@ -9,12 +9,19 @@ export const ThemeProvider = ({ children }) => {
 
   useEffect(() => {
     const root = document.documentElement;
+    root.classList.add('theme-switching');
     if (theme === 'dark') {
       root.classList.add('dark');
     } else {
       root.classList.remove('dark');
     }
     localStorage.setItem('theme', theme);
+    // Flush layout and clear instant-snap class after single frame so interactive hovers still animate
+    void root.offsetHeight;
+    const raf = requestAnimationFrame(() => {
+      root.classList.remove('theme-switching');
+    });
+    return () => cancelAnimationFrame(raf);
   }, [theme]);
 
   const toggleTheme = () => {

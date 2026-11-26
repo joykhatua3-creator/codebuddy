@@ -66,13 +66,15 @@ export default function ProgressPage() {
             <ResponsiveContainer width="100%" height={260}>
               <RadarChart
                 data={topics.slice(0, 8).map((t) => ({
-                  topic: t.topic.length > 14 ? `${t.topic.slice(0, 14)}…` : t.topic,
+                  topic: t.topic.length > 12 ? `${t.topic.slice(0, 12)}…` : t.topic,
                   level: t.level,
                 }))}
+                outerRadius="66%"
+                margin={{ top: 10, right: 28, bottom: 10, left: 28 }}
               >
                 <PolarGrid />
                 <PolarAngleAxis dataKey="topic" tick={{ fontSize: 10 }} />
-                <Radar dataKey="level" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.25} />
+                <Radar dataKey="level" stroke="#0ea5e9" fill="#0ea5e9" fillOpacity={0.25} />
               </RadarChart>
             </ResponsiveContainer>
           ) : <p className="text-center text-gray-400 py-12 text-sm">No topics yet</p>}

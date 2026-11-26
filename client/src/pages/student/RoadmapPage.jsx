@@ -324,7 +324,7 @@ export default function RoadmapPage() {
           className="btn btn-primary btn-sm sm:btn gap-1.5 shrink-0"
         >
           <Plus size={16} />
-          <span>{showSkillBuilder && roadmap ? 'Close Skill Selector' : '+ New Skill Roadmap'}</span>
+          <span>{showSkillBuilder && roadmap ? 'Close Skill Selector' : 'New Skill Roadmap'}</span>
         </button>
       </div>
 
@@ -344,13 +344,13 @@ export default function RoadmapPage() {
                   onClick={() => handleSelectSavedRoadmap(item)}
                   className={`group inline-flex items-center gap-2 pl-3 pr-2 py-1.5 rounded-lg border text-xs font-medium cursor-pointer transition-all ${
                     isActive
-                      ? 'bg-primary-50 border-primary-400 text-primary-800 dark:bg-primary-950/60 dark:border-primary-500 dark:text-primary-200 shadow-2xs'
-                      : 'bg-gray-50 border-gray-200 text-gray-700 hover:border-primary-300 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 dark:hover:border-slate-500'
+                      ? 'bg-cyan-500/15 border-cyan-400 text-cyan-800 dark:bg-cyan-500/20 dark:text-cyan-200 dark:border-cyan-400/50 shadow-2xs'
+                      : 'bg-white/75 border-slate-200/80 text-slate-700 hover:border-cyan-400/50 dark:bg-white/[0.06] dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/[0.12]'
                   }`}
                 >
                   <span className="font-semibold truncate max-w-[180px]">{item.skillName || 'Skill Path'}</span>
                   <span className="text-[11px] opacity-75">· {item.level || 'Beginner'}</span>
-                  <span className="px-1.5 py-0.5 rounded bg-white/80 dark:bg-slate-900/80 font-mono text-[11px] tabular-nums">
+                  <span className="px-1.5 py-0.5 rounded bg-white/85 dark:bg-[#0B1120]/80 text-slate-800 dark:text-cyan-100 font-mono text-[11px] tabular-nums">
                     {item.completionPercentage || 0}%
                   </span>
                   <button
@@ -450,8 +450,8 @@ export default function RoadmapPage() {
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-            <span className="text-xs text-gray-500 dark:text-slate-400">
-              Powered by Google Gemini AI (`gemini-3.8-flash`) with tailored challenges &amp; checkpoints
+            <span className="text-xs text-slate-500 dark:text-slate-400">
+              Powered by Google Gemini AI (<code className="px-1.5 py-0.5 rounded bg-white/70 dark:bg-white/10 font-mono text-[11px] text-slate-800 dark:text-cyan-200">gemini-3.8-flash</code>) with tailored challenges &amp; checkpoints
             </span>
             <button
               type="button"
@@ -508,7 +508,7 @@ export default function RoadmapPage() {
                   onClick={() => setShowSkillBuilder(true)}
                   className="btn btn-secondary btn-sm gap-1.5"
                 >
-                  <Plus size={14} /> + New Skill Roadmap
+                  <Plus size={14} /> New Skill Roadmap
                 </button>
                 <button
                   type="button"

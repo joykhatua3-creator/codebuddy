@@ -109,11 +109,15 @@ export default function DashboardPage() {
         <div className="card p-5">
           <h3 className="section-title mb-4">Topic Strengths</h3>
           {radarData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={200}>
-              <RadarChart data={radarData}>
+            <ResponsiveContainer width="100%" height={220}>
+              <RadarChart
+                data={radarData}
+                outerRadius="66%"
+                margin={{ top: 10, right: 28, bottom: 10, left: 28 }}
+              >
                 <PolarGrid />
                 <PolarAngleAxis dataKey="topic" tick={{ fontSize: 10 }} />
-                <Radar dataKey="level" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.2} />
+                <Radar dataKey="level" stroke="#0ea5e9" fill="#0ea5e9" fillOpacity={0.22} />
               </RadarChart>
             </ResponsiveContainer>
           ) : (
