@@ -126,54 +126,206 @@ const quizSubmitSchema = z.object({
 
 // ─── AI Response Validators ──────────────────────────────────────────────────
 
-const aiReviewResponseSchema = z.object({
-  score: z.number().int().min(0).max(100),
-  summary: z.string().min(10),
-  bugs: z.array(
-    z.object({
-      title: z.string(),
-      lineNumber: z.number().int().min(0),
-      description: z.string(),
-      whyItHappens: z.string(),
-      hint: z.string(),
-      solution: z.string(),
+const clampInt = (val, min, max, fallback) => {
+  if (val === undefined || val === null || val === '') return fallback;
+  const num = Number(val);
+  if (!Number.isFinite(num)) return fallback;
+  return Math.min(max, Math.max(min, Math.round(num)));
+};
+
+const normalizeSeverity = (val) => {
+  const s = String(val || 'low').trim().toLowerCase();
+  if (/(high|critical|severe)/.test(s)) return 'high';
+  if (/(med|moderate|warn)/.test(s)) return 'medium';
+  return 'low';
+};
+
+const normalizeConceptLevel = (val) => {
+  const s = String(val || 'ok').trim().toLowerCase();
+  if (/(weak|low|poor|begin|needs)/.test(s)) return 'weak';
+  if (/(strong|high|good|master|proficien)/.test(s)) return 'strong';
+  return 'ok';
+};
+
+const normalizeQualityMetric = (metric, defaultScore = 7) => {
+  if (metric && typeof metric === 'object') {
+    return {
+      score: clampInt(metric.score, 0, 10, defaultScore),
+      comment: typeof metric.comment === 'string' && metric.comment.trim() ? metric.comment.trim() : 'Reviewed.',
+    };
+  }
+  return {
+    score: clampInt(metric, 0, 10, defaultScore),
+    comment: 'Reviewed.',
+  };
+};
+
+const normalizeAiReviewPayload = (raw) => {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return raw;
+
+  // Require at least one genuine AI review signal so unrelated JSON never passes silently
+  if (raw.score === undefined && raw.summary === undefined && !Array.isArray(raw.bugs) && !raw.complexity) {
+    return raw;
+  }
+
+  const score = clampInt(raw.score, 0, 100, undefined);
+  const summary =
+    typeof raw.summary === 'string' && raw.summary.trim().length > 0
+      ? raw.summary.trim()
+      : 'Code analysis completed.';
+
+  const rawBugs = Array.isArray(raw.bugs) ? raw.bugs : [];
+  const bugs = rawBugs
+    .filter((b) => b && typeof b === 'object')
+    .map((b) => {
+      const title = String(b.title || b.bug || b.name || 'Code Issue').trim();
+      const description = String(b.description || b.message || b.details || title).trim();
+      const whyItHappens = String(b.whyItHappens || b.reason || b.explanation || description).trim();
+      const hint = String(b.hint || b.suggestion || 'Review this logic and its boundary conditions.').trim();
+      const solution = String(b.solution || b.fix || '// Fix this issue as described in the hint above').trim();
+      return {
+        title,
+        lineNumber: clampInt(b.lineNumber ?? b.line, 0, 100000, 0),
+        description,
+        whyItHappens,
+        hint,
+        solution,
+      };
+    });
+
+  const qualitySrc =
+    (raw.codeQuality && typeof raw.codeQuality === 'object' ? raw.codeQuality : null) ||
+    (raw.qualityBreakdown && typeof raw.qualityBreakdown === 'object' ? raw.qualityBreakdown : null) ||
+    {};
+  const defaultQual = score !== undefined ? Math.max(1, Math.min(10, Math.round(score / 10))) : 7;
+  const codeQuality = {
+    readability: normalizeQualityMetric(qualitySrc.readability, defaultQual),
+    namingConventions: normalizeQualityMetric(qualitySrc.namingConventions, defaultQual),
+    codeStructure: normalizeQualityMetric(qualitySrc.codeStructure, defaultQual),
+    bestPractices: normalizeQualityMetric(qualitySrc.bestPractices, defaultQual),
+  };
+
+  const compSrc = raw.complexity && typeof raw.complexity === 'object' ? raw.complexity : {};
+  const complexity = {
+    time: String(compSrc.time || compSrc.timeComplexity || raw.timeComplexity || 'O(1)').trim(),
+    space: String(compSrc.space || compSrc.spaceComplexity || raw.spaceComplexity || 'O(1)').trim(),
+    explanation: String(
+      compSrc.explanation || raw.complexityExplanation || 'Time and space complexity estimated from algorithm structure.'
+    ).trim(),
+  };
+
+  const security = (Array.isArray(raw.security) ? raw.security : [])
+    .filter((s) => s && typeof s === 'object')
+    .map((s) => ({
+      issue: String(s.issue || s.title || s.name || 'Security Consideration').trim(),
+      severity: normalizeSeverity(s.severity),
+      recommendation: String(s.recommendation || s.description || s.fix || 'Follow secure coding practices.').trim(),
+    }));
+
+  const concepts = (Array.isArray(raw.concepts) ? raw.concepts : [])
+    .filter((c) => c && (typeof c === 'object' || typeof c === 'string'))
+    .map((c) =>
+      typeof c === 'string'
+        ? { name: c.trim() || 'General Programming', level: 'ok' }
+        : {
+            name: String(c.name || c.topic || c.concept || 'General Programming').trim(),
+            level: normalizeConceptLevel(c.level ?? c.status),
+          }
+    );
+
+  const improvedCode =
+    typeof raw.improvedCode === 'string'
+      ? raw.improvedCode
+      : typeof raw.refactoredCode === 'string'
+        ? raw.refactoredCode
+        : '';
+
+  const notesSrc = Array.isArray(raw.improvementNotes)
+    ? raw.improvementNotes
+    : Array.isArray(raw.suggestions)
+      ? raw.suggestions
+      : [];
+  const improvementNotes = notesSrc
+    .map((n) => {
+      if (typeof n === 'string' && n.trim()) {
+        return { lineNumber: 0, explanation: n.trim() };
+      }
+      if (n && typeof n === 'object') {
+        const exp = String(n.explanation || n.suggestion || n.text || n.message || '').trim();
+        if (!exp) return null;
+        return {
+          lineNumber: clampInt(n.lineNumber ?? n.line, 0, 100000, 0),
+          explanation: exp,
+        };
+      }
+      return null;
     })
-  ),
-  codeQuality: z.object({
-    readability: z.object({ score: z.number().int().min(0).max(10), comment: z.string() }),
-    namingConventions: z.object({ score: z.number().int().min(0).max(10), comment: z.string() }),
-    codeStructure: z.object({ score: z.number().int().min(0).max(10), comment: z.string() }),
-    bestPractices: z.object({ score: z.number().int().min(0).max(10), comment: z.string() }),
-  }),
-  complexity: z.object({
-    time: z.string(),
-    space: z.string(),
-    explanation: z.string(),
-  }),
-  security: z.array(
-    z.object({
-      issue: z.string(),
-      severity: z.enum(['low', 'medium', 'high']),
-      recommendation: z.string(),
-    })
-  ),
-  concepts: z.array(
-    z.object({
-      name: z.string(),
-      level: z.enum(['weak', 'ok', 'strong']),
-    })
-  ),
-  improvedCode: z.string().optional().default(''),
-  improvementNotes: z
-    .array(
+    .filter(Boolean);
+
+  return {
+    score,
+    summary,
+    bugs,
+    codeQuality,
+    complexity,
+    security,
+    concepts,
+    improvedCode,
+    improvementNotes,
+  };
+};
+
+const aiReviewResponseSchema = z.preprocess(
+  normalizeAiReviewPayload,
+  z.object({
+    score: z.number().int().min(0).max(100),
+    summary: z.string().min(3),
+    bugs: z.array(
       z.object({
-        lineNumber: z.coerce.number().int().min(0),
-        explanation: z.string(),
+        title: z.string(),
+        lineNumber: z.number().int().min(0),
+        description: z.string(),
+        whyItHappens: z.string(),
+        hint: z.string(),
+        solution: z.string(),
       })
-    )
-    .optional()
-    .default([]),
-});
+    ),
+    codeQuality: z.object({
+      readability: z.object({ score: z.number().int().min(0).max(10), comment: z.string() }),
+      namingConventions: z.object({ score: z.number().int().min(0).max(10), comment: z.string() }),
+      codeStructure: z.object({ score: z.number().int().min(0).max(10), comment: z.string() }),
+      bestPractices: z.object({ score: z.number().int().min(0).max(10), comment: z.string() }),
+    }),
+    complexity: z.object({
+      time: z.string(),
+      space: z.string(),
+      explanation: z.string(),
+    }),
+    security: z.array(
+      z.object({
+        issue: z.string(),
+        severity: z.enum(['low', 'medium', 'high']),
+        recommendation: z.string(),
+      })
+    ),
+    concepts: z.array(
+      z.object({
+        name: z.string(),
+        level: z.enum(['weak', 'ok', 'strong']),
+      })
+    ),
+    improvedCode: z.string().optional().default(''),
+    improvementNotes: z
+      .array(
+        z.object({
+          lineNumber: z.coerce.number().int().min(0),
+          explanation: z.string(),
+        })
+      )
+      .optional()
+      .default([]),
+  })
+);
 
 const aiQuizResponseSchema = z.object({
   questions: z

@@ -90,7 +90,7 @@ PORT=5000
 MONGODB_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/code-review-buddy
 JWT_SECRET=your_super_secret_jwt_key_here
 GEMINI_API_KEY=your_gemini_api_key_here
-GEMINI_MODEL=gemini-1.5-flash
+GEMINI_MODEL=gemini-2.5-flash
 NODE_ENV=development
 CLIENT_URL=http://localhost:5173
 ```

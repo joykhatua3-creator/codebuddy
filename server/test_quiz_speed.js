@@ -5,10 +5,11 @@ require('dotenv').config({ path: path.join(__dirname, '.env') });
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 async function test() {
-  console.log('Testing model:', process.env.GEMINI_MODEL || 'gemini-3.5-flash');
+  const activeModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+  console.log('Testing model:', activeModel);
   console.time('gemini_call_default');
   const model = genAI.getGenerativeModel({
-    model: process.env.GEMINI_MODEL || 'gemini-3.5-flash',
+    model: activeModel,
     generationConfig: {
       responseMimeType: 'application/json',
       temperature: 0.2
@@ -20,7 +21,7 @@ async function test() {
 
   console.time('gemini_call_with_thinking_0');
   const fastModel = genAI.getGenerativeModel({
-    model: process.env.GEMINI_MODEL || 'gemini-3.5-flash',
+    model: activeModel,
     generationConfig: {
       responseMimeType: 'application/json',
       temperature: 0.2,

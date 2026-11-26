@@ -66,6 +66,7 @@ const globalRateLimit = rateLimit({
   skip: (req) =>
     process.env.NODE_ENV === 'development' ||
     req.path === '/api/health' ||
+    req.path === '/api/health/ai' ||
     req.path === '/health',
   message: { success: false, message: 'Too many requests. Please try again later.' },
   standardHeaders: true,
@@ -91,6 +92,19 @@ app.get(['/api/health', '/health'], (req, res) => {
       uptime: Math.round(process.uptime()),
       timestamp: new Date().toISOString(),
       env: process.env.NODE_ENV,
+    },
+  });
+});
+
+app.get('/api/health/ai', (req, res) => {
+  const { getAiHealthInfo } = require('./services/aiService');
+  const ai = getAiHealthInfo();
+  res.json({
+    success: true,
+    data: {
+      status: ai.apiKeySet ? 'configured' : 'missing_api_key',
+      ...ai,
+      timestamp: new Date().toISOString(),
     },
   });
 });

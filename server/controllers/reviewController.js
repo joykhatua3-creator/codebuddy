@@ -121,7 +121,10 @@ const resolveAndSaveReview = async ({ userId, language, code, assignmentId = nul
     ...(validAssignmentId ? { assignment: validAssignmentId } : {}),
   };
 
-  const shouldUpdateProgress = !existingUserReview || (existingUserReview.analysisVersion || 1) < 2;
+  const shouldUpdateProgress =
+    !existingUserReview ||
+    (existingUserReview.analysisVersion || 1) < 2 ||
+    (existingUserReview.isFallback && !aiResult.isFallback);
 
   let review;
   if (existingUserReview) {
