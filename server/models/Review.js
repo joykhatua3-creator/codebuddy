@@ -63,9 +63,41 @@ const reviewSchema = new mongoose.Schema(
     },
     complexity: {
       time: String,
+      timeReason: String,
       space: String,
+      spaceReason: String,
       explanation: String,
     },
+    analysisEngine: {
+      type: String,
+      enum: ['GEMINI_AI', 'STATIC_FALLBACK'],
+      default: 'GEMINI_AI',
+    },
+    codeErrors: [
+      {
+        line: Number,
+        severity: { type: String, enum: ['ERROR', 'WARNING'] },
+        title: String,
+        explanation: String,
+        fix: String,
+      },
+    ],
+    howItWorks: [String],
+    callGraph: [
+      {
+        caller: String,
+        callee: String,
+        purpose: String,
+      },
+    ],
+    functionBreakdown: [
+      {
+        name: String,
+        parameters: String,
+        returns: String,
+        explanation: String,
+      },
+    ],
     security: [
       {
         issue: String,
@@ -126,6 +158,24 @@ const reviewSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    toJSON: {
+      virtuals: true,
+      transform: (_doc, ret) => {
+        if (!Array.isArray(ret.errors) && Array.isArray(ret.codeErrors)) {
+          ret.errors = ret.codeErrors;
+        }
+        return ret;
+      },
+    },
+    toObject: {
+      virtuals: true,
+      transform: (_doc, ret) => {
+        if (!Array.isArray(ret.errors) && Array.isArray(ret.codeErrors)) {
+          ret.errors = ret.codeErrors;
+        }
+        return ret;
+      },
+    },
   }
 );
 

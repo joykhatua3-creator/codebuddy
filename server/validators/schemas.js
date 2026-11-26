@@ -160,38 +160,105 @@ const normalizeQualityMetric = (metric, defaultScore = 7) => {
   };
 };
 
+const normalizeErrorSeverity = (val) => {
+  const s = String(val || 'ERROR').trim().toUpperCase();
+  return s === 'WARNING' || s === 'WARN' ? 'WARNING' : 'ERROR';
+};
+
+const normalizeParametersText = (params) => {
+  if (Array.isArray(params)) {
+    const joined = params.map((p) => String(p).trim()).filter(Boolean).join(', ');
+    return joined || 'None';
+  }
+  const str = String(params ?? '').trim();
+  return str || 'None';
+};
+
 const normalizeAiReviewPayload = (raw) => {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return raw;
 
   // Require at least one genuine AI review signal so unrelated JSON never passes silently
-  if (raw.score === undefined && raw.summary === undefined && !Array.isArray(raw.bugs) && !raw.complexity) {
+  if (
+    raw.score === undefined &&
+    raw.summary === undefined &&
+    !Array.isArray(raw.bugs) &&
+    !Array.isArray(raw.errors) &&
+    !raw.complexity
+  ) {
     return raw;
   }
 
   const score = clampInt(raw.score, 0, 100, undefined);
+
+  const rawErrors = Array.isArray(raw.errors) ? raw.errors : [];
+  const rawBugs = Array.isArray(raw.bugs) ? raw.bugs : [];
+
+  const errors =
+    rawErrors.length > 0
+      ? rawErrors
+          .filter((e) => e && typeof e === 'object')
+          .map((e) => ({
+            line: clampInt(e.line ?? e.lineNumber, 0, 100000, 0),
+            severity: normalizeErrorSeverity(e.severity),
+            title: String(e.title || e.name || 'Code Issue').trim(),
+            explanation: String(e.explanation || e.description || e.message || e.title || 'Issue detected in code.').trim(),
+            fix: String(e.fix || e.solution || '// Update this section cleanly').trim(),
+          }))
+      : rawBugs
+          .filter((b) => b && typeof b === 'object')
+          .map((b) => ({
+            line: clampInt(b.lineNumber ?? b.line, 0, 100000, 0),
+            severity: /warning|loose equality|var declaration|avoid select/i.test(String(b.title || '')) ? 'WARNING' : 'ERROR',
+            title: String(b.title || b.bug || 'Code Issue').trim(),
+            explanation: String(b.description || b.whyItHappens || b.message || b.title || 'Issue detected in code.').trim(),
+            fix: String(b.solution || b.fix || b.hint || '// Fix this issue').trim(),
+          }));
+
+  const bugs =
+    rawBugs.length > 0
+      ? rawBugs
+          .filter((b) => b && typeof b === 'object')
+          .map((b) => {
+            const title = String(b.title || b.bug || b.name || 'Code Issue').trim();
+            const description = String(b.description || b.message || b.details || b.explanation || title).trim();
+            const whyItHappens = String(b.whyItHappens || b.reason || b.explanation || description).trim();
+            const hint = String(b.hint || b.suggestion || 'Review this logic and its boundary conditions.').trim();
+            const solution = String(b.solution || b.fix || '// Fix this issue as described in the hint above').trim();
+            return {
+              title,
+              lineNumber: clampInt(b.lineNumber ?? b.line, 0, 100000, 0),
+              description,
+              whyItHappens,
+              hint,
+              solution,
+            };
+          })
+      : errors.map((e) => ({
+          title: e.title,
+          lineNumber: e.line,
+          description: e.explanation,
+          whyItHappens: e.explanation,
+          hint: e.explanation,
+          solution: e.fix,
+        }));
+
+  const howItWorks = (Array.isArray(raw.howItWorks) ? raw.howItWorks : [])
+    .map((step) => {
+      if (typeof step === 'string') return step.trim();
+      if (step && typeof step === 'object') {
+        return String(step.explanation || step.description || step.step || step.text || '').trim();
+      }
+      return '';
+    })
+    .filter(Boolean);
+
   const summary =
     typeof raw.summary === 'string' && raw.summary.trim().length > 0
       ? raw.summary.trim()
-      : 'Code analysis completed.';
-
-  const rawBugs = Array.isArray(raw.bugs) ? raw.bugs : [];
-  const bugs = rawBugs
-    .filter((b) => b && typeof b === 'object')
-    .map((b) => {
-      const title = String(b.title || b.bug || b.name || 'Code Issue').trim();
-      const description = String(b.description || b.message || b.details || title).trim();
-      const whyItHappens = String(b.whyItHappens || b.reason || b.explanation || description).trim();
-      const hint = String(b.hint || b.suggestion || 'Review this logic and its boundary conditions.').trim();
-      const solution = String(b.solution || b.fix || '// Fix this issue as described in the hint above').trim();
-      return {
-        title,
-        lineNumber: clampInt(b.lineNumber ?? b.line, 0, 100000, 0),
-        description,
-        whyItHappens,
-        hint,
-        solution,
-      };
-    });
+      : howItWorks[0] ||
+        (errors.length > 0
+          ? `Found ${errors.length} issue(s) to address in this code.`
+          : 'Clean execution flow with no major syntax or logic errors detected.');
 
   const qualitySrc =
     (raw.codeQuality && typeof raw.codeQuality === 'object' ? raw.codeQuality : null) ||
@@ -206,13 +273,38 @@ const normalizeAiReviewPayload = (raw) => {
   };
 
   const compSrc = raw.complexity && typeof raw.complexity === 'object' ? raw.complexity : {};
+  const fallbackCompExpl = String(
+    compSrc.explanation || raw.complexityExplanation || 'Time and space complexity estimated from control flow and data structures.'
+  ).trim();
+  const timeReason = String(compSrc.timeReason || compSrc.timeExplanation || fallbackCompExpl).trim();
+  const spaceReason = String(compSrc.spaceReason || compSrc.spaceExplanation || fallbackCompExpl).trim();
   const complexity = {
     time: String(compSrc.time || compSrc.timeComplexity || raw.timeComplexity || 'O(1)').trim(),
+    timeReason,
     space: String(compSrc.space || compSrc.spaceComplexity || raw.spaceComplexity || 'O(1)').trim(),
-    explanation: String(
-      compSrc.explanation || raw.complexityExplanation || 'Time and space complexity estimated from algorithm structure.'
-    ).trim(),
+    spaceReason,
+    explanation: fallbackCompExpl !== 'Time and space complexity estimated from control flow and data structures.'
+      ? fallbackCompExpl
+      : `${timeReason} ${spaceReason}`.trim(),
   };
+
+  const callGraph = (Array.isArray(raw.callGraph) ? raw.callGraph : [])
+    .filter((edge) => edge && typeof edge === 'object' && (edge.caller || edge.callee))
+    .map((edge) => ({
+      caller: String(edge.caller || 'main').trim(),
+      callee: String(edge.callee || '').trim(),
+      purpose: String(edge.purpose || edge.reason || edge.description || 'Invokes helper logic').trim(),
+    }))
+    .filter((edge) => edge.callee.length > 0);
+
+  const functionBreakdown = (Array.isArray(raw.functionBreakdown) ? raw.functionBreakdown : [])
+    .filter((fn) => fn && typeof fn === 'object' && (fn.name || fn.functionName))
+    .map((fn) => ({
+      name: String(fn.name || fn.functionName).trim(),
+      parameters: normalizeParametersText(fn.parameters ?? fn.params ?? fn.args),
+      returns: String(fn.returns ?? fn.returnValue ?? 'None / void').trim() || 'None / void',
+      explanation: String(fn.explanation || fn.description || fn.summary || 'Executes part of the program logic.').trim(),
+    }));
 
   const security = (Array.isArray(raw.security) ? raw.security : [])
     .filter((s) => s && typeof s === 'object')
@@ -265,6 +357,10 @@ const normalizeAiReviewPayload = (raw) => {
   return {
     score,
     summary,
+    errors,
+    howItWorks,
+    callGraph,
+    functionBreakdown,
     bugs,
     codeQuality,
     complexity,
@@ -280,6 +376,40 @@ const aiReviewResponseSchema = z.preprocess(
   z.object({
     score: z.number().int().min(0).max(100),
     summary: z.string().min(3),
+    errors: z
+      .array(
+        z.object({
+          line: z.number().int().min(0),
+          severity: z.enum(['ERROR', 'WARNING']),
+          title: z.string(),
+          explanation: z.string(),
+          fix: z.string(),
+        })
+      )
+      .optional()
+      .default([]),
+    howItWorks: z.array(z.string()).optional().default([]),
+    callGraph: z
+      .array(
+        z.object({
+          caller: z.string(),
+          callee: z.string(),
+          purpose: z.string(),
+        })
+      )
+      .optional()
+      .default([]),
+    functionBreakdown: z
+      .array(
+        z.object({
+          name: z.string(),
+          parameters: z.string(),
+          returns: z.string(),
+          explanation: z.string(),
+        })
+      )
+      .optional()
+      .default([]),
     bugs: z.array(
       z.object({
         title: z.string(),
@@ -298,7 +428,9 @@ const aiReviewResponseSchema = z.preprocess(
     }),
     complexity: z.object({
       time: z.string(),
+      timeReason: z.string().optional().default(''),
       space: z.string(),
+      spaceReason: z.string().optional().default(''),
       explanation: z.string(),
     }),
     security: z.array(

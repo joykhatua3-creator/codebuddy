@@ -172,7 +172,11 @@ const addReviewFeedback = asyncHandler(async (req, res) => {
   }
 
   await review.save();
-  res.json({ success: true, data: review });
+  const out = review.toObject();
+  if (!Array.isArray(out.errors)) {
+    out.errors = Array.isArray(out.codeErrors) ? out.codeErrors : [];
+  }
+  res.json({ success: true, data: out });
 });
 
 /**

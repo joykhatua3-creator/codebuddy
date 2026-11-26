@@ -314,14 +314,14 @@ export default function CodeReviewPage() {
 
       {/* Language selector & Stream mode */}
       <div className="card p-4 space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-2">
-          <label className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center gap-1.5">
-            <Globe size={14} className="text-primary-600" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 dark:border-slate-800 pb-2">
+          <label className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-slate-400 flex items-center gap-1.5">
+            <Globe size={14} className="text-primary-600 dark:text-primary-400" />
             <span>Select Programming Language ({ALL_LANGUAGES.length})</span>
           </label>
 
           {/* SSE Streaming Toggle */}
-          <label className="flex items-center gap-2 cursor-pointer select-none text-xs font-semibold text-gray-700">
+          <label className="flex items-center gap-2 cursor-pointer select-none text-xs font-semibold text-gray-700 dark:text-slate-300">
             <input
               type="checkbox"
               checked={useStreaming}
@@ -329,7 +329,7 @@ export default function CodeReviewPage() {
               className="rounded text-primary-600 focus:ring-primary-500"
             />
             <span className="flex items-center gap-1">
-              <Radio size={14} className={useStreaming ? 'text-primary-600' : 'text-gray-400'} />
+              <Radio size={14} className={useStreaming ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400'} />
               Live Stream (SSE)
             </span>
           </label>
@@ -344,7 +344,7 @@ export default function CodeReviewPage() {
               className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                 language === lang
                   ? 'border-primary-600 bg-primary-600 text-white shadow-xs'
-                  : 'border-gray-200 text-gray-700 hover:border-primary-400 bg-white'
+                  : 'border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-200 hover:border-primary-400 bg-white dark:bg-slate-800 dark:hover:bg-slate-700'
               }`}
             >
               {getLanguageLabel(lang)}
@@ -356,7 +356,7 @@ export default function CodeReviewPage() {
             <select
               value={language}
               onChange={(e) => handleLanguageChange(e.target.value)}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-300 bg-white text-gray-800 shadow-2xs hover:border-primary-500 focus:outline-hidden focus:ring-2 focus:ring-primary-500"
+              className="px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-100 shadow-2xs hover:border-primary-500 focus:outline-hidden focus:ring-2 focus:ring-primary-500"
             >
               <option value="" disabled>Browse all 30 languages...</option>
               {ALL_LANGUAGES.map((l) => (
@@ -557,14 +557,14 @@ export default function CodeReviewPage() {
 
       {/* Streaming / Loading Progress Banner */}
       {loading && (
-        <div className="card p-4 bg-primary-50 border border-primary-200 flex items-center gap-3 animate-pulse">
+        <div className="card p-4 bg-primary-50 dark:bg-primary-950/40 border border-primary-200 dark:border-primary-800/60 flex items-center gap-3 animate-pulse">
           <LoadingSpinner size="sm" />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-primary-900">
+            <p className="text-sm font-semibold text-primary-900 dark:text-primary-100">
               {streamProgress || `Gemini AI is analyzing ${getLanguageLabel(language)} code structure and identifying bugs...`}
             </p>
-            <p className="text-xs text-primary-700 mt-0.5">
-              Evaluating syntax, time/space complexity, security issues, and pedagogical hints.
+            <p className="text-xs text-primary-700 dark:text-primary-300 mt-0.5">
+              Evaluating bugs, step-by-step flow, time/space complexity, call hierarchy, and function breakdown.
             </p>
           </div>
         </div>
@@ -572,8 +572,8 @@ export default function CodeReviewPage() {
 
       {/* Error Banner */}
       {error && (
-        <div className="card p-4 bg-red-50 border border-red-200 text-red-700 text-sm flex items-start gap-2.5">
-          <AlertCircle size={18} className="shrink-0 mt-0.5 text-red-600" />
+        <div className="card p-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/60 text-red-700 dark:text-red-200 text-sm flex items-start gap-2.5">
+          <AlertCircle size={18} className="shrink-0 mt-0.5 text-red-600 dark:text-red-400" />
           <div>
             <p className="font-semibold">Invalid Code Submission</p>
             <p className="mt-0.5">{error}</p>

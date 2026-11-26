@@ -58,6 +58,11 @@ const updateUserStreak = async (userId) => {
 const extractAiFields = (source) => ({
   score: source.score,
   summary: source.summary,
+  analysisEngine: source.analysisEngine || (source.isFallback ? 'STATIC_FALLBACK' : 'GEMINI_AI'),
+  codeErrors: source.errors || source.codeErrors || [],
+  howItWorks: source.howItWorks || [],
+  callGraph: source.callGraph || [],
+  functionBreakdown: source.functionBreakdown || [],
   bugs: source.bugs || [],
   codeQuality: source.codeQuality,
   complexity: source.complexity,
@@ -67,8 +72,17 @@ const extractAiFields = (source) => ({
   improvementNotes: source.improvementNotes || [],
   isFallback: Boolean(source.isFallback),
   fallbackReason: source.fallbackReason || '',
-  analysisVersion: 2,
+  analysisVersion: 3,
 });
+
+const serializeReview = (doc) => {
+  if (!doc) return doc;
+  const obj = typeof doc.toObject === 'function' ? doc.toObject() : { ...doc };
+  if (!Array.isArray(obj.errors)) {
+    obj.errors = Array.isArray(obj.codeErrors) ? obj.codeErrors : [];
+  }
+  return obj;
+};
 
 /**
  * Shared review resolution flow for both standard POST and SSE stream endpoints.
@@ -85,21 +99,29 @@ const resolveAndSaveReview = async ({ userId, language, code, assignmentId = nul
     }
   }
 
-  // 1. Check existing user review (ignore stale v1 or fallback-only entries; allow distinct assignment submissions)
+  // 1. Check existing user review (ignore stale v1/v2 or fallback-only entries; allow distinct assignment submissions)
   const existingUserReview = await Review.findOne({
     user: userId,
     codeHash,
     ...(validAssignmentId ? { assignment: validAssignmentId } : { assignment: null }),
   });
-  if (existingUserReview && existingUserReview.analysisVersion >= 2 && !existingUserReview.isFallback) {
+  if (
+    existingUserReview &&
+    existingUserReview.analysisVersion >= 3 &&
+    !existingUserReview.isFallback &&
+    existingUserReview.analysisEngine !== 'STATIC_FALLBACK'
+  ) {
     onStatus?.({ step: 2, message: 'Review retrieved from your history' });
-    return { review: { ...existingUserReview.toObject(), fromCache: true }, statusCode: 200 };
+    return { review: { ...serializeReview(existingUserReview), fromCache: true }, statusCode: 200 };
   }
 
-  // 2. Check shared AI cache in Redis (only v2 non-fallback entries)
+  // 2. Check shared AI cache in Redis (only v3 non-fallback entries)
   const cachedAi = await getReviewCache(codeHash);
   let aiResult =
-    cachedAi && cachedAi.analysisVersion >= 2 && !cachedAi.isFallback
+    cachedAi &&
+    cachedAi.analysisVersion >= 3 &&
+    !cachedAi.isFallback &&
+    cachedAi.analysisEngine !== 'STATIC_FALLBACK'
       ? extractAiFields(cachedAi)
       : null;
   const fromCache = !!aiResult;
@@ -151,7 +173,7 @@ const resolveAndSaveReview = async ({ userId, language, code, assignmentId = nul
     ]);
   }
 
-  return { review: review.toObject(), statusCode: existingUserReview ? 200 : 201 };
+  return { review: serializeReview(review), statusCode: existingUserReview ? 200 : 201 };
 };
 
 /**
@@ -244,6 +266,7 @@ const retryReview = asyncHandler(async (req, res) => {
   }
 
   await checkQuotaGuard(req.user._id);
+  const wasFallback = Boolean(review.isFallback || review.analysisEngine === 'STATIC_FALLBACK');
   const aiResult = await aiReviewCode(review.code, review.language);
 
   Object.assign(review, {
@@ -254,9 +277,14 @@ const retryReview = asyncHandler(async (req, res) => {
 
   if (!aiResult.isFallback) {
     await setReviewCache(review.codeHash, extractAiFields(aiResult), 86400);
+    if (wasFallback && aiResult.concepts?.length > 0) {
+      updateTopicProgress(req.user._id, aiResult.concepts).catch((err) =>
+        console.error('Topic progress update on retry error:', err.message)
+      );
+    }
   }
 
-  res.json({ success: true, data: review });
+  res.json({ success: true, data: serializeReview(review) });
 });
 
 /**
@@ -300,7 +328,7 @@ const getReviews = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     data: {
-      reviews,
+      reviews: reviews.map(serializeReview),
       pagination: {
         total,
         page: safePage,
@@ -338,7 +366,7 @@ const getReview = asyncHandler(async (req, res) => {
     }
   }
 
-  res.json({ success: true, data: review });
+  res.json({ success: true, data: serializeReview(review) });
 });
 
 /**
@@ -364,7 +392,7 @@ const updateReview = asyncHandler(async (req, res) => {
 
   await review.save();
 
-  res.json({ success: true, data: review });
+  res.json({ success: true, data: serializeReview(review) });
 });
 
 /**

@@ -149,8 +149,13 @@ export default function ReviewHistoryPage() {
                         {bugCount} bug{bugCount !== 1 ? 's' : ''}
                       </span>
                     )}
+                    {r.analysisEngine === 'GEMINI_AI' && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
+                        Gemini AI
+                      </span>
+                    )}
                   </div>
-                  <p className="text-sm text-gray-700 leading-relaxed">{truncate(r.summary, 120)}</p>
+                  <p className="text-sm text-gray-700 dark:text-slate-300 leading-relaxed">{truncate(r.summary, 120)}</p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                   <button onClick={(e) => handleBookmark(r._id, e)}

@@ -283,6 +283,145 @@ const checkLanguageMismatch = (code, language) => {
   return null;
 };
 
+const NON_FUNCTION_KEYWORDS = new Set([
+  'if', 'for', 'while', 'switch', 'catch', 'return', 'else', 'elif', 'try', 'with', 'do', 'typeof', 'sizeof',
+]);
+
+/**
+ * Extract function/method definitions and inter-function call relationships for fallback study notes.
+ */
+const extractFunctionsAndCallGraph = (code, language) => {
+  const lines = code.split('\n');
+  const defs = [];
+  const seenNames = new Set();
+
+  for (let idx = 0; idx < lines.length; idx++) {
+    const line = lines[idx];
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('#')) continue;
+
+    const indent = line.length - line.trimStart().length;
+    let match = null;
+    if (language === 'python' || language === 'ruby' || language === 'mojo') {
+      match = line.match(/^\s*(?:async\s+)?def\s+([a-zA-Z_]\w*)\s*\(([^)]*)\)/);
+    } else if (language === 'javascript' || language === 'typescript') {
+      match =
+        line.match(/^\s*(?:export\s+)?(?:async\s+)?function\s+([a-zA-Z_]\w*)\s*\(([^)]*)\)/) ||
+        line.match(/^\s*(?:export\s+)?(?:const|let|var)\s+([a-zA-Z_]\w*)\s*=\s*(?:async\s+)?\(([^)]*)\)\s*=>/);
+    } else if (language === 'go') {
+      match = line.match(/^\s*func\s+(?:\([^)]*\)\s*)?([a-zA-Z_]\w*)\s*\(([^)]*)\)/);
+    } else if (language === 'rust') {
+      match = line.match(/^\s*(?:pub\s+)?(?:async\s+)?fn\s+([a-zA-Z_]\w*)\s*\(([^)]*)\)/);
+    } else {
+      match =
+        line.match(/^\s*(?:(?:public|private|protected|static|final|inline|virtual|override|async|suspend)\s+)*(?:[\w<>\[\]*&:]+\s+)?([a-zA-Z_]\w*)\s*\(([^)]*)\)\s*(?:->\s*[^{]+)?\{/) ||
+        line.match(/^\s*fun\s+([a-zA-Z_]\w*)\s*\(([^)]*)\)/);
+    }
+
+    if (match && !NON_FUNCTION_KEYWORDS.has(match[1])) {
+      const name = match[1];
+      if (!seenNames.has(`${name}:${idx}`)) {
+        seenNames.add(`${name}:${idx}`);
+        defs.push({ name, parameters: (match[2] || '').trim() || 'None', startLine: idx, indent });
+      }
+    }
+  }
+
+  const functionBreakdown = defs.map((fn, i) => {
+    let endLine = i + 1 < defs.length ? defs[i + 1].startLine - 1 : lines.length - 1;
+    if (language === 'python' || language === 'mojo') {
+      for (let k = fn.startLine + 1; k < lines.length; k++) {
+        const l = lines[k];
+        if (!l.trim() || l.trim().startsWith('#')) continue;
+        const lIndent = l.length - l.trimStart().length;
+        if (lIndent <= fn.indent) {
+          endLine = k - 1;
+          break;
+        }
+      }
+    }
+    const bodyLines = lines.slice(fn.startLine + 1, endLine + 1);
+    const bodyText = bodyLines.join('\n');
+    const returnMatch = bodyText.match(/\breturn\s+([^\n;]+)/);
+    const returns = returnMatch
+      ? `Returns ${returnMatch[1].trim().slice(0, 60)}`
+      : /\breturn\b/.test(bodyText)
+        ? 'Returns early / None'
+        : 'None / void';
+
+    const hasLoop = /\b(for|while)\b/.test(bodyText);
+    const hasBranch = /\b(if|elif|else|switch|match)\b/.test(bodyText);
+    const parts = [];
+    parts.push(
+      fn.parameters === 'None'
+        ? `Runs ${fn.name}() with no input parameters`
+        : `Accepts (${fn.parameters}) as input`
+    );
+    if (hasLoop) parts.push('iterates through data using a loop');
+    if (hasBranch) parts.push('checks conditional branches');
+    if (returnMatch) parts.push(`returns ${returnMatch[1].trim().slice(0, 40)}`);
+
+    return {
+      name: fn.name,
+      parameters: fn.parameters,
+      returns,
+      explanation: `${parts.join(', ')}.`,
+      _bodyText: bodyText,
+      _startLine: fn.startLine,
+      _endLine: endLine,
+    };
+  });
+
+  const definedNames = defs.map((d) => d.name);
+  const callGraph = [];
+  const edgeKeys = new Set();
+
+  for (const callerFn of functionBreakdown) {
+    for (const calleeName of definedNames) {
+      if (calleeName === callerFn.name) continue;
+      const callRegex = new RegExp(`\\b${calleeName}\\s*\\(`);
+      if (callRegex.test(callerFn._bodyText)) {
+        const key = `${callerFn.name}->${calleeName}`;
+        if (!edgeKeys.has(key)) {
+          edgeKeys.add(key);
+          callGraph.push({
+            caller: callerFn.name,
+            callee: calleeName,
+            purpose: `${callerFn.name}() invokes ${calleeName}() as part of its workflow.`,
+          });
+        }
+      }
+    }
+  }
+
+  const coveredLines = new Set();
+  for (const fn of functionBreakdown) {
+    for (let l = fn._startLine; l <= fn._endLine; l++) coveredLines.add(l);
+  }
+  const topLevelLines = lines
+    .filter((_, idx) => !coveredLines.has(idx) && !/^\s*(#|\/\/)/.test(lines[idx]))
+    .join('\n');
+  for (const calleeName of definedNames) {
+    const callRegex = new RegExp(`\\b${calleeName}\\s*\\(`);
+    if (callRegex.test(topLevelLines)) {
+      const key = `main/script->${calleeName}`;
+      if (!edgeKeys.has(key)) {
+        edgeKeys.add(key);
+        callGraph.push({
+          caller: 'script',
+          callee: calleeName,
+          purpose: `Top-level entry script calls ${calleeName}().`,
+        });
+      }
+    }
+  }
+
+  return {
+    functionBreakdown: functionBreakdown.map(({ _bodyText, _startLine, _endLine, ...clean }) => clean),
+    callGraph,
+  };
+};
+
 /**
  * Comprehensive multi-language static & syntax code analyzer.
  * Used both as an instant syntax verifier and as the resilient fallback when AI is unavailable.
@@ -525,17 +664,58 @@ const analyzeCodeStatically = (code, language) => {
   const loopCount = (code.match(/\b(for|while)\b/g) || []).length;
   let time = 'O(1)';
   const space = 'O(1)';
-  let explanation = 'Code executes sequentially with direct operations in constant time O(1).';
+  let timeReason = 'Operations execute sequentially without iterating over input collections, so runtime stays constant O(1).';
+  const spaceReason = 'Uses only a fixed amount of helper variables in memory regardless of input size.';
+  let explanation = timeReason;
   if (loopCount === 1) {
     time = 'O(n)';
-    explanation = 'A single loop iterates across inputs, resulting in linear time complexity O(n).';
+    timeReason = 'A single loop walks across each element of the input once, scaling linearly with input size n.';
+    explanation = timeReason;
   } else if (loopCount >= 2) {
     time = 'O(n^2)';
-    explanation = 'Multiple/nested loops suggest quadratic time complexity O(n^2).';
+    timeReason = 'Multiple or nested loops run across pairs or repeated passes over the data, causing quadratic O(n^2) growth.';
+    explanation = timeReason;
+  }
+
+  const { functionBreakdown, callGraph } = extractFunctionsAndCallGraph(code, language);
+
+  const howItWorks = [];
+  if (functionBreakdown.length > 0) {
+    howItWorks.push(
+      `Defines ${functionBreakdown.length} function${functionBreakdown.length > 1 ? 's' : ''}: ${functionBreakdown
+        .map((f) => `${f.name}(${f.parameters === 'None' ? '' : f.parameters})`)
+        .join(', ')}.`
+    );
+  } else {
+    howItWorks.push(`Executes ${language} statements sequentially from top to bottom.`);
+  }
+  if (loopCount > 0) {
+    howItWorks.push(`Uses ${loopCount} loop construct${loopCount > 1 ? 's' : ''} to process items repeatedly.`);
+  }
+  if (/\b(if|elif|else|switch)\b/.test(code)) {
+    howItWorks.push('Evaluates conditional checks to branch execution based on runtime values.');
+  }
+  if (callGraph.length > 0) {
+    howItWorks.push(
+      `Coordinates execution via function calls (${callGraph
+        .slice(0, 3)
+        .map((c) => `${c.caller}() -> ${c.callee}()`)
+        .join(', ')}).`
+    );
+  }
+  if (bugs.length > 0) {
+    howItWorks.push(`Warning: ${bugs.length} static/syntax issue${bugs.length > 1 ? 's were' : ' was'} spotted that can affect expected behavior.`);
   }
 
   const criticalCount = bugs.filter((b) => b.isCritical).length;
   const minorCount = bugs.length - criticalCount;
+  const errors = bugs.map((b) => ({
+    line: b.lineNumber || 0,
+    severity: b.isCritical ? 'ERROR' : 'WARNING',
+    title: b.title,
+    explanation: b.whyItHappens || b.description,
+    fix: b.solution || b.hint,
+  }));
   const cleanedBugs = bugs.map(({ isCritical: _isCritical, ...rest }) => rest);
 
   // Build line-patched improvedCode & improvementNotes when concrete line fixes exist
@@ -585,6 +765,11 @@ const analyzeCodeStatically = (code, language) => {
   return {
     score,
     summary,
+    analysisEngine: 'STATIC_FALLBACK',
+    errors,
+    howItWorks,
+    callGraph,
+    functionBreakdown,
     bugs: cleanedBugs,
     codeQuality: {
       readability: {
@@ -604,7 +789,7 @@ const analyzeCodeStatically = (code, language) => {
         comment: cleanedBugs.length === 0 ? 'Follows standard coding conventions.' : 'Address the flagged bugs and hints below.',
       },
     },
-    complexity: { time, space, explanation },
+    complexity: { time, timeReason, space, spaceReason, explanation },
     security,
     concepts,
     improvedCode,
