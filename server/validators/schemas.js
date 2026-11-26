@@ -71,6 +71,34 @@ const reviewSubmitSchema = z.object({
     .string({ required_error: 'Code is required' })
     .max(15000, 'Code cannot exceed 15,000 characters')
     .refine((val) => val.trim().length >= 5, 'Code must be at least 5 non-whitespace characters'),
+  assignmentId: z.string().trim().optional().nullable(),
+});
+
+const createAssignmentSchema = z.object({
+  title: z
+    .string({ required_error: 'Title is required' })
+    .trim()
+    .min(3, 'Title must be at least 3 characters')
+    .max(120, 'Title cannot exceed 120 characters'),
+  language: z.enum(SUPPORTED_LANGUAGES, {
+    required_error: 'Language is required',
+  }),
+  description: z
+    .string({ required_error: 'Description is required' })
+    .trim()
+    .min(10, 'Description must be at least 10 characters')
+    .max(4000, 'Description cannot exceed 4,000 characters'),
+  starterCode: z.string().max(15000).optional().default(''),
+  dueDate: z.string({ required_error: 'Due date is required' }).min(1, 'Due date is required'),
+});
+
+const teacherFeedbackSchema = z.object({
+  comment: z
+    .string({ required_error: 'Feedback comment is required' })
+    .trim()
+    .min(1, 'Feedback comment cannot be empty')
+    .max(2000, 'Feedback cannot exceed 2,000 characters'),
+  adjustedScore: z.coerce.number().int().min(0).max(100).optional(),
 });
 
 const updateReviewSchema = z.object({
@@ -135,6 +163,16 @@ const aiReviewResponseSchema = z.object({
       level: z.enum(['weak', 'ok', 'strong']),
     })
   ),
+  improvedCode: z.string().optional().default(''),
+  improvementNotes: z
+    .array(
+      z.object({
+        lineNumber: z.coerce.number().int().min(0),
+        explanation: z.string(),
+      })
+    )
+    .optional()
+    .default([]),
 });
 
 const aiQuizResponseSchema = z.object({
@@ -194,6 +232,8 @@ module.exports = {
   reviewSubmitSchema,
   updateReviewSchema,
   updateRoadmapStepSchema,
+  createAssignmentSchema,
+  teacherFeedbackSchema,
   quizSubmitSchema,
   aiReviewResponseSchema,
   aiQuizResponseSchema,

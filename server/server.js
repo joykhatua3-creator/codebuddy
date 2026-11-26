@@ -81,11 +81,13 @@ app.use(express.urlencoded({ extended: true, limit: '100kb' }));
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get(['/api/health', '/health'], (req, res) => {
   const mongoose = require('mongoose');
+  const { getAiHealthInfo } = require('./services/aiService');
   res.json({
     success: true,
     data: {
       status: 'running',
       dbConnected: mongoose.connection.readyState === 1,
+      ai: getAiHealthInfo(),
       uptime: Math.round(process.uptime()),
       timestamp: new Date().toISOString(),
       env: process.env.NODE_ENV,
@@ -100,6 +102,7 @@ app.use('/api/progress', require('./routes/progress'));
 app.use('/api/quizzes', require('./routes/quizzes'));
 app.use('/api/roadmap', require('./routes/roadmap'));
 app.use('/api/teacher', require('./routes/teacher'));
+app.use('/api/assignments', require('./routes/assignments'));
 
 // ─── 404 & Error Handling ────────────────────────────────────────────────────
 app.use(notFound);

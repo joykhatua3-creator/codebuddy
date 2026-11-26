@@ -14,6 +14,8 @@ export const authService = {
   register: (data) => api.post('/auth/register', data),
   login: (data) => api.post('/auth/login', data),
   demoLogin: (role = 'student') => api.post('/auth/demo', { role }),
+  getOAuthProviders: () => api.get('/auth/oauth/providers'),
+  firebaseOAuth: (data) => api.post('/auth/oauth/firebase', data),
   logout: () => api.post('/auth/logout'),
   getMe: () => api.get('/auth/me'),
   updateProfile: (data) => api.patch('/auth/me', data),
@@ -23,6 +25,7 @@ export const authService = {
 
 export const reviewService = {
   submit: (data) => api.post('/reviews', data),
+  retry: (id) => api.post(`/reviews/${id}/retry`),
   getAll: (params) => api.get('/reviews', { params }),
   getById: (id) => api.get(`/reviews/${id}`),
   update: (id, data) => api.patch(`/reviews/${id}`, data),
@@ -33,7 +36,7 @@ export const reviewService = {
    * Stream a review using Server-Sent Events (SSE)
    * Dispatches events: progress, error, complete
    */
-  streamReview: async ({ language, code }, { onProgress, onComplete, onError }) => {
+  streamReview: async ({ language, code, assignmentId }, { onProgress, onComplete, onError }) => {
     const token = localStorage.getItem('token');
     try {
       const response = await fetch(`${baseURL}/reviews/stream`, {
@@ -43,7 +46,7 @@ export const reviewService = {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         credentials: 'include',
-        body: JSON.stringify({ language, code }),
+        body: JSON.stringify({ language, code, ...(assignmentId ? { assignmentId } : {}) }),
       });
 
       if (!response.ok) {
@@ -129,7 +132,7 @@ export const progressService = {
 };
 
 export const quizService = {
-  generate: () => api.post('/quizzes/generate'),
+  generate: (topic) => api.post('/quizzes/generate', topic ? { topic } : {}),
   getAll: () => api.get('/quizzes'),
   getById: (id) => api.get(`/quizzes/${id}`),
   submit: (id, data) => api.post(`/quizzes/${id}/submit`, data),
@@ -146,4 +149,13 @@ export const roadmapService = {
 export const teacherService = {
   getStudents: () => api.get('/teacher/students'),
   getStudentProgress: (id) => api.get(`/teacher/students/${id}/progress`),
+  exportCsv: () => api.get('/teacher/students/export', { responseType: 'blob' }),
+  addReviewFeedback: (reviewId, data) => api.patch(`/teacher/reviews/${reviewId}/feedback`, data),
+};
+
+export const assignmentService = {
+  getAll: () => api.get('/assignments'),
+  create: (data) => api.post('/assignments', data),
+  getSubmissions: (id) => api.get(`/assignments/${id}/submissions`),
+  delete: (id) => api.delete(`/assignments/${id}`),
 };

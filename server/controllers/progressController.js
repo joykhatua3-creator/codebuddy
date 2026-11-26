@@ -21,8 +21,8 @@ const getProgress = asyncHandler(async (req, res) => {
       .lean(),
   ]);
 
-  // Get 3 weakest topics (lowest level)
-  const weakestTopics = topics.slice(0, 3);
+  // Get up to 3 weakest unmastered topics (exclude >= 75% mastered concepts)
+  const weakestTopics = topics.filter((t) => t.level < 75).slice(0, 3);
 
   // Review stats
   const totalReviews = reviews.length;

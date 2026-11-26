@@ -11,22 +11,34 @@ const { asyncHandler } = require('../utils/helpers');
  */
 const generateQuiz = asyncHandler(async (req, res) => {
   const userId = req.user._id;
+  const requestedTopic = typeof req.body?.topic === 'string' ? req.body.topic.trim() : '';
+  const requestedTopics = Array.isArray(req.body?.topics)
+    ? req.body.topics.map((t) => String(t).trim()).filter(Boolean).slice(0, 3)
+    : [];
 
-  const weakTopics = await TopicProgress.find({ user: userId })
-    .sort({ level: 1 })
-    .limit(3)
-    .select('topic level')
-    .lean();
+  let topicNames = [];
+  if (requestedTopic) {
+    topicNames = [requestedTopic];
+  } else if (requestedTopics.length > 0) {
+    topicNames = requestedTopics;
+  } else {
+    const weakTopics = await TopicProgress.find({ user: userId })
+      .sort({ level: 1 })
+      .limit(3)
+      .select('topic level')
+      .lean();
 
-  if (weakTopics.length === 0) {
-    weakTopics.push(
-      { topic: 'Variables and Data Types' },
-      { topic: 'Functions' },
-      { topic: 'Loops' }
-    );
+    if (weakTopics.length === 0) {
+      weakTopics.push(
+        { topic: 'Variables and Data Types' },
+        { topic: 'Functions' },
+        { topic: 'Loops' }
+      );
+    }
+
+    topicNames = weakTopics.map((t) => t.topic);
   }
 
-  const topicNames = weakTopics.map((t) => t.topic);
   const aiResult = await aiGenerateQuiz(topicNames);
 
   const quiz = await Quiz.create({
@@ -173,6 +185,18 @@ const getQuizById = asyncHandler(async (req, res) => {
 
   if (quiz.user.toString() !== req.user._id.toString() && req.user.role !== 'teacher') {
     return res.status(403).json({ success: false, message: 'Not authorized' });
+  }
+
+  // Isolate demo teacher from viewing real registered students' quizzes by ID
+  if (
+    req.user.role === 'teacher' &&
+    (req.user.isDemo || req.user.email === 'teacher@crbuddy.com') &&
+    quiz.user.toString() !== req.user._id.toString()
+  ) {
+    const owner = await User.findById(quiz.user).select('isDemo email').lean();
+    if (!owner || (!owner.isDemo && owner.email !== 'student@crbuddy.com')) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
   }
 
   // Prevent exposing answers to student before quiz submission

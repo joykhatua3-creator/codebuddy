@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Brain, ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react';
 import { quizService } from '../../services';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
@@ -11,28 +11,44 @@ const OPTIONS = ['A', 'B', 'C', 'D'];
 
 export default function QuizPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const toast = useToast();
+  const requestedTopic = searchParams.get('topic') || '';
+  const [activeTopic, setActiveTopic] = useState(requestedTopic);
   const [quiz, setQuiz] = useState(null);
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState({}); // { questionIndex: selectedOption }
-  const [generating, setGenerating] = useState(false);
+  const [generating, setGenerating] = useState(Boolean(requestedTopic));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const autoTriggeredTopicRef = useRef('');
 
-  const handleGenerate = async () => {
-    setGenerating(true);
-    setError('');
-    setAnswers({});
-    setCurrentQ(0);
-    try {
-      const res = await quizService.generate();
-      setQuiz(res.data.data);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to generate quiz. Please try again.');
-    } finally {
-      setGenerating(false);
+  const handleGenerate = useCallback(
+    async (topicOverride) => {
+      const targetTopic = typeof topicOverride === 'string' ? topicOverride : activeTopic;
+      setGenerating(true);
+      setError('');
+      setAnswers({});
+      setCurrentQ(0);
+      try {
+        const res = await quizService.generate(targetTopic || undefined);
+        setQuiz(res.data.data);
+      } catch (err) {
+        setError(err.response?.data?.message || 'Failed to generate quiz. Please try again.');
+      } finally {
+        setGenerating(false);
+      }
+    },
+    [activeTopic]
+  );
+
+  useEffect(() => {
+    if (requestedTopic && autoTriggeredTopicRef.current !== requestedTopic) {
+      autoTriggeredTopicRef.current = requestedTopic;
+      setActiveTopic(requestedTopic);
+      handleGenerate(requestedTopic);
     }
-  };
+  }, [requestedTopic, handleGenerate]);
 
   const selectAnswer = (optionIndex) => {
     setAnswers((prev) => ({ ...prev, [currentQ]: optionIndex }));
@@ -90,16 +106,33 @@ export default function QuizPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-5">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">Practice Quiz</h2>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-slate-100">
+            {activeTopic ? `Targeted Quiz: ${activeTopic}` : 'Practice Quiz'}
+          </h2>
           <div className="flex flex-wrap gap-1 mt-1">
             {quiz.topics?.map((t) => (
               <span key={t} className="badge badge-blue text-xs">{t}</span>
             ))}
           </div>
         </div>
-        <button onClick={handleGenerate} disabled={submitting} className="btn btn-secondary btn-sm">New Quiz</button>
+        <div className="flex items-center gap-2">
+          {activeTopic && (
+            <button
+              onClick={() => {
+                setActiveTopic('');
+                setSearchParams({});
+                handleGenerate('');
+              }}
+              disabled={submitting}
+              className="btn btn-ghost btn-sm text-xs"
+            >
+              All Weak Topics
+            </button>
+          )}
+          <button onClick={() => handleGenerate()} disabled={submitting} className="btn btn-secondary btn-sm">New Quiz</button>
+        </div>
       </div>
 
       {/* Progress indicator */}
@@ -112,7 +145,11 @@ export default function QuizPage() {
           {quiz.questions.map((_, i) => (
             <button key={i} onClick={() => setCurrentQ(i)}
               className={`flex-1 h-1.5 rounded-full transition-colors ${
-                i === currentQ ? 'bg-primary-600' : answers[i] !== undefined ? 'bg-primary-300' : 'bg-gray-200'
+                i === currentQ
+                  ? 'bg-primary-600 dark:bg-primary-500'
+                  : answers[i] !== undefined
+                  ? 'bg-primary-300 dark:bg-primary-700'
+                  : 'bg-gray-200 dark:bg-slate-700'
               }`}
             />
           ))}
@@ -123,7 +160,7 @@ export default function QuizPage() {
       <div className="card p-6 space-y-5">
         <div>
           <span className="badge badge-blue mb-3">Question {currentQ + 1}</span>
-          <p className="text-base font-medium text-gray-900 leading-relaxed">{question.question}</p>
+          <p className="text-base font-medium text-gray-900 dark:text-slate-100 leading-relaxed">{question.question}</p>
         </div>
 
         {/* Options */}
@@ -136,12 +173,14 @@ export default function QuizPage() {
                 onClick={() => selectAnswer(i)}
                 className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-150 ${
                   isSelected
-                    ? 'border-primary-500 bg-primary-50 text-primary-700'
-                    : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                    ? 'border-primary-500 bg-primary-50 text-primary-700 dark:border-primary-400 dark:bg-primary-900/30 dark:text-primary-200'
+                    : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700 dark:hover:border-slate-600'
                 }`}
               >
                 <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold mr-3 ${
-                  isSelected ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-600'
+                  isSelected
+                    ? 'bg-primary-500 text-white'
+                    : 'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-200'
                 }`}>
                   {OPTIONS[i]}
                 </span>

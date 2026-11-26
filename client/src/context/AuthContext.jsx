@@ -71,6 +71,15 @@ export const AuthProvider = ({ children }) => {
     [persistSession]
   );
 
+  const completeOAuthLogin = useCallback(async (token) => {
+    if (token) localStorage.setItem('token', token);
+    const { data } = await authService.getMe();
+    const userData = data.data;
+    localStorage.setItem('user', JSON.stringify(userData));
+    setUser(userData);
+    return userData;
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       await authService.logout();
@@ -97,6 +106,7 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     demoLogin,
+    completeOAuthLogin,
     logout,
     updateUser,
     isStudent: user?.role === 'student',

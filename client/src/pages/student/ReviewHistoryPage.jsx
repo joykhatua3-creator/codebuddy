@@ -2,11 +2,11 @@ import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Eye, Trash2, Bookmark, BookmarkCheck } from 'lucide-react';
 import { reviewService } from '../../services';
-import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import ErrorMessage from '../../components/ui/ErrorMessage';
 import EmptyState from '../../components/ui/EmptyState';
 import ConfirmModal from '../../components/ui/ConfirmModal';
 import ScoreBadge from '../../components/ui/ScoreBadge';
+import { ListSkeleton } from '../../components/ui/Skeleton';
 import { useToast } from '../../components/ui/Toast';
 import { formatRelativeTime, getLanguageLabel, getLanguageBadgeClass, truncate, ALL_LANGUAGES } from '../../utils/helpers';
 
@@ -112,7 +112,7 @@ export default function ReviewHistoryPage() {
 
       {/* Results */}
       {loading ? (
-        <div className="flex justify-center py-16"><LoadingSpinner size="lg" /></div>
+        <ListSkeleton count={4} />
       ) : error ? (
         <ErrorMessage message={error} onRetry={fetchReviews} />
       ) : reviews.length === 0 ? (
@@ -139,7 +139,15 @@ export default function ReviewHistoryPage() {
                     </span>
                     <span className="text-xs text-gray-400">{formatRelativeTime(r.createdAt)}</span>
                     {r.bugs !== undefined && (
-                      <span className="text-xs text-red-500">{bugCount} bug{bugCount !== 1 ? 's' : ''}</span>
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                          bugCount === 0
+                            ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+                            : 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+                        }`}
+                      >
+                        {bugCount} bug{bugCount !== 1 ? 's' : ''}
+                      </span>
                     )}
                   </div>
                   <p className="text-sm text-gray-700 leading-relaxed">{truncate(r.summary, 120)}</p>

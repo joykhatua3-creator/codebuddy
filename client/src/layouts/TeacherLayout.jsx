@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { Bot, LayoutDashboard, Users, LogOut, Sun, Moon, Bell, Menu, ChevronDown } from 'lucide-react';
+import { Bot, LayoutDashboard, Users, LogOut, Sun, Moon, Bell, Menu, ChevronDown, ClipboardList } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { RouteContentSkeleton } from '../components/ui/Skeleton';
 
 const NAV = [
   { to: '/teacher', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/teacher/students', label: 'Students', icon: Users },
+  { to: '/teacher/assignments', label: 'Assignments', icon: ClipboardList },
 ];
 
 const TeacherSidebarContent = ({ user, onNavigate, onLogout }) => (
@@ -80,14 +82,14 @@ export default function TeacherLayout() {
             {notifOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
-                <div className="absolute right-0 top-full mt-1 w-64 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-50 space-y-2">
-                  <p className="text-xs font-semibold text-gray-900">Teacher Portal</p>
-                  <p className="text-xs text-gray-600">
+                <div className="absolute right-0 top-full mt-1 w-64 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg shadow-lg p-3 z-50 space-y-2">
+                  <p className="text-xs font-semibold text-gray-900 dark:text-slate-100">Teacher Portal</p>
+                  <div className="text-xs text-gray-700 bg-primary-50/70 dark:bg-slate-800 dark:text-slate-100 p-2.5 rounded-md border border-primary-100 dark:border-slate-700">
                     Review student rosters, average scores, and weak-topic trends from the Students view.
-                  </p>
+                  </div>
                   <button
                     onClick={() => { navigate('/teacher/students'); setNotifOpen(false); }}
-                    className="w-full text-left text-xs text-primary-600 font-medium hover:underline"
+                    className="w-full text-left text-xs text-primary-600 dark:text-primary-400 font-medium hover:underline"
                   >
                     View All Students →
                   </button>
@@ -103,8 +105,8 @@ export default function TeacherLayout() {
             {userMenuOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
-                <div className="absolute right-0 top-full mt-1 w-44 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50">
-                  <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
+                <div className="absolute right-0 top-full mt-1 w-44 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg shadow-lg py-1 z-50">
+                  <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 flex items-center gap-2">
                     <LogOut size={14} /> Logout
                   </button>
                 </div>
@@ -112,7 +114,11 @@ export default function TeacherLayout() {
             )}
           </div>
         </header>
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6 scrollbar-thin"><Outlet /></main>
+        <main className="flex-1 overflow-y-auto p-4 lg:p-6 scrollbar-thin">
+          <Suspense fallback={<RouteContentSkeleton />}>
+            <Outlet />
+          </Suspense>
+        </main>
       </div>
     </div>
   );

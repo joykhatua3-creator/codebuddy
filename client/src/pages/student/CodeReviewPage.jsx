@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
-import { Trash2, Radio, Sparkles, Moon, Sun, Maximize2, Minimize2, Globe, AlertCircle } from 'lucide-react';
+import { Trash2, Radio, Sparkles, Moon, Sun, Maximize2, Minimize2, Globe, AlertCircle, Upload, FileCode2 } from 'lucide-react';
 import { reviewService } from '../../services';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { ALL_LANGUAGES, POPULAR_LANGUAGES, getMonacoLanguage, getLanguageLabel } from '../../utils/helpers';
@@ -9,6 +9,52 @@ import { useTheme } from '../../context/ThemeContext';
 
 const MAX_CHARS = 15000;
 const MAX_LINES = 400;
+const MAX_FILE_BYTES = 100 * 1024;
+const DRAFT_STORAGE_KEY = 'codebuddy_review_draft';
+
+const EXTENSION_LANGUAGE_MAP = {
+  py: 'python',
+  js: 'javascript',
+  jsx: 'javascript',
+  mjs: 'javascript',
+  ts: 'typescript',
+  tsx: 'typescript',
+  java: 'java',
+  cpp: 'cpp',
+  cc: 'cpp',
+  cxx: 'cpp',
+  hpp: 'cpp',
+  c: 'c',
+  h: 'c',
+  cs: 'csharp',
+  go: 'go',
+  rs: 'rust',
+  sql: 'sql',
+  kt: 'kotlin',
+  kts: 'kotlin',
+};
+
+const readStoredDraft = () => {
+  try {
+    const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed.code === 'string' && typeof parsed.language === 'string') {
+      return parsed;
+    }
+  } catch {
+    // ignore storage errors
+  }
+  return null;
+};
+
+const clearStoredDraft = () => {
+  try {
+    localStorage.removeItem(DRAFT_STORAGE_KEY);
+  } catch {
+    // ignore storage errors
+  }
+};
 
 const DEFAULT_CODE = {
   python: `# Python 3.x\ndef greet(name: str) -> str:\n    return f"Hello, {name}!"\n\nprint(greet("World"))`,
@@ -47,34 +93,106 @@ export default function CodeReviewPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { isDark } = useTheme();
+  const assignmentId = location.state?.assignmentId || null;
+  const assignmentTitle = location.state?.assignmentTitle || null;
+  const hasExplicitStarter = Boolean(location.state?.starterCode || assignmentId);
+
   const [editorTheme, setEditorTheme] = useState(isDark ? 'vs-dark' : 'vs-dark'); // VS Code Dark default
   const [fontSize, setFontSize] = useState(14);
-  const [language, setLanguage] = useState(() => location.state?.language || 'javascript');
-  const [code, setCode] = useState(
-    () => location.state?.starterCode || DEFAULT_CODE[location.state?.language || 'javascript']
-  );
+  const [language, setLanguage] = useState(() => {
+    if (location.state?.language) return location.state.language;
+    const draft = readStoredDraft();
+    return draft?.language || 'javascript';
+  });
+  const [code, setCode] = useState(() => {
+    if (location.state?.starterCode) return location.state.starterCode;
+    if (location.state?.language) return DEFAULT_CODE[location.state.language] || '';
+    const draft = readStoredDraft();
+    return draft?.code ?? DEFAULT_CODE.javascript;
+  });
   const [useStreaming, setUseStreaming] = useState(true);
   const [loading, setLoading] = useState(false);
   const [streamProgress, setStreamProgress] = useState(null);
   const [error, setError] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadedFileName, setUploadedFileName] = useState('');
   const submitRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   const lines = code.split('\n').length;
   const chars = code.length;
   const isOverLimit = lines > MAX_LINES || chars > MAX_CHARS;
   const isEmpty = code.trim().length < 5;
+  const isDefaultTemplate = code === (DEFAULT_CODE[language] || `// Write your ${getLanguageLabel(language)} code here`);
+
+  // Auto-save draft to localStorage while editing (skip overwriting when viewing fresh assignment starter)
+  useEffect(() => {
+    if (hasExplicitStarter && code === location.state?.starterCode) return;
+    try {
+      if (isDefaultTemplate) {
+        clearStoredDraft();
+      } else {
+        localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify({ language, code }));
+      }
+    } catch {
+      // ignore quota/private mode errors
+    }
+  }, [code, language, isDefaultTemplate, hasExplicitStarter, location.state?.starterCode]);
 
   const handleLanguageChange = (lang) => {
     setLanguage(lang);
     setCode(DEFAULT_CODE[lang] || `// Write your ${getLanguageLabel(lang)} code here`);
+    setUploadedFileName('');
     setError('');
   };
 
   const handleClear = () => {
+    clearStoredDraft();
+    setUploadedFileName('');
     setCode(DEFAULT_CODE[language] || `// Write your ${getLanguageLabel(language)} code here`);
     setError('');
     setStreamProgress(null);
+  };
+
+  const handleFileImport = async (file) => {
+    if (!file) return;
+    setError('');
+    const ext = file.name.split('.').pop()?.toLowerCase() || '';
+    const detectedLang = EXTENSION_LANGUAGE_MAP[ext];
+    if (!detectedLang) {
+      setError(
+        `Unsupported file extension ".${ext}". Supported files: .py, .js, .ts, .java, .cpp, .c, .cs, .go, .rs, .sql, .kt`
+      );
+      return;
+    }
+    if (file.size > MAX_FILE_BYTES) {
+      setError(`File "${file.name}" exceeds the 100 KB limit (${Math.round(file.size / 1024)} KB).`);
+      return;
+    }
+
+    try {
+      const content = await file.text();
+      if (content.includes('\u0000')) {
+        setError(`File "${file.name}" appears to be binary. Please upload plain source code.`);
+        return;
+      }
+      if (content.length > MAX_CHARS) {
+        setError(
+          `File "${file.name}" has ${content.length.toLocaleString()} characters, exceeding the ${MAX_CHARS.toLocaleString()}-character limit.`
+        );
+        return;
+      }
+      if (content.trim().length < 5) {
+        setError(`File "${file.name}" does not contain enough code (minimum 5 characters).`);
+        return;
+      }
+      setLanguage(detectedLang);
+      setCode(content);
+      setUploadedFileName(file.name);
+    } catch {
+      setError(`Could not read file "${file.name}".`);
+    }
   };
 
   const handleSubmit = async () => {
@@ -88,7 +206,7 @@ export default function CodeReviewPage() {
       let handledError = false;
       try {
         await reviewService.streamReview(
-          { language, code },
+          { language, code, assignmentId },
           {
             onProgress: (info) => {
               setStreamProgress(info.message || 'Analyzing code...');
@@ -97,6 +215,7 @@ export default function CodeReviewPage() {
               const reviewId = data.reviewId || data._id || data.data?._id;
               if (reviewId) {
                 navigated = true;
+                clearStoredDraft();
                 navigate(`/dashboard/review/${reviewId}`);
               } else {
                 fallbackSubmit();
@@ -133,9 +252,10 @@ export default function CodeReviewPage() {
 
   const fallbackSubmit = async () => {
     try {
-      const res = await reviewService.submit({ language, code });
+      const res = await reviewService.submit({ language, code, ...(assignmentId ? { assignmentId } : {}) });
       const reviewId = res.data?.data?._id || res.data?._id;
       if (reviewId) {
+        clearStoredDraft();
         navigate(`/dashboard/review/${reviewId}`);
       } else {
         setError('Review generated but could not open detail. Please check Review History.');
@@ -162,16 +282,35 @@ export default function CodeReviewPage() {
     <div className="space-y-5 max-w-5xl mx-auto">
       {/* Header */}
       <div>
-        <div className="flex items-center gap-2">
-          <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary-100 text-primary-700">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300">
             30 Languages Supported
           </span>
+          {!isDefaultTemplate && (
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+              Draft auto-saved
+            </span>
+          )}
+          {uploadedFileName && (
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-mono bg-gray-100 text-gray-700 dark:bg-slate-800 dark:text-slate-200 flex items-center gap-1">
+              <FileCode2 size={12} /> {uploadedFileName}
+            </span>
+          )}
         </div>
-        <h2 className="text-xl font-bold text-gray-900 mt-1">AI Code Review</h2>
-        <p className="text-sm text-gray-500 mt-0.5">
-          Select any of the 30 programming languages and get instant, structured AI feedback with guided hints
+        <h2 className="text-xl font-bold text-gray-900 dark:text-slate-100 mt-1">AI Code Review</h2>
+        <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">
+          Select any of the 30 programming languages or drop a code file into the editor for instant AI feedback
         </p>
       </div>
+
+      {assignmentId && (
+        <div className="card p-3.5 bg-primary-50/80 dark:bg-primary-950/30 border border-primary-200 dark:border-primary-800/60 flex items-center justify-between gap-3">
+          <div className="text-xs sm:text-sm text-primary-900 dark:text-primary-100">
+            <span className="font-semibold">Solving Assignment:</span> {assignmentTitle || 'Course Assignment'}
+          </div>
+          <span className="badge badge-blue text-[11px]">Linked Submission</span>
+        </div>
+      )}
 
       {/* Language selector & Stream mode */}
       <div className="card p-4 space-y-3">
@@ -230,8 +369,36 @@ export default function CodeReviewPage() {
         </div>
       </div>
 
-      {/* Monaco Editor Card */}
-      <div className={`card overflow-hidden transition-all duration-200 ${isExpanded ? 'ring-2 ring-primary-500 shadow-xl' : ''}`}>
+      {/* Monaco Editor Card (supports drag-and-drop file upload) */}
+      <div
+        onDragOver={(e) => {
+          e.preventDefault();
+          if (!isDragging) setIsDragging(true);
+        }}
+        onDragLeave={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget)) {
+            setIsDragging(false);
+          }
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          setIsDragging(false);
+          const droppedFile = e.dataTransfer?.files?.[0];
+          if (droppedFile) handleFileImport(droppedFile);
+        }}
+        className={`relative card overflow-hidden transition-all duration-200 ${
+          isExpanded ? 'ring-2 ring-primary-500 shadow-xl' : ''
+        } ${isDragging ? 'ring-2 ring-primary-500' : ''}`}
+      >
+        {isDragging && (
+          <div className="absolute inset-0 z-30 bg-primary-900/80 backdrop-blur-[1px] flex flex-col items-center justify-center text-white pointer-events-none">
+            <Upload size={34} className="mb-2 animate-bounce" />
+            <p className="text-sm font-semibold">Drop your source file here to load it into the editor</p>
+            <p className="text-xs text-primary-200 mt-1">
+              Supports .py, .js, .ts, .java, .cpp, .c, .cs, .go, .rs, .sql, .kt (max 100 KB / 15,000 chars)
+            </p>
+          </div>
+        )}
         {/* Editor Toolbar */}
         <div className={`flex items-center justify-between px-4 py-2.5 border-b ${editorTheme === 'vs-dark' ? 'bg-gray-900 border-gray-800 text-gray-300' : 'bg-gray-50 border-gray-200 text-gray-600'}`}>
           <div className="flex items-center gap-3">
@@ -334,17 +501,37 @@ export default function CodeReviewPage() {
         </div>
 
         {/* Bottom Actions Bar */}
-        <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-t border-gray-200">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 bg-gray-50 dark:bg-slate-900 border-t border-gray-200 dark:border-slate-800">
+          <div className="flex items-center gap-2 flex-wrap">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".py,.js,.jsx,.mjs,.ts,.tsx,.java,.cpp,.cc,.cxx,.hpp,.c,.h,.cs,.go,.rs,.sql,.kt,.kts"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleFileImport(f);
+                e.target.value = '';
+              }}
+            />
             <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={loading}
+              className="btn btn-secondary btn-sm gap-1.5"
+            >
+              <Upload size={14} /> Upload File
+            </button>
+            <button
+              type="button"
               onClick={handleClear}
               disabled={loading}
-              className="btn btn-secondary btn-sm gap-1.5 text-gray-600"
+              className="btn btn-secondary btn-sm gap-1.5 text-gray-600 dark:text-slate-300"
             >
               <Trash2 size={14} /> Clear Code
             </button>
-            <span className="text-[11px] text-gray-400 font-mono hidden sm:inline">
-              Shortcut: <kbd className="px-1.5 py-0.5 bg-gray-200 text-gray-700 rounded text-[10px]">Ctrl</kbd> + <kbd className="px-1.5 py-0.5 bg-gray-200 text-gray-700 rounded text-[10px]">Enter</kbd> to submit
+            <span className="text-[11px] text-gray-400 dark:text-slate-400 font-mono hidden sm:inline">
+              Shortcut: <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-slate-200 rounded text-[10px]">Ctrl</kbd> + <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-slate-200 rounded text-[10px]">Enter</kbd>
             </span>
           </div>
 

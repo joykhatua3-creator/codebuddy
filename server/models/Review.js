@@ -91,9 +91,37 @@ const reviewSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    fallbackReason: {
+      type: String,
+      default: '',
+    },
     analysisVersion: {
       type: Number,
       default: 2,
+    },
+    improvedCode: {
+      type: String,
+      default: '',
+    },
+    improvementNotes: [
+      {
+        lineNumber: Number,
+        explanation: String,
+      },
+    ],
+    assignment: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Assignment',
+      default: null,
+      index: true,
+    },
+    teacherFeedback: {
+      comment: { type: String, maxlength: 2000 },
+      adjustedScore: { type: Number, min: 0, max: 100 },
+      originalScore: { type: Number, min: 0, max: 100 },
+      teacherName: String,
+      reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      updatedAt: Date,
     },
   },
   {

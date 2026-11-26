@@ -4,6 +4,7 @@ const rateLimit = require('express-rate-limit');
 const {
   submitReview,
   streamReview,
+  retryReview,
   getReviews,
   getReview,
   updateReview,
@@ -27,6 +28,7 @@ router.use(protect);
 
 router.post('/', authorize('student'), aiRateLimit, validate(reviewSubmitSchema), submitReview);
 router.post('/stream', authorize('student'), aiRateLimit, streamReview);
+router.post('/:id/retry', authorize('student'), aiRateLimit, retryReview);
 router.get('/', authorize('student'), getReviews);
 router.get('/:id', authorize('student', 'teacher'), getReview);
 router.patch('/:id', authorize('student'), validate(updateReviewSchema), updateReview);

@@ -63,18 +63,34 @@ const extractAiFields = (source) => ({
   complexity: source.complexity,
   security: source.security || [],
   concepts: source.concepts || [],
+  improvedCode: source.improvedCode || '',
+  improvementNotes: source.improvementNotes || [],
   isFallback: Boolean(source.isFallback),
+  fallbackReason: source.fallbackReason || '',
   analysisVersion: 2,
 });
 
 /**
  * Shared review resolution flow for both standard POST and SSE stream endpoints.
  */
-const resolveAndSaveReview = async ({ userId, language, code, onStatus }) => {
+const resolveAndSaveReview = async ({ userId, language, code, assignmentId = null, onStatus }) => {
   const codeHash = generateCodeHash(code, language);
 
-  // 1. Check existing user review (ignore stale v1 or fallback-only entries)
-  const existingUserReview = await Review.findOne({ user: userId, codeHash });
+  let validAssignmentId = null;
+  if (assignmentId) {
+    const Assignment = require('../models/Assignment');
+    const assignmentDoc = await Assignment.findById(assignmentId).select('_id isDemo').lean();
+    if (assignmentDoc) {
+      validAssignmentId = assignmentDoc._id;
+    }
+  }
+
+  // 1. Check existing user review (ignore stale v1 or fallback-only entries; allow distinct assignment submissions)
+  const existingUserReview = await Review.findOne({
+    user: userId,
+    codeHash,
+    ...(validAssignmentId ? { assignment: validAssignmentId } : { assignment: null }),
+  });
   if (existingUserReview && existingUserReview.analysisVersion >= 2 && !existingUserReview.isFallback) {
     onStatus?.({ step: 2, message: 'Review retrieved from your history' });
     return { review: { ...existingUserReview.toObject(), fromCache: true }, statusCode: 200 };
@@ -102,6 +118,7 @@ const resolveAndSaveReview = async ({ userId, language, code, onStatus }) => {
   const fields = {
     ...extractAiFields(aiResult),
     fromCache,
+    ...(validAssignmentId ? { assignment: validAssignmentId } : {}),
   };
 
   const shouldUpdateProgress = !existingUserReview || (existingUserReview.analysisVersion || 1) < 2;
@@ -140,7 +157,7 @@ const resolveAndSaveReview = async ({ userId, language, code, onStatus }) => {
  * @access  Private (student)
  */
 const submitReview = asyncHandler(async (req, res) => {
-  const { language, code } = req.validatedData;
+  const { language, code, assignmentId } = req.validatedData;
   const check = validateCodeInput(code, language);
   if (!check.valid) {
     return res.status(400).json({ success: false, message: check.reason });
@@ -150,6 +167,7 @@ const submitReview = asyncHandler(async (req, res) => {
     userId: req.user._id,
     language,
     code,
+    assignmentId,
   });
 
   res.status(statusCode).json({ success: true, data: review });
@@ -167,7 +185,7 @@ const streamReview = asyncHandler(async (req, res) => {
     return res.status(400).json({ success: false, message });
   }
 
-  const { language, code } = parsed.data;
+  const { language, code, assignmentId } = parsed.data;
   const check = validateCodeInput(code, language);
   if (!check.valid) {
     return res.status(400).json({ success: false, message: check.reason });
@@ -194,6 +212,7 @@ const streamReview = asyncHandler(async (req, res) => {
       userId,
       language,
       code,
+      assignmentId,
       onStatus: (statusData) => sendEvent('status', statusData),
     });
 
@@ -205,6 +224,36 @@ const streamReview = asyncHandler(async (req, res) => {
     sendEvent('error', { message: err.message || 'Review failed' });
     res.end();
   }
+});
+
+/**
+ * @route   POST /api/reviews/:id/retry
+ * @desc    Retry an existing review directly with Gemini AI (bypassing cache)
+ * @access  Private (owner only)
+ */
+const retryReview = asyncHandler(async (req, res) => {
+  const review = await Review.findById(req.params.id);
+  if (!review) {
+    return res.status(404).json({ success: false, message: 'Review not found' });
+  }
+  if (review.user.toString() !== req.user._id.toString()) {
+    return res.status(403).json({ success: false, message: 'Not authorized' });
+  }
+
+  await checkQuotaGuard(req.user._id);
+  const aiResult = await aiReviewCode(review.code, review.language);
+
+  Object.assign(review, {
+    ...extractAiFields(aiResult),
+    fromCache: false,
+  });
+  await review.save();
+
+  if (!aiResult.isFallback) {
+    await setReviewCache(review.codeHash, extractAiFields(aiResult), 86400);
+  }
+
+  res.json({ success: true, data: review });
 });
 
 /**
@@ -272,6 +321,18 @@ const getReview = asyncHandler(async (req, res) => {
 
   if (review.user.toString() !== req.user._id.toString() && req.user.role !== 'teacher') {
     return res.status(403).json({ success: false, message: 'Not authorized to view this review' });
+  }
+
+  // Isolate demo teacher from viewing real registered students' reviews by ID
+  if (
+    req.user.role === 'teacher' &&
+    (req.user.isDemo || req.user.email === 'teacher@crbuddy.com') &&
+    review.user.toString() !== req.user._id.toString()
+  ) {
+    const owner = await User.findById(review.user).select('isDemo email').lean();
+    if (!owner || (!owner.isDemo && owner.email !== 'student@crbuddy.com')) {
+      return res.status(403).json({ success: false, message: 'Not authorized to view this review' });
+    }
   }
 
   res.json({ success: true, data: review });
@@ -349,6 +410,7 @@ const toggleBookmark = asyncHandler(async (req, res) => {
 module.exports = {
   submitReview,
   streamReview,
+  retryReview,
   getReviews,
   getReview,
   updateReview,

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Bot, Eye, EyeOff, AlertCircle, GraduationCap, BookOpen } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
+import OAuthButtons from '../../components/auth/OAuthButtons';
 
 export default function RegisterPage() {
   const { register } = useAuth();
@@ -158,6 +159,8 @@ export default function RegisterPage() {
               {loading ? <><LoadingSpinner size="sm" /> Creating account...</> : 'Create Account'}
             </button>
           </form>
+
+          <OAuthButtons role={form.role} disabled={loading} />
         </div>
 
         <p className="text-center text-sm text-gray-500 mt-5">

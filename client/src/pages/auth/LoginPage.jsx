@@ -1,13 +1,15 @@
-import { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { Bot, Eye, EyeOff, AlertCircle, GraduationCap, BookOpen } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
+import OAuthButtons from '../../components/auth/OAuthButtons';
 
 export default function LoginPage() {
-  const { login, demoLogin } = useAuth();
+  const { login, demoLogin, completeOAuthLogin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const from = location.state?.from?.pathname;
 
   const [form, setForm] = useState({ email: '', password: '' });
@@ -15,6 +17,28 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [demoRole, setDemoRole] = useState(null);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const oauthToken = searchParams.get('oauthToken');
+    const oauthError = searchParams.get('oauthError');
+    if (oauthError) {
+      setError('OAuth sign-in could not be completed. Please try again.');
+      setSearchParams({}, { replace: true });
+      return;
+    }
+    if (oauthToken) {
+      setLoading(true);
+      setSearchParams({}, { replace: true });
+      completeOAuthLogin(oauthToken)
+        .then((user) => {
+          navigate(user.role === 'teacher' ? '/teacher' : '/dashboard', { replace: true });
+        })
+        .catch(() => {
+          setError('Failed to verify OAuth session. Please try signing in again.');
+          setLoading(false);
+        });
+    }
+  }, [searchParams, setSearchParams, completeOAuthLogin, navigate]);
 
   const isBusy = loading || demoRole !== null;
 
@@ -138,6 +162,8 @@ export default function LoginPage() {
               {loading ? <><LoadingSpinner size="sm" /> Signing in...</> : 'Sign In'}
             </button>
           </form>
+
+          <OAuthButtons role="student" disabled={isBusy} />
 
           <div className="relative my-5">
             <div className="absolute inset-0 flex items-center">

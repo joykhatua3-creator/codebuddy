@@ -23,11 +23,14 @@ const QuizPage = lazy(() => import('./pages/student/QuizPage'));
 const QuizResultPage = lazy(() => import('./pages/student/QuizResultPage'));
 const ProgressPage = lazy(() => import('./pages/student/ProgressPage'));
 const ProfilePage = lazy(() => import('./pages/student/ProfilePage'));
+const StudentAssignmentsPage = lazy(() => import('./pages/student/StudentAssignmentsPage'));
 
 // Teacher Pages (Lazy loaded chunks)
 const TeacherDashboardPage = lazy(() => import('./pages/teacher/TeacherDashboardPage'));
 const StudentsPage = lazy(() => import('./pages/teacher/StudentsPage'));
 const StudentProgressPage = lazy(() => import('./pages/teacher/StudentProgressPage'));
+const TeacherAssignmentsPage = lazy(() => import('./pages/teacher/TeacherAssignmentsPage'));
+const TeacherReviewDetailPage = lazy(() => import('./pages/teacher/TeacherReviewDetailPage'));
 
 // Public page (Lazy)
 const LandingPage = lazy(() => import('./pages/LandingPage'));
@@ -88,6 +91,7 @@ function App() {
           <Route path="roadmap" element={<RoadmapPage />} />
           <Route path="quiz" element={<QuizPage />} />
           <Route path="quiz/result/:id" element={<QuizResultPage />} />
+          <Route path="assignments" element={<StudentAssignmentsPage />} />
           <Route path="progress" element={<ProgressPage />} />
           <Route path="profile" element={<ProfilePage />} />
         </Route>
@@ -104,6 +108,8 @@ function App() {
           <Route index element={<TeacherDashboardPage />} />
           <Route path="students" element={<StudentsPage />} />
           <Route path="students/:id" element={<StudentProgressPage />} />
+          <Route path="assignments" element={<TeacherAssignmentsPage />} />
+          <Route path="reviews/:id" element={<TeacherReviewDetailPage />} />
         </Route>
 
         {/* Catch-all */}

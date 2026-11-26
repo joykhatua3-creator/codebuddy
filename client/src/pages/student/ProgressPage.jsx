@@ -4,8 +4,8 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 import { progressService } from '../../services';
-import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import ErrorMessage from '../../components/ui/ErrorMessage';
+import { RouteContentSkeleton } from '../../components/ui/Skeleton';
 import { getScoreColor, getLevelColor, formatDate } from '../../utils/helpers';
 
 export default function ProgressPage() {
@@ -28,7 +28,7 @@ export default function ProgressPage() {
 
   useEffect(() => { fetchProgress(); }, [fetchProgress]);
 
-  if (loading) return <div className="flex items-center justify-center h-64"><LoadingSpinner size="lg" /></div>;
+  if (loading) return <div className="max-w-5xl mx-auto"><RouteContentSkeleton /></div>;
   if (error) return <ErrorMessage message={error} onRetry={fetchProgress} />;
 
   const { scoreTrend = [], topics = [], recentQuizzes = [] } = data || {};

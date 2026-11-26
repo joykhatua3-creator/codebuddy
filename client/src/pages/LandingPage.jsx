@@ -30,7 +30,7 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero */}
-      <section className="flex-1 flex flex-col items-center justify-center text-center px-6 py-20 bg-gradient-to-br from-primary-50 via-white to-blue-50">
+      <section className="flex-1 flex flex-col items-center justify-center text-center px-6 py-20 bg-gradient-to-br from-primary-50 via-white to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
         <div className="inline-flex items-center gap-2 bg-primary-100 text-primary-700 text-xs font-medium px-3 py-1 rounded-full mb-6">
           <Zap size={12} /> Powered by Google Gemini AI
         </div>
@@ -62,7 +62,7 @@ export default function LandingPage() {
       </section>
 
       {/* Features */}
-      <section className="px-6 py-16 bg-white">
+      <section id="features" className="px-6 py-16 bg-white dark:bg-slate-950">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-2xl font-bold text-center text-gray-900 mb-10">Everything you need to level up</h2>
           <div className="grid md:grid-cols-3 gap-6">
@@ -89,8 +89,29 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="text-center py-6 text-sm text-gray-400 border-t border-gray-100">
-        © 2026 Code Review Buddy · Built with MERN + Google Gemini AI
+      <footer className="py-8 px-6 text-sm text-gray-500 dark:text-slate-400 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-950">
+        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p>© 2026 Code Review Buddy · Built with MERN + Google Gemini AI</p>
+          <div className="flex flex-wrap items-center justify-center gap-5 font-medium">
+            <a href="#features" className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+              Features
+            </a>
+            <Link to="/login" className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+              Sign In
+            </Link>
+            <Link to="/register" className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+              Get Started
+            </Link>
+            <a
+              href="https://github.com/joykhatua3-creator/codebuddy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+            >
+              GitHub Repo
+            </a>
+          </div>
+        </div>
       </footer>
     </div>
   );

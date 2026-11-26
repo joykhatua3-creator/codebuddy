@@ -1,9 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Code2, TrendingUp, AlertTriangle, Eye, Search } from 'lucide-react';
+import { Users, Code2, TrendingUp, AlertTriangle, Eye, Search, Download } from 'lucide-react';
 import { teacherService } from '../../services';
-import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import ErrorMessage from '../../components/ui/ErrorMessage';
+import { DashboardSkeleton } from '../../components/ui/Skeleton';
+import { useToast } from '../../components/ui/Toast';
 import { getScoreColor } from '../../utils/helpers';
 
 const StatCard = ({ label, value, icon: Icon, color }) => (
@@ -18,8 +19,10 @@ const StatCard = ({ label, value, icon: Icon, color }) => (
 
 export default function TeacherDashboardPage() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
 
@@ -49,11 +52,46 @@ export default function TeacherDashboardPage() {
     s.email.toLowerCase().includes(search.toLowerCase())
   );
 
+  const handleExportCsv = async () => {
+    setExporting(true);
+    try {
+      const res = await teacherService.exportCsv();
+      const blob = new Blob([res.data], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'codebuddy-class-report.csv');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toast({ type: 'success', message: 'Class report CSV exported!' });
+    } catch (err) {
+      toast({ type: 'error', message: err.response?.data?.message || 'Failed to export CSV' });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  if (loading && students.length === 0) {
+    return <DashboardSkeleton cards={4} />;
+  }
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-gray-900">Teacher Dashboard</h2>
-        <p className="text-sm text-gray-500 mt-0.5">Monitor your students' learning progress</p>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-slate-100">Teacher Dashboard</h2>
+          <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">Monitor your students' learning progress</p>
+        </div>
+        <button
+          onClick={handleExportCsv}
+          disabled={exporting || students.length === 0}
+          className="btn btn-secondary btn-sm gap-1.5"
+        >
+          <Download size={15} />
+          <span>{exporting ? 'Exporting...' : 'Export Class CSV'}</span>
+        </button>
       </div>
 
       {/* Stats */}
@@ -75,9 +113,7 @@ export default function TeacherDashboardPage() {
           </div>
         </div>
 
-        {loading ? (
-          <div className="flex justify-center py-16"><LoadingSpinner size="lg" /></div>
-        ) : error ? (
+        {error ? (
           <ErrorMessage message={error} onRetry={fetchStudents} />
         ) : filtered.length === 0 ? (
           <p className="text-center text-gray-400 py-10 text-sm">No students found</p>

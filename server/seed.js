@@ -20,6 +20,7 @@ const seed = async () => {
       email: 'teacher@crbuddy.com',
       password: 'Teacher@123',
       role: 'teacher',
+      isDemo: true,
     });
     console.log('✅ Teacher created:', teacher.email);
 
@@ -29,6 +30,7 @@ const seed = async () => {
       email: 'student@crbuddy.com',
       password: 'Student@123',
       role: 'student',
+      isDemo: true,
     });
     console.log('✅ Student created:', student.email);
 

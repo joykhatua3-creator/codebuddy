@@ -1,18 +1,17 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Code2, FileText, AlertTriangle, Brain, Flame, TrendingUp,
-  ArrowRight, BookOpen, Map, Plus
+  Code2, AlertTriangle, Brain, Flame, TrendingUp,
+  Map, CheckCircle2,
 } from 'lucide-react';
 import {
   LineChart, Line, RadarChart, Radar, PolarGrid, PolarAngleAxis,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 import { progressService } from '../../services';
-import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import ErrorMessage from '../../components/ui/ErrorMessage';
-import ScoreBadge from '../../components/ui/ScoreBadge';
-import { getScoreColor, getScoreLabel, formatRelativeTime, getLevelColor, getLanguageLabel, getLanguageBadgeClass } from '../../utils/helpers';
+import { DashboardSkeleton } from '../../components/ui/Skeleton';
+import { getScoreColor, getScoreLabel, getLevelColor } from '../../utils/helpers';
 
 const StatCard = ({ label, value, icon: Icon, color, sub }) => (
   <div className="card p-5 flex items-start gap-4">
@@ -48,15 +47,12 @@ export default function DashboardPage() {
 
   useEffect(() => { fetchProgress(); }, [fetchProgress]);
 
-  if (loading) return (
-    <div className="flex items-center justify-center h-64">
-      <LoadingSpinner size="lg" />
-    </div>
-  );
+  if (loading) return <DashboardSkeleton cards={5} />;
 
   if (error) return <ErrorMessage message={error} onRetry={fetchProgress} />;
 
   const { overview, scoreTrend = [], topics = [], weakestTopics = [], recentQuizzes = [] } = data || {};
+  const unmasteredWeakTopics = weakestTopics.filter((t) => (t.level ?? 0) < 75);
 
   // Radar data: top 6 topics
   const radarData = topics.slice(0, 6).map((t) => ({
@@ -133,22 +129,27 @@ export default function DashboardPage() {
         {/* Weakest topics */}
         <div className="card p-5">
           <h3 className="section-title mb-4">Weakest Concepts</h3>
-          {weakestTopics.length > 0 ? (
+          {unmasteredWeakTopics.length > 0 ? (
             <div className="space-y-3">
-              {weakestTopics.map((t) => (
+              {unmasteredWeakTopics.map((t) => (
                 <div key={t.topic}>
                   <div className="flex justify-between text-sm mb-1">
-                    <span className="font-medium text-gray-700 truncate">{t.topic}</span>
+                    <span className="font-medium text-gray-700 dark:text-slate-200 truncate">{t.topic}</span>
                     <span className={getScoreColor(t.level)}>{t.level}%</span>
                   </div>
-                  <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden">
                     <div className={`h-full rounded-full ${getLevelColor(t.level)}`} style={{ width: `${t.level}%` }} />
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-400 text-center py-6">No topics tracked yet</p>
+            <div className="flex flex-col items-center justify-center text-center py-6 px-3 rounded-lg bg-emerald-50/70 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/50">
+              <CheckCircle2 size={22} className="text-emerald-600 dark:text-emerald-400 mb-1.5" />
+              <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                No weak concepts detected yet—great job!
+              </p>
+            </div>
           )}
         </div>
 

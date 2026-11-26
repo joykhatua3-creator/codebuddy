@@ -1,13 +1,13 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Flame, Code2, Brain, TrendingUp, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Flame, Code2, Brain, TrendingUp, AlertTriangle, Eye } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 import { teacherService } from '../../services';
-import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import ErrorMessage from '../../components/ui/ErrorMessage';
 import ScoreBadge from '../../components/ui/ScoreBadge';
+import { DashboardSkeleton } from '../../components/ui/Skeleton';
 import { getScoreColor, getLevelColor, formatDate, formatRelativeTime, getLanguageLabel, getLanguageBadgeClass } from '../../utils/helpers';
 
 export default function StudentProgressPage() {
@@ -32,7 +32,7 @@ export default function StudentProgressPage() {
 
   useEffect(() => { fetchProgress(); }, [fetchProgress]);
 
-  if (loading) return <div className="flex items-center justify-center h-64"><LoadingSpinner size="lg" /></div>;
+  if (loading) return <div className="max-w-5xl mx-auto"><DashboardSkeleton cards={4} /></div>;
   if (error) return <ErrorMessage message={error} onRetry={fetchProgress} />;
   if (!data) return null;
 
@@ -112,7 +112,11 @@ export default function StudentProgressPage() {
         {recentReviews.length > 0 ? (
           <div className="space-y-2">
             {recentReviews.map((r) => (
-              <div key={r._id} className="flex items-center gap-4 p-3 rounded-lg border border-gray-100 hover:bg-gray-50">
+              <div
+                key={r._id}
+                onClick={() => navigate(`/teacher/reviews/${r._id}`)}
+                className="flex items-center gap-4 p-3 rounded-lg border border-gray-100 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800/70 cursor-pointer transition-colors"
+              >
                 <ScoreBadge score={r.score} size="sm" />
                 <div className="flex-1 min-w-0">
                   <span className={`badge text-xs rounded-full px-2 py-0.5 ${getLanguageBadgeClass(r.language)}`}>
@@ -120,7 +124,25 @@ export default function StudentProgressPage() {
                   </span>
                   <p className="text-xs text-gray-400 mt-0.5">{formatRelativeTime(r.createdAt)}</p>
                 </div>
-                <span className="text-xs text-red-500">{r.bugs?.length || 0} bugs</span>
+                <span
+                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                    (r.bugs?.length || 0) === 0
+                      ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+                      : 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+                  }`}
+                >
+                  {r.bugs?.length || 0} bug{(r.bugs?.length || 0) !== 1 ? 's' : ''}
+                </span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/teacher/reviews/${r._id}`);
+                  }}
+                  className="btn btn-secondary btn-sm gap-1 shrink-0"
+                >
+                  <Eye size={13} /> Feedback
+                </button>
               </div>
             ))}
           </div>

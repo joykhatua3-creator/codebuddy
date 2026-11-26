@@ -1,15 +1,17 @@
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import {
   Bot, LayoutDashboard, Code2, History, Map, Brain, BarChart2, User,
-  LogOut, Sun, Moon, Bell, Menu, ChevronDown,
+  LogOut, Sun, Moon, Bell, Menu, ChevronDown, ClipboardList,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { RouteContentSkeleton } from '../components/ui/Skeleton';
 
 const NAV = [
   { to: '/dashboard', label: 'Overview', icon: LayoutDashboard, end: true },
   { to: '/dashboard/code-review', label: 'Code Review', icon: Code2 },
+  { to: '/dashboard/assignments', label: 'Assignments', icon: ClipboardList },
   { to: '/dashboard/history', label: 'Review History', icon: History },
   { to: '/dashboard/roadmap', label: 'Learning Roadmap', icon: Map },
   { to: '/dashboard/quiz', label: 'Practice Quizzes', icon: Brain },
@@ -115,14 +117,14 @@ export default function StudentLayout() {
             {notifOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
-                <div className="absolute right-0 top-full mt-1 w-64 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-50 space-y-2">
-                  <p className="text-xs font-semibold text-gray-900">Learning Updates</p>
-                  <div className="text-xs text-gray-600 bg-primary-50/70 p-2 rounded-md">
+                <div className="absolute right-0 top-full mt-1 w-64 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg shadow-lg p-3 z-50 space-y-2">
+                  <p className="text-xs font-semibold text-gray-900 dark:text-slate-100">Learning Updates</p>
+                  <div className="text-xs text-gray-700 bg-primary-50/70 dark:bg-slate-800 dark:text-slate-100 p-2.5 rounded-md border border-primary-100 dark:border-slate-700">
                     🔥 Current Streak: <strong>{user?.streak || 0} days</strong>. Keep submitting code reviews or quizzes!
                   </div>
                   <button
                     onClick={() => { navigate('/dashboard/roadmap'); setNotifOpen(false); }}
-                    className="w-full text-left text-xs text-primary-600 font-medium hover:underline"
+                    className="w-full text-left text-xs text-primary-600 dark:text-primary-400 font-medium hover:underline"
                   >
                     View Personalized Roadmap →
                   </button>
@@ -140,20 +142,20 @@ export default function StudentLayout() {
               <div className="w-7 h-7 rounded-full bg-primary-600 flex items-center justify-center text-white text-xs font-bold">
                 {initials}
               </div>
-              <span className="hidden sm:block text-sm font-medium text-gray-700 max-w-[100px] truncate">{user?.name}</span>
+              <span className="hidden sm:block text-sm font-medium text-gray-700 dark:text-slate-200 max-w-[100px] truncate">{user?.name}</span>
               <ChevronDown size={14} className="text-gray-400" />
             </button>
             {userMenuOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
-                <div className="absolute right-0 top-full mt-1 w-44 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50">
+                <div className="absolute right-0 top-full mt-1 w-44 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg shadow-lg py-1 z-50">
                   <button onClick={() => { navigate('/dashboard/profile'); setUserMenuOpen(false); }}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800 flex items-center gap-2">
                     <User size={14} /> Profile
                   </button>
-                  <div className="border-t border-gray-100 my-1" />
+                  <div className="border-t border-gray-100 dark:border-slate-800 my-1" />
                   <button onClick={handleLogout}
-                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
+                    className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 flex items-center gap-2">
                     <LogOut size={14} /> Logout
                   </button>
                 </div>
@@ -164,7 +166,9 @@ export default function StudentLayout() {
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto p-4 lg:p-6 scrollbar-thin">
-          <Outlet />
+          <Suspense fallback={<RouteContentSkeleton />}>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
     </div>

@@ -538,6 +538,35 @@ const analyzeCodeStatically = (code, language) => {
   const minorCount = bugs.length - criticalCount;
   const cleanedBugs = bugs.map(({ isCritical: _isCritical, ...rest }) => rest);
 
+  // Build line-patched improvedCode & improvementNotes when concrete line fixes exist
+  const patchedLines = lines.slice();
+  const improvementNotes = [];
+  for (const b of cleanedBugs) {
+    const idx = (b.lineNumber || 1) - 1;
+    if (
+      b.lineNumber > 0 &&
+      idx >= 0 &&
+      idx < patchedLines.length &&
+      b.solution &&
+      !b.solution.trim().startsWith('//') &&
+      !b.solution.trim().startsWith('#') &&
+      !b.solution.trim().startsWith('--') &&
+      !b.solution.includes('\n')
+    ) {
+      patchedLines[idx] = b.solution;
+      improvementNotes.push({
+        lineNumber: b.lineNumber,
+        explanation: `${b.title}: ${b.hint}`,
+      });
+    } else if (b.lineNumber > 0) {
+      improvementNotes.push({
+        lineNumber: b.lineNumber,
+        explanation: `${b.title} — ${b.hint}`,
+      });
+    }
+  }
+  const improvedCode = patchedLines.join('\n');
+
   let score;
   let summary;
   if (criticalCount > 0) {
@@ -578,6 +607,8 @@ const analyzeCodeStatically = (code, language) => {
     complexity: { time, space, explanation },
     security,
     concepts,
+    improvedCode,
+    improvementNotes,
     isFallback: true,
   };
 };

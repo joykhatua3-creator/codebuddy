@@ -20,14 +20,33 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: [true, 'Password is required'],
+      required: [
+        function () {
+          return !this.oauthProvider;
+        },
+        'Password is required',
+      ],
       minlength: [6, 'Password must be at least 6 characters'],
       select: false, // never return password in queries by default
+    },
+    oauthProvider: {
+      type: String,
+      enum: ['google', 'github', 'firebase', null],
+      default: null,
+    },
+    oauthId: {
+      type: String,
+      default: null,
     },
     role: {
       type: String,
       enum: ['student', 'teacher'],
       default: 'student',
+    },
+    isDemo: {
+      type: Boolean,
+      default: false,
+      index: true,
     },
     streak: {
       type: Number,
@@ -51,7 +70,7 @@ const userSchema = new mongoose.Schema(
 
 // Hash password before saving
 userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
+  if (!this.password || !this.isModified('password')) return next();
   const salt = await bcrypt.genSalt(12);
   this.password = await bcrypt.hash(this.password, salt);
   next();
