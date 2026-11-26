@@ -38,6 +38,19 @@ export const reviewService = {
    */
   streamReview: async ({ language, code, assignmentId }, { onProgress, onComplete, onError }) => {
     const token = localStorage.getItem('token');
+    const SSE_TIMEOUT_MS = 45000;
+    const controller = new AbortController();
+    let timeoutId = null;
+
+    const resetIdleTimeout = () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        controller.abort();
+      }, SSE_TIMEOUT_MS);
+    };
+
+    resetIdleTimeout();
+
     try {
       const response = await fetch(`${baseURL}/reviews/stream`, {
         method: 'POST',
@@ -46,6 +59,7 @@ export const reviewService = {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         credentials: 'include',
+        signal: controller.signal,
         body: JSON.stringify({ language, code, ...(assignmentId ? { assignmentId } : {}) }),
       });
 
@@ -95,6 +109,7 @@ export const reviewService = {
 
       while (true) {
         const { value, done } = await reader.read();
+        resetIdleTimeout();
         if (done) {
           buffer += decoder.decode();
           break;
@@ -121,8 +136,14 @@ export const reviewService = {
         onError(new Error('Stream ended before completion'));
       }
     } catch (err) {
-      if (onError) onError(err);
-      else throw err;
+      const normalizedErr =
+        err?.name === 'AbortError'
+          ? Object.assign(new Error('AI request timed out after 45s'), { status: 408 })
+          : err;
+      if (onError) onError(normalizedErr);
+      else throw normalizedErr;
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
     }
   },
 };

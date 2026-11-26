@@ -9,25 +9,8 @@ const { aiQueue } = require('./queueService');
 const { getQuizCache, setQuizCache } = require('../config/redis');
 const { analyzeCodeStatically } = require('./codeAnalyzer');
 
-const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
-const FALLBACK_GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash'];
-const DEPRECATED_GEMINI_MODELS = new Set([
-  'gemini-pro',
-  'gemini-pro-vision',
-  'gemini-1.0-pro',
-  'gemini-1.0-pro-001',
-  'gemini-1.0-pro-latest',
-  'gemini-1.5-pro',
-  'gemini-1.5-pro-001',
-  'gemini-1.5-pro-002',
-  'gemini-1.5-pro-latest',
-  'gemini-1.5-flash',
-  'gemini-1.5-flash-001',
-  'gemini-1.5-flash-002',
-  'gemini-1.5-flash-8b',
-  'gemini-1.5-flash-latest',
-  'gemini-3.5-flash',
-]);
+const DEFAULT_GEMINI_MODEL = 'gemini-3.8-flash';
+const FALLBACK_GEMINI_MODELS = ['gemini-3.8-flash', 'gemini-3.5-flash-lite'];
 
 let cachedClientKey = null;
 let cachedClient = null;
@@ -52,7 +35,7 @@ const getGenAIClient = () => {
 const isDeprecatedModel = (modelName = '') => {
   const normalized = String(modelName).trim().replace(/^models\//i, '').toLowerCase();
   if (!normalized) return false;
-  return DEPRECATED_GEMINI_MODELS.has(normalized) || /^gemini-(1\.0|1\.5)-|^gemini-pro$/i.test(normalized);
+  return /^gemini-(1\.0|1\.5)-|^gemini-pro(-vision)?$/i.test(normalized);
 };
 
 const resolveConfiguredModel = () => {
@@ -291,45 +274,62 @@ const roadmapJsonSchema = {
   required: ['steps'],
 };
 
-const getReviewModel = (modelName, useResponseSchema = true) => {
-  const generationConfig = {
+const buildBaseGenerationConfig = ({ modelName, temperature, schemaJson, useResponseSchema, thinkingLevel }) => {
+  const isLiteModel = /lite|2\.0/i.test(modelName);
+  const config = {
     responseMimeType: 'application/json',
-    temperature: 0.2,
+    temperature,
+    ...(isLiteModel ? { maxOutputTokens: 2048 } : {}),
+    ...(!isLiteModel && thinkingLevel ? { thinkingConfig: { thinkingLevel } } : {}),
   };
-  if (useResponseSchema) {
-    generationConfig.responseSchema = reviewJsonSchema;
+  if (useResponseSchema && schemaJson) {
+    config.responseSchema = schemaJson;
   }
+  return config;
+};
+
+const getReviewModel = (modelName, options = {}) => {
+  const { useResponseSchema = true, thinkingLevel = 'minimal' } =
+    typeof options === 'boolean' ? { useResponseSchema: options } : options;
   return getGenAIClient().getGenerativeModel({
     model: modelName,
-    generationConfig,
+    generationConfig: buildBaseGenerationConfig({
+      modelName,
+      temperature: 0.2,
+      schemaJson: reviewJsonSchema,
+      useResponseSchema,
+      thinkingLevel,
+    }),
   });
 };
 
-const getQuizModel = (modelName, useResponseSchema = true) => {
-  const generationConfig = {
-    responseMimeType: 'application/json',
-    temperature: 0.3,
-  };
-  if (useResponseSchema) {
-    generationConfig.responseSchema = quizJsonSchema;
-  }
+const getQuizModel = (modelName, options = {}) => {
+  const { useResponseSchema = true, thinkingLevel = 'minimal' } =
+    typeof options === 'boolean' ? { useResponseSchema: options } : options;
   return getGenAIClient().getGenerativeModel({
     model: modelName,
-    generationConfig,
+    generationConfig: buildBaseGenerationConfig({
+      modelName,
+      temperature: 0.3,
+      schemaJson: quizJsonSchema,
+      useResponseSchema,
+      thinkingLevel,
+    }),
   });
 };
 
-const getRoadmapModel = (modelName, useResponseSchema = true) => {
-  const generationConfig = {
-    responseMimeType: 'application/json',
-    temperature: 0.3,
-  };
-  if (useResponseSchema) {
-    generationConfig.responseSchema = roadmapJsonSchema;
-  }
+const getRoadmapModel = (modelName, options = {}) => {
+  const { useResponseSchema = true, thinkingLevel = 'minimal' } =
+    typeof options === 'boolean' ? { useResponseSchema: options } : options;
   return getGenAIClient().getGenerativeModel({
     model: modelName,
-    generationConfig,
+    generationConfig: buildBaseGenerationConfig({
+      modelName,
+      temperature: 0.3,
+      schemaJson: roadmapJsonSchema,
+      useResponseSchema,
+      thinkingLevel,
+    }),
   });
 };
 
@@ -355,17 +355,22 @@ const parseAndValidate = (text, schema) => {
   }
 };
 
-const generateJsonWithFallback = async (modelBuilder, prompt, schema, timeoutMs) => {
+const generateJsonWithFallback = async (modelBuilder, prompt, schema, timeoutMs = 45000) => {
   const models = getCandidateModels();
   let lastError = null;
 
   for (const modelName of models) {
-    for (const useResponseSchema of [true, false]) {
+    let useResponseSchema = true;
+    let thinkingLevel = /lite|2\.0/i.test(modelName) ? null : 'minimal';
+
+    // Retry only when adjusting rejected responseSchema or thinkingConfig on the same model
+    for (let attempt = 0; attempt < 4; attempt++) {
       const controller = new AbortController();
+      const attemptStart = Date.now();
       let timerId = null;
 
       try {
-        const model = modelBuilder(modelName, useResponseSchema);
+        const model = modelBuilder(modelName, { useResponseSchema, thinkingLevel });
         const aiPromise = (async () => {
           const result = await model.generateContent(prompt, { signal: controller.signal });
           const text = result.response.text();
@@ -376,37 +381,63 @@ const generateJsonWithFallback = async (modelBuilder, prompt, schema, timeoutMs)
           timerId = setTimeout(() => {
             controller.abort();
             reject(
-              Object.assign(new Error(`AI request timed out (>${Math.round(timeoutMs / 1000)}s)`), {
+              Object.assign(new Error(`AI request timed out after ${timeoutMs}ms`), {
                 code: 'ETIMEDOUT',
               })
             );
           }, timeoutMs);
         });
 
-        return await Promise.race([aiPromise, timeoutPromise]);
+        const parsed = await Promise.race([aiPromise, timeoutPromise]);
+        const duration = Date.now() - attemptStart;
+        console.log(`[Gemini] model=${modelName} duration=${duration}ms`);
+        return parsed;
       } catch (err) {
+        const duration = Date.now() - attemptStart;
         lastError = err;
         const msg = err?.message || '';
         const status = err?.status ?? err?.statusCode;
+        const errCode = err?.code || err?.name || 'ERROR';
 
-        // If Gemini rejected the strict OpenAPI responseSchema with HTTP 400, retry same model with pure JSON mime mode
+        console.error(
+          `[Gemini Failure] model=${modelName} duration=${duration}ms status=${status ?? 'N/A'} code=${errCode} message=${sanitizeAiErrorMessage(msg)}`
+        );
+
+        // Auth errors apply to all models; fail fast instead of burning fallback calls
+        const isAuthError =
+          status === 401 ||
+          status === 403 ||
+          /API_KEY_INVALID|API key not valid|permission denied|unauthenticated/i.test(msg);
+        if (isAuthError) {
+          throw err;
+        }
+
+        // If Gemini rejected thinkingConfig/thinkingLevel with 400, step down minimal -> low -> omitted on same model
+        const isThinkingRejection =
+          thinkingLevel &&
+          status === 400 &&
+          /thinkingConfig|thinking_config|thinkingLevel|thinking_level|thinking/i.test(msg);
+        if (isThinkingRejection) {
+          const nextLevel = thinkingLevel === 'minimal' ? 'low' : null;
+          console.warn(`[AI] Model '${modelName}' rejected thinkingLevel=${thinkingLevel}, retrying with thinkingLevel=${nextLevel || 'none'}...`);
+          thinkingLevel = nextLevel;
+          continue;
+        }
+
+        // If Gemini rejected strict OpenAPI responseSchema with 400, retry same model with pure JSON mime mode
         const isSchemaRejection =
           useResponseSchema &&
           status === 400 &&
           /response_schema|responseSchema|schema|enum|nesting|format/i.test(msg);
         if (isSchemaRejection) {
-          console.warn(`[AI] Model '${modelName}' rejected responseSchema (${sanitizeAiErrorMessage(msg)}), retrying with responseMimeType: application/json...`);
+          console.warn(`[AI] Model '${modelName}' rejected responseSchema, retrying with responseMimeType: application/json...`);
+          useResponseSchema = false;
           continue;
         }
 
-        const isModelUnavailable =
-          status === 404 || /404|not found|not supported|deprecated|retired|no longer available|models\//i.test(msg);
-        if (isModelUnavailable) {
-          console.warn(`[AI] Model '${modelName}' unavailable (${sanitizeAiErrorMessage(msg)}), trying next fallback model...`);
-          break;
-        }
-
-        throw err;
+        // Any timeout, 429 rate-limit, 404 unavailable, or transient failure on primary model falls back to next candidate (e.g. gemini-3.5-flash-lite)
+        console.warn(`[AI] Model '${modelName}' failed after ${duration}ms (${errCode}), trying next fallback model if available...`);
+        break;
       } finally {
         if (timerId) clearTimeout(timerId);
       }
@@ -1196,7 +1227,7 @@ const generateQuizInternal = async (weakTopics = []) => {
     const topicList = weakTopics.length > 0 ? weakTopics.join(', ') : 'JavaScript Core Fundamentals';
     const prompt = `You are a programming quiz generator. Generate exactly 5 multiple-choice questions on these topics: ${topicList}. Return ONLY valid JSON matching the schema.`;
 
-    const validated = await generateJsonWithFallback(getQuizModel, prompt, aiQuizResponseSchema, 20000);
+    const validated = await generateJsonWithFallback(getQuizModel, prompt, aiQuizResponseSchema, 45000);
     await setQuizCache(normalizedKey, validated, 43200);
     return validated;
   } catch (error) {
@@ -1350,7 +1381,7 @@ Return ONLY valid JSON matching this structure:
       getRoadmapModel,
       prompt,
       aiRoadmapResponseSchema,
-      25000
+      45000
     );
     return validated;
   } catch (error) {

@@ -221,14 +221,25 @@ const streamReview = asyncHandler(async (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
   if (res.flushHeaders) res.flushHeaders();
 
   const sendEvent = (event, data) => {
+    if (res.writableEnded) return;
     res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
     if (event === 'status') {
       res.write(`event: progress\ndata: ${JSON.stringify(data)}\n\n`);
     }
   };
+
+  // Keep proxies (Render/Vercel) from dropping idle SSE streams while Gemini runs
+  const heartbeat = setInterval(() => {
+    if (!res.writableEnded) {
+      res.write(': keep-alive\n\n');
+    }
+  }, 5000);
+
+  req.on('close', () => clearInterval(heartbeat));
 
   try {
     sendEvent('status', { step: 1, message: 'Validating code & checking review cache...' });
@@ -243,11 +254,12 @@ const streamReview = asyncHandler(async (req, res) => {
 
     const reviewId = review._id.toString();
     sendEvent('complete', { ...review, reviewId, _id: reviewId });
-    res.end();
   } catch (err) {
     console.error('Error during review stream:', err.message);
     sendEvent('error', { message: err.message || 'Review failed' });
-    res.end();
+  } finally {
+    clearInterval(heartbeat);
+    if (!res.writableEnded) res.end();
   }
 });
 
