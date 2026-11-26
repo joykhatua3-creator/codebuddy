@@ -12,6 +12,7 @@ import {
   X,
 } from 'lucide-react';
 import AuroraBackdrop from '../components/ui/AuroraBackdrop';
+import BrandLogo from '../components/ui/BrandLogo';
 
 export default function LandingPage() {
   const [previewMode, setPreviewMode] = useState('optimized');
@@ -25,14 +26,7 @@ export default function LandingPage() {
       {/* Outer Sticky Header Wrapper — Strictly Transparent (NO opaque bar behind pill) */}
       <header className="sticky top-0 z-40 px-3 sm:px-6 pt-3 sm:pt-4 bg-transparent border-none shadow-none">
         <nav className="max-w-4xl mx-auto rounded-full bg-white/75 backdrop-blur-2xl border border-white/85 shadow-[0_8px_32px_-8px_rgba(15,23,42,0.08),inset_0_1px_0_0_rgba(255,255,255,0.9)] px-3.5 sm:px-6 py-2 flex items-center justify-between gap-2">
-          <Link to="/" className="flex items-center gap-2 shrink-0 group">
-            <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-full bg-gradient-to-r from-cyan-500 to-indigo-600 text-white shadow-sm">
-              &lt;/&gt;
-            </span>
-            <span className="font-bold text-sm sm:text-base tracking-tight bg-gradient-to-r from-slate-900 to-indigo-700 bg-clip-text text-transparent">
-              CodeBuddy
-            </span>
-          </Link>
+          <BrandLogo variant="mark" to="/" />
 
           {/* Desktop Center Links */}
           <div className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
@@ -368,7 +362,11 @@ export default function LandingPage() {
       {/* Clean Minimal Footer */}
       <footer className="border-t border-white/80 bg-white/50 backdrop-blur-xl py-7 px-4 sm:px-6 text-sm text-slate-600">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
-          <p className="font-medium">© 2026 CodeBuddy · AI Code Review &amp; Learning Platform</p>
+          <div className="flex items-center gap-3">
+            <BrandLogo variant="mark" to="/" />
+            <span className="hidden md:inline text-xs text-slate-400">|</span>
+            <p className="font-medium text-xs sm:text-sm">© 2026 CodeBuddy · Code • Build • Grow Together</p>
+          </div>
           <div className="flex flex-wrap items-center justify-center gap-5 sm:gap-6 font-medium">
             <a href="#features" className="hover:text-slate-900 transition-colors py-1">
               Features

@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import OAuthButtons from '../../components/auth/OAuthButtons';
 import AuroraBackdrop from '../../components/ui/AuroraBackdrop';
+import BrandLogo from '../../components/ui/BrandLogo';
 
 export default function LoginPage() {
   const { login, demoLogin, completeOAuthLogin } = useAuth();
@@ -106,13 +107,10 @@ export default function LoginPage() {
 
       <div className="w-full max-w-md mx-auto">
         {/* Logo */}
-        <Link to="/" className="flex flex-col items-center mb-7 group">
-          <span className="font-mono text-base font-bold px-3.5 py-2 rounded-2xl bg-gradient-to-r from-cyan-500 to-indigo-600 text-white shadow-[0_8px_24px_-4px_rgba(14,165,233,0.45)] mb-3">
-            &lt;/&gt;
-          </span>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">CodeBuddy</h1>
-          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">Sign in to your account</p>
-        </Link>
+        <div className="flex flex-col items-center mb-6">
+          <BrandLogo variant="full" to="/" />
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-3">Sign in to your account</p>
+        </div>
 
         <div className="liquid-glass p-5 sm:p-6">
           {error && (

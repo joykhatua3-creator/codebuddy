@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { RouteContentSkeleton } from '../components/ui/Skeleton';
 import AuroraBackdrop from '../components/ui/AuroraBackdrop';
+import BrandLogo from '../components/ui/BrandLogo';
 
 const NAV = [
   { to: '/dashboard', label: 'Overview', icon: LayoutDashboard, end: true },
@@ -36,19 +37,7 @@ const StudentSidebarContent = ({ user, onNavigate, onLogout, showClose = false }
   <div className="flex flex-col h-full bg-white/75 dark:bg-[#0B1120]/85 backdrop-blur-2xl">
     {/* Logo + Mobile Close */}
     <div className="flex items-center justify-between gap-2 px-4 py-4 border-b border-white/70 dark:border-white/10">
-      <Link to="/" onClick={onNavigate} className="flex items-center gap-2.5 group min-w-0">
-        <span className="font-mono text-xs font-bold px-2.5 py-1.5 rounded-full bg-gradient-to-r from-cyan-500 to-indigo-600 text-white shadow-sm shrink-0">
-          &lt;/&gt;
-        </span>
-        <div className="min-w-0">
-          <span className="text-sm font-bold text-slate-900 dark:text-white leading-tight block truncate">
-            CodeBuddy
-          </span>
-          <span className="text-[11px] font-mono text-cyan-600 dark:text-cyan-300 font-medium block">
-            Lucid Studio
-          </span>
-        </div>
-      </Link>
+      <BrandLogo variant="mark" subtitle="Lucid Studio" to="/" onClick={onNavigate} />
       {showClose && (
         <button
           type="button"

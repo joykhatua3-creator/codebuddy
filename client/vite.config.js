@@ -16,6 +16,7 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     rollupOptions: {
+      external: ['canvg'],
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
