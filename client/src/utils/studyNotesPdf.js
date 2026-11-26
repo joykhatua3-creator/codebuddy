@@ -27,9 +27,11 @@ const toPdfText = (value) => {
 };
 
 const buildSafeFileName = (title, language) => {
-  const base = (title || `${getLanguageLabel(language)}-study-notes`)
+  const fallbackBase = getLanguageLabel(language) || 'codebuddy';
+  const base = (title || fallbackBase)
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(?:-study-notes)+$/i, '')
     .replace(/^-+|-+$/g, '')
     .slice(0, 60);
   return `${base || 'codebuddy'}-study-notes.pdf`;

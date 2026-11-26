@@ -10,6 +10,27 @@ const toSkillSlug = (name = '') =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '') || 'custom-skill';
 
+const unescapeStarterCode = (code = '') => {
+  const raw = String(code || '');
+  if (!raw) return '';
+  if (!raw.includes('\n') && (raw.includes('\\n') || raw.includes('\\t'))) {
+    return raw.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n').replace(/\\t/g, '\t');
+  }
+  return raw;
+};
+
+const formatRoadmapDoc = (doc) => {
+  if (!doc) return doc;
+  const obj = typeof doc.toObject === 'function' ? doc.toObject() : { ...doc };
+  if (Array.isArray(obj.steps)) {
+    obj.steps = obj.steps.map((s) => ({
+      ...s,
+      starterCode: unescapeStarterCode(s.starterCode),
+    }));
+  }
+  return obj;
+};
+
 let legacyIndexChecked = false;
 const dropLegacyUniqueUserIndexIfNeeded = async () => {
   if (legacyIndexChecked) return;
@@ -81,7 +102,7 @@ const generateRoadmap = asyncHandler(async (req, res) => {
       : [],
     learningTask: s.learningTask || '',
     practiceAssignment: s.practiceAssignment || '',
-    starterCode: s.starterCode || '',
+    starterCode: unescapeStarterCode(s.starterCode),
     language: s.language || aiResult.language || 'javascript',
     completed: false,
     completedAt: null,
@@ -123,9 +144,9 @@ const generateRoadmap = asyncHandler(async (req, res) => {
     });
   }
 
-  const roadmaps = await Roadmap.find({ user: userId }).sort({ updatedAt: -1 }).lean();
+  const roadmaps = (await Roadmap.find({ user: userId }).sort({ updatedAt: -1 }).lean()).map(formatRoadmapDoc);
 
-  res.json({ success: true, data: roadmap, roadmaps });
+  res.json({ success: true, data: formatRoadmapDoc(roadmap), roadmaps });
 });
 
 /**
@@ -135,7 +156,7 @@ const generateRoadmap = asyncHandler(async (req, res) => {
  */
 const getRoadmap = asyncHandler(async (req, res) => {
   const { roadmapId } = req.query;
-  const roadmaps = await Roadmap.find({ user: req.user._id }).sort({ updatedAt: -1 }).lean();
+  const roadmaps = (await Roadmap.find({ user: req.user._id }).sort({ updatedAt: -1 }).lean()).map(formatRoadmapDoc);
 
   if (roadmaps.length === 0) {
     return res.json({ success: true, data: null, roadmaps: [] });
@@ -199,9 +220,9 @@ const updateStep = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     data: {
-      roadmap,
+      roadmap: formatRoadmapDoc(roadmap),
       stepId: step._id,
-      step,
+      step: { ...step.toObject(), starterCode: unescapeStarterCode(step.starterCode) },
       completed: step.completed,
       completionPercentage: roadmap.completionPercentage,
     },
@@ -231,7 +252,7 @@ const resetRoadmapProgress = asyncHandler(async (req, res) => {
 
   await roadmap.save();
 
-  res.json({ success: true, data: roadmap });
+  res.json({ success: true, data: formatRoadmapDoc(roadmap) });
 });
 
 /**
@@ -249,7 +270,7 @@ const deleteRoadmap = asyncHandler(async (req, res) => {
     return res.status(404).json({ success: false, message: 'No roadmap found to delete' });
   }
 
-  const remaining = await Roadmap.find({ user: req.user._id }).sort({ updatedAt: -1 }).lean();
+  const remaining = (await Roadmap.find({ user: req.user._id }).sort({ updatedAt: -1 }).lean()).map(formatRoadmapDoc);
   res.json({
     success: true,
     message: 'Roadmap deleted successfully',

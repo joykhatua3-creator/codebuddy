@@ -4,17 +4,17 @@ import { CheckCircle, XCircle, AlertCircle, Info, X } from 'lucide-react';
 const ToastContext = createContext(null);
 
 const ICONS = {
-  success: <CheckCircle size={18} className="text-green-500 shrink-0" />,
-  error: <XCircle size={18} className="text-red-500 shrink-0" />,
-  warning: <AlertCircle size={18} className="text-yellow-500 shrink-0" />,
-  info: <Info size={18} className="text-blue-500 shrink-0" />,
+  success: <CheckCircle size={18} className="text-emerald-500 shrink-0" />,
+  error: <XCircle size={18} className="text-rose-500 shrink-0" />,
+  warning: <AlertCircle size={18} className="text-amber-500 shrink-0" />,
+  info: <Info size={18} className="text-cyan-500 shrink-0" />,
 };
 
 const BG = {
-  success: 'bg-white border-green-200',
-  error: 'bg-white border-red-200',
-  warning: 'bg-white border-yellow-200',
-  info: 'bg-white border-blue-200',
+  success: 'bg-white/90 dark:bg-[#0B1120]/90 border-emerald-300/70 dark:border-emerald-400/30',
+  error: 'bg-white/90 dark:bg-[#0B1120]/90 border-rose-300/70 dark:border-rose-400/30',
+  warning: 'bg-white/90 dark:bg-[#0B1120]/90 border-amber-300/70 dark:border-amber-400/30',
+  info: 'bg-white/90 dark:bg-[#0B1120]/90 border-cyan-300/70 dark:border-cyan-400/30',
 };
 
 export const ToastProvider = ({ children }) => {
@@ -31,13 +31,20 @@ export const ToastProvider = ({ children }) => {
   return (
     <ToastContext.Provider value={{ toast }}>
       {children}
-      {/* Toast container */}
-      <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2 w-80">
+      {/* Toast container positioned at bottom-right so it never overlaps top navbar header icons */}
+      <div className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 w-80 max-w-[calc(100vw-2rem)]">
         {toasts.map((t) => (
-          <div key={t.id} className={`flex items-start gap-3 p-3 rounded-lg border shadow-lg ${BG[t.type]} animate-in slide-in-from-right-5`}>
+          <div
+            key={t.id}
+            className={`flex items-start gap-3 p-3.5 rounded-xl border backdrop-blur-xl shadow-lg ${BG[t.type]} animate-in slide-in-from-right-5`}
+          >
             {ICONS[t.type]}
-            <span className="text-sm text-gray-800 flex-1">{t.message}</span>
-            <button onClick={() => dismiss(t.id)} className="text-gray-400 hover:text-gray-600 shrink-0">
+            <span className="text-sm text-slate-800 dark:text-slate-100 flex-1">{t.message}</span>
+            <button
+              onClick={() => dismiss(t.id)}
+              className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shrink-0"
+              aria-label="Dismiss notification"
+            >
               <X size={14} />
             </button>
           </div>

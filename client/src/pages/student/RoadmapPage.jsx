@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Map, RefreshCw, CheckCircle2, Trash2, Clock, ChevronDown, ChevronUp,
-  BookOpen, Code, Copy, CheckCheck, Sparkles, Brain, ArrowRight, Plus,
+  BookOpen, Code, Copy, CheckCheck, Sparkles, Brain, ArrowRight, Plus, X,
   RotateCcw, Layers, CheckSquare, Square, Target, Compass,
 } from 'lucide-react';
 import { roadmapService } from '../../services';
@@ -27,6 +27,15 @@ const QUICK_SKILLS = [
 const EXPERIENCE_LEVELS = ['Beginner', 'Intermediate', 'Advanced'];
 
 const SUPPORTED_LANG_SET = new Set(ALL_LANGUAGES.map((l) => l.id));
+
+const unescapeStarterCode = (code = '') => {
+  const raw = String(code || '');
+  if (!raw) return '';
+  if (!raw.includes('\n') && (raw.includes('\\n') || raw.includes('\\t'))) {
+    return raw.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n').replace(/\\t/g, '\t');
+  }
+  return raw;
+};
 
 const resolveStepLanguage = (stepLang, roadmapLang, skillName = '') => {
   const candidates = [stepLang, roadmapLang]
@@ -323,7 +332,7 @@ export default function RoadmapPage() {
           onClick={() => setShowSkillBuilder((p) => !p)}
           className="btn btn-primary btn-sm sm:btn gap-1.5 shrink-0"
         >
-          <Plus size={16} />
+          {showSkillBuilder && roadmap ? <X size={16} /> : <Plus size={16} />}
           <span>{showSkillBuilder && roadmap ? 'Close Skill Selector' : 'New Skill Roadmap'}</span>
         </button>
       </div>
@@ -503,13 +512,6 @@ export default function RoadmapPage() {
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowSkillBuilder(true)}
-                  className="btn btn-secondary btn-sm gap-1.5"
-                >
-                  <Plus size={14} /> New Skill Roadmap
-                </button>
                 <button
                   type="button"
                   onClick={() =>
@@ -733,39 +735,42 @@ export default function RoadmapPage() {
                         )}
 
                         {/* Hands-On Practice Challenge & Starter Code */}
-                        {(step.practiceAssignment || step.starterCode) && (
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between flex-wrap gap-2">
-                              <h5 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-slate-400 flex items-center gap-1.5">
-                                <Code size={14} className="text-emerald-600 dark:text-emerald-400" />
-                                <span>Hands-On Practice Challenge</span>
-                              </h5>
-                              {step.starterCode && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleCopyStarter(stepId, step.starterCode)}
-                                  className="btn btn-ghost btn-sm py-0.5 h-7 text-xs gap-1 text-gray-600 dark:text-slate-300"
-                                >
-                                  {copiedStep === stepId ? (
-                                    <><CheckCheck size={12} className="text-emerald-500" /> Copied</>
-                                  ) : (
-                                    <><Copy size={12} /> Copy Starter</>
-                                  )}
-                                </button>
+                        {(step.practiceAssignment || step.starterCode) && (() => {
+                          const cleanStarterCode = unescapeStarterCode(step.starterCode);
+                          return (
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between flex-wrap gap-2">
+                                <h5 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-slate-400 flex items-center gap-1.5">
+                                  <Code size={14} className="text-emerald-600 dark:text-emerald-400" />
+                                  <span>Hands-On Practice Challenge</span>
+                                </h5>
+                                {cleanStarterCode && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopyStarter(stepId, cleanStarterCode)}
+                                    className="btn btn-ghost btn-sm py-0.5 h-7 text-xs gap-1 text-gray-600 dark:text-slate-300"
+                                  >
+                                    {copiedStep === stepId ? (
+                                      <><CheckCheck size={12} className="text-emerald-500" /> Copied</>
+                                    ) : (
+                                      <><Copy size={12} /> Copy Starter</>
+                                    )}
+                                  </button>
+                                )}
+                              </div>
+                              {step.practiceAssignment && (
+                                <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-sm text-gray-800 dark:text-slate-100 font-medium">
+                                  {step.practiceAssignment}
+                                </div>
+                              )}
+                              {cleanStarterCode && (
+                                <pre className="p-3.5 rounded-xl bg-slate-900 border border-slate-700 text-xs font-mono text-slate-200 overflow-x-auto leading-relaxed">
+                                  <code>{cleanStarterCode}</code>
+                                </pre>
                               )}
                             </div>
-                            {step.practiceAssignment && (
-                              <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-sm text-gray-800 dark:text-slate-100 font-medium">
-                                {step.practiceAssignment}
-                              </div>
-                            )}
-                            {step.starterCode && (
-                              <pre className="p-3.5 rounded-xl bg-slate-900 border border-slate-700 text-xs font-mono text-slate-200 overflow-x-auto leading-relaxed">
-                                <code>{step.starterCode}</code>
-                              </pre>
-                            )}
-                          </div>
-                        )}
+                          );
+                        })()}
 
                         {/* Hands-On Practice Action Buttons */}
                         <div className="flex flex-wrap items-center gap-3 pt-1">
@@ -774,7 +779,7 @@ export default function RoadmapPage() {
                             onClick={() =>
                               navigate('/dashboard/code-review', {
                                 state: {
-                                  starterCode: step.starterCode || `# ${step.title}\n`,
+                                  starterCode: unescapeStarterCode(step.starterCode) || `# ${step.title}\n`,
                                   language: stepLang,
                                   assignmentTitle: step.title,
                                   challengePrompt: step.practiceAssignment || step.objective,

@@ -565,6 +565,12 @@ const normalizeRoadmapPayload = (raw) => {
       .map((k) => String(k || '').trim())
       .filter(Boolean);
 
+    const rawStarterCode = String(s.starterCode || '').trim();
+    const starterCode =
+      !rawStarterCode.includes('\n') && (rawStarterCode.includes('\\n') || rawStarterCode.includes('\\t'))
+        ? rawStarterCode.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n').replace(/\\t/g, '\t')
+        : rawStarterCode;
+
     return {
       order: clampInt(s.order, 1, 30, idx + 1),
       topic: String(s.topic || s.title || `Milestone ${idx + 1}`).trim(),
@@ -577,7 +583,7 @@ const normalizeRoadmapPayload = (raw) => {
       subTasks,
       learningTask: String(s.learningTask || (subTasks[0]?.title ? subTasks.map((t) => t.title).join(' • ') : '')).trim(),
       practiceAssignment: String(s.practiceAssignment || '').trim(),
-      starterCode: String(s.starterCode || '').trim(),
+      starterCode,
       language: String(s.language || '').trim().toLowerCase(),
     };
   });

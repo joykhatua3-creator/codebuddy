@@ -56,6 +56,15 @@ const clearStoredDraft = () => {
   }
 };
 
+const unescapeCodeText = (str = '') => {
+  const raw = String(str || '');
+  if (!raw) return '';
+  if (!raw.includes('\n') && (raw.includes('\\n') || raw.includes('\\t'))) {
+    return raw.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n').replace(/\\t/g, '\t');
+  }
+  return raw;
+};
+
 const DEFAULT_CODE = {
   python: `# Python 3.x\ndef greet(name: str) -> str:\n    return f"Hello, {name}!"\n\nprint(greet("World"))`,
   javascript: `// JavaScript (ES2024)\nfunction greet(name) {\n  return "Hello, " + name + "!";\n}\n\nconsole.log(greet("World"));`,
@@ -114,10 +123,10 @@ export default function CodeReviewPage() {
     return draft?.language || 'javascript';
   });
   const [code, setCode] = useState(() => {
-    if (location.state?.starterCode) return location.state.starterCode;
+    if (location.state?.starterCode) return unescapeCodeText(location.state.starterCode);
     if (location.state?.language) return DEFAULT_CODE[location.state.language] || '';
     const draft = readStoredDraft();
-    return draft?.code ?? DEFAULT_CODE.javascript;
+    return draft?.code !== undefined ? draft.code : DEFAULT_CODE.javascript;
   });
   const [useStreaming, setUseStreaming] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -137,10 +146,11 @@ export default function CodeReviewPage() {
 
   // Debounced auto-save draft to localStorage while editing (avoids main-thread I/O per keystroke)
   useEffect(() => {
-    if (hasExplicitStarter && code === location.state?.starterCode) return;
+    const initialStarter = unescapeCodeText(location.state?.starterCode || '');
+    if (hasExplicitStarter && code === initialStarter) return;
     const timer = setTimeout(() => {
       try {
-        if (isDefaultTemplate) {
+        if (isDefaultTemplate || !code.trim()) {
           clearStoredDraft();
         } else {
           localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify({ language, code }));
@@ -162,7 +172,7 @@ export default function CodeReviewPage() {
   const handleClear = () => {
     clearStoredDraft();
     setUploadedFileName('');
-    setCode(DEFAULT_CODE[language] || `// Write your ${getLanguageLabel(language)} code here`);
+    setCode('');
     setError('');
     setStreamProgress(null);
   };
@@ -299,7 +309,7 @@ export default function CodeReviewPage() {
             <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-cyan-500/15 text-cyan-700 border border-cyan-400/30 dark:bg-cyan-400/15 dark:text-cyan-200 dark:border-cyan-400/30">
               30 Languages Supported
             </span>
-            {!isDefaultTemplate && (
+            {!isDefaultTemplate && code.trim().length > 0 && (
               <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/15 text-emerald-700 border border-emerald-400/30 dark:bg-emerald-400/15 dark:text-emerald-300">
                 Draft auto-saved
               </span>
