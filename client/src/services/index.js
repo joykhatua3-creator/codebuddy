@@ -153,7 +153,11 @@ export const progressService = {
 };
 
 export const quizService = {
-  generate: (topic) => api.post('/quizzes/generate', topic ? { topic } : {}),
+  generate: (payload) =>
+    api.post(
+      '/quizzes/generate',
+      typeof payload === 'string' ? { topic: payload } : payload || {}
+    ),
   getAll: () => api.get('/quizzes'),
   getById: (id) => api.get(`/quizzes/${id}`),
   submit: (id, data) => api.post(`/quizzes/${id}/submit`, data),

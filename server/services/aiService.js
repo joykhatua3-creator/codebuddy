@@ -232,12 +232,15 @@ const quizJsonSchema = {
       items: {
         type: SchemaType.OBJECT,
         properties: {
+          id: { type: SchemaType.STRING },
           question: { type: SchemaType.STRING },
+          codeSnippet: { type: SchemaType.STRING },
           options: {
             type: SchemaType.ARRAY,
             items: { type: SchemaType.STRING },
           },
           correctAnswer: { type: SchemaType.INTEGER },
+          subTopic: { type: SchemaType.STRING },
           explanation: { type: SchemaType.STRING },
         },
         required: ['question', 'options', 'correctAnswer', 'explanation'],
@@ -608,547 +611,764 @@ ${code}
 };
 
 const CURATED_QUESTIONS_BY_TOPIC = {
-  'Variables and Data Types': [
+  'Functions & Scope': [
     {
-      question: "What is the primary difference between 'let' and 'const' in JavaScript?",
-      options: [
-        "'const' allows reassignment, while 'let' prevents it",
-        "'let' allows reassignment, while 'const' prevents reassignment",
-        'There is no functional difference between them',
-        "'let' is function-scoped and 'const' is block-scoped",
-      ],
-      correctAnswer: 1,
-      explanation: "'let' allows reassigning variables, whereas 'const' creates an immutable binding.",
-    },
-    {
-      question: 'What is the result of `typeof null` in JavaScript?',
-      options: ["'null'", "'undefined'", "'object'", "'boolean'"],
-      correctAnswer: 2,
-      explanation: "Due to a historical quirk in JavaScript, `typeof null` evaluates to 'object'.",
-    },
-    {
-      question: 'Which of the following is a primitive data type in JavaScript?',
-      options: ['Array', 'Object', 'Symbol', 'Function'],
-      correctAnswer: 2,
-      explanation: 'Symbol is one of the 7 primitive types in JavaScript (along with string, number, bigint, boolean, undefined, and null).',
-    },
-    {
-      question: 'How are primitive values passed to functions compared to objects in JavaScript?',
-      options: [
-        'Primitives are passed by value (copy), while objects pass a copy of their reference',
-        'Both primitives and objects are always passed by deep clone',
-        'Primitives are shared across calls via heap pointers',
-        'Objects cannot be mutated inside functions',
-      ],
+      id: 'fn_1',
+      question: 'What is the output of the following code snippet involving closure and variable scope?',
+      codeSnippet: `function createCounter() {
+  let count = 0;
+  return () => ++count;
+}
+const c1 = createCounter();
+const c2 = createCounter();
+c1();
+console.log(c1(), c2());`,
+      options: ['2 1', '2 2', '1 1', 'NaN NaN'],
       correctAnswer: 0,
-      explanation: 'Primitives copy their actual value, whereas objects share a reference to the same underlying heap object.',
+      subTopic: 'Functions & Scope',
+      level: 'Intermediate',
+      explanation: 'Each call to createCounter() creates a distinct lexical scope with its own separate count variable. c1 increments its own count twice (1, then 2), while c2 increments its separate count once (1).',
     },
     {
-      question: "What happens when you mutate a property of an object declared with 'const'?",
+      id: 'fn_2',
+      question: 'What will be logged to the console when executing this code?',
+      codeSnippet: `const user = {
+  name: 'Alex',
+  greet: () => {
+    return \`Hello, \${this.name}\`;
+  }
+};
+console.log(user.greet());`,
       options: [
-        'JavaScript throws a TypeError immediately',
-        'The mutation succeeds because const prevents reassignment of the binding, not property mutation',
-        'The object automatically deep-freezes itself',
-        'The variable becomes undefined',
+        'Hello, Alex',
+        'Hello, undefined',
+        'TypeError: Cannot read properties of undefined',
+        'ReferenceError: this is not defined',
       ],
       correctAnswer: 1,
-      explanation: "'const' prevents reassigning the variable reference, not mutating properties inside the referenced object.",
+      subTopic: 'Functions & Scope',
+      level: 'Intermediate',
+      explanation: 'Arrow functions do not bind their own `this`; they retain the `this` value of the enclosing lexical scope (in this case the global/module scope, where name is undefined).',
     },
-  ],
-  Functions: [
     {
-      question: "What does a JavaScript function return by default if no explicit 'return' statement is provided?",
+      id: 'fn_3',
+      question: 'What does a JavaScript function return by default if no explicit return statement is executed?',
+      codeSnippet: `function doWork(x) {
+  const result = x * 2;
+}
+console.log(doWork(5));`,
       options: ['null', '0', 'undefined', 'NaN'],
       correctAnswer: 2,
-      explanation: "Functions without an explicit return value evaluate to 'undefined'.",
+      subTopic: 'Functions & Scope',
+      level: 'Beginner',
+      explanation: 'In JavaScript, functions without an explicit return statement evaluate to undefined upon completion.',
     },
     {
-      question: "How do arrow functions handle the 'this' keyword differently than regular function declarations?",
+      id: 'fn_4',
+      question: 'What happens when this snippet runs due to JavaScript variable hoisting?',
+      codeSnippet: `console.log(a);
+console.log(b);
+var a = 10;
+let b = 20;`,
       options: [
-        "Arrow functions bind 'this' to the global window object always",
-        "Arrow functions inherit 'this' lexically from their enclosing scope",
-        "Arrow functions create their own dynamic 'this' context upon execution",
-        'Arrow functions cannot access any outer variables',
-      ],
-      correctAnswer: 1,
-      explanation: "Arrow functions do not have their own 'this' binding; they inherit 'this' from the lexical enclosing context.",
-    },
-    {
-      question: "What is a 'closure' in JavaScript?",
-      options: [
-        'A function bundled together with references to its surrounding lexical state',
-        'A function that terminates immediately upon execution',
-        'A method to close browser tabs and window instances',
-        'An anonymous function that cannot accept arguments',
+        'undefined, then ReferenceError for b',
+        '10, then 20',
+        'ReferenceError for a, then ReferenceError for b',
+        'undefined, then undefined',
       ],
       correctAnswer: 0,
-      explanation: 'A closure gives an inner function access to its outer function scope even after the outer function has returned.',
+      subTopic: 'Functions & Scope',
+      level: 'Intermediate',
+      explanation: 'var is hoisted and initialized to undefined. let is also hoisted, but remains uninitialized in the Temporal Dead Zone (TDZ), throwing a ReferenceError upon access before declaration.',
     },
     {
-      question: 'What is a higher-order function?',
-      options: [
-        'A function declared at the top of a file',
-        'A function that takes one or more functions as arguments or returns a function',
-        'A function that uses more than 3 parameters',
-        'A function that must be marked async',
-      ],
-      correctAnswer: 1,
-      explanation: 'Higher-order functions operate on other functions by accepting them as arguments or returning them.',
+      id: 'fn_5',
+      question: 'What will this higher-order function pipeline output?',
+      codeSnippet: `const multiplyBy = (factor) => (num) => num * factor;
+const double = multiplyBy(2);
+const triple = multiplyBy(3);
+console.log(double(triple(4)));`,
+      options: ['24', '12', '14', '18'],
+      correctAnswer: 0,
+      subTopic: 'Functions & Scope',
+      level: 'Intermediate',
+      explanation: 'triple(4) computes 4 * 3 = 12. Then double(12) computes 12 * 2 = 24.',
     },
     {
-      question: 'What characterizes a pure function?',
+      id: 'fn_6',
+      question: 'What is a pure function in programming?',
+      codeSnippet: '',
       options: [
-        'It mutates global state to improve performance',
-        'Given the same inputs it always returns the same output and causes no side effects',
-        'It only accepts primitive numbers',
-        'It must be invoked recursively',
+        'A function that given identical inputs always returns the same output without observable side effects',
+        'A function that modifies global variables directly to conserve heap memory',
+        'A function that runs asynchronously without awaiting promises',
+        'A function declared without any parameters or return type',
       ],
-      correctAnswer: 1,
-      explanation: 'Pure functions are deterministic and free of side effects, making code easier to test and reason about.',
+      correctAnswer: 0,
+      subTopic: 'Functions & Scope',
+      level: 'Beginner',
+      explanation: 'Pure functions are deterministic (same input produces same output) and do not mutate external state or trigger I/O side effects.',
+    },
+    {
+      id: 'fn_7',
+      question: 'What will be output by the following default parameter evaluation?',
+      codeSnippet: `function calculate(base, multiplier = base * 2) {
+  return base + multiplier;
+}
+console.log(calculate(5));`,
+      options: ['15', '10', 'NaN', 'ReferenceError: base is not defined'],
+      correctAnswer: 0,
+      subTopic: 'Functions & Scope',
+      level: 'Beginner',
+      explanation: 'Default parameters can reference earlier parameters in the parameter list. With base = 5, multiplier defaults to 5 * 2 = 10, resulting in 5 + 10 = 15.',
+    },
+    {
+      id: 'fn_8',
+      question: 'What will this recursive countdown function output or throw?',
+      codeSnippet: `function countdown(n) {
+  if (n === 0) return 'Done';
+  return countdown(n - 1);
+}
+console.log(countdown(3));`,
+      options: ['Done', '0', 'undefined', 'RangeError: Maximum call stack size exceeded'],
+      correctAnswer: 0,
+      subTopic: 'Functions & Scope',
+      level: 'Beginner',
+      explanation: 'The function recurses with n = 3, 2, 1, and reaches the base case when n === 0, returning "Done" cleanly.',
     },
   ],
-  Loops: [
+
+  'Arrays & Strings': [
     {
-      question: 'Which of the following loop declarations creates an infinite loop if uninterrupted?',
-      options: ['for (let i = 0; i < 5; i++)', 'while (true)', 'if (x === 10)', 'do { i++ } while (i < 0)'],
-      correctAnswer: 1,
-      explanation: "A 'while (true)' loop runs indefinitely unless exited via 'break' or 'return'.",
+      id: 'arr_1',
+      question: 'What is the value of result after this array pipeline runs?',
+      codeSnippet: `const numbers = [1, 2, 3, 4, 5, 6];
+const result = numbers
+  .filter(n => n % 2 === 0)
+  .map(n => n * n)
+  .reduce((acc, curr) => acc + curr, 0);
+console.log(result);`,
+      options: ['56', '20', '36', '72'],
+      correctAnswer: 0,
+      subTopic: 'Arrays & Strings',
+      level: 'Intermediate',
+      explanation: 'filter extracts even numbers [2, 4, 6]. map squares them [4, 16, 36]. reduce sums them: 4 + 16 + 36 = 56.',
     },
     {
-      question: "What is the difference between 'for...in' and 'for...of' in modern JavaScript?",
+      id: 'arr_2',
+      question: 'What will be logged after modifying this array with splice()?',
+      codeSnippet: `const fruits = ['apple', 'banana', 'cherry', 'date'];
+const removed = fruits.splice(1, 2, 'blueberry');
+console.log(fruits.join(', '));`,
       options: [
-        "'for...in' iterates over iterable values; 'for...of' iterates over object keys",
-        "'for...in' iterates over enumerable property keys; 'for...of' iterates over iterable values",
-        'Both loops behave identically in modern V8 engines',
-        "'for...of' only works on numbers and booleans",
-      ],
-      correctAnswer: 1,
-      explanation: "'for...in' traverses enumerable keys, while 'for...of' iterates over values of an iterable like an Array.",
-    },
-    {
-      question: "What is the effect of the 'continue' statement inside a loop body?",
-      options: [
-        'It terminates the entire loop immediately',
-        'It skips the rest of the current iteration and jumps to the next cycle',
-        'It restarts the loop from index 0',
-        'It throws an unhandled runtime error',
-      ],
-      correctAnswer: 1,
-      explanation: "'continue' ends the current iteration and moves to the next iteration of the loop.",
-    },
-    {
-      question: 'How does a `do...while` loop differ from a standard `while` loop?',
-      options: [
-        'A do...while loop always executes its body at least once before checking the condition',
-        'A do...while loop cannot use break',
-        'A while loop always executes once even if the condition is false',
-        'A do...while loop runs backwards',
+        'apple, blueberry, date',
+        'apple, banana, blueberry, date',
+        'blueberry, cherry, date',
+        'apple, date',
       ],
       correctAnswer: 0,
-      explanation: 'Because the condition is evaluated at the end of `do...while`, the body always runs at least once.',
+      subTopic: 'Arrays & Strings',
+      level: 'Intermediate',
+      explanation: 'splice(1, 2, "blueberry") removes 2 elements starting at index 1 ("banana", "cherry") and inserts "blueberry" in place, leaving ["apple", "blueberry", "date"].',
     },
     {
-      question: 'What commonly causes an off-by-one error when iterating over an array of length `n`?',
-      options: [
-        'Using `i <= arr.length` instead of `i < arr.length`',
-        'Declaring the loop counter with `let`',
-        'Using `break` inside an `if` statement',
-        'Accessing `arr[0]` on the first pass',
-      ],
+      id: 'arr_3',
+      question: 'What is the output when indexing a string with negative slice in JavaScript?',
+      codeSnippet: `const word = 'CodeReviewBuddy';
+console.log(word.slice(-5));`,
+      options: ['Buddy', 'ReviewBuddy', 'Code', 'y'],
       correctAnswer: 0,
-      explanation: 'Zero-indexed arrays have valid indices `0` through `arr.length - 1`, so `i <= arr.length` reads out of bounds.',
+      subTopic: 'Arrays & Strings',
+      level: 'Beginner',
+      explanation: 'A negative index in slice() counts backward from the end of the string. -5 extracts the last 5 characters: "Buddy".',
+    },
+    {
+      id: 'arr_4',
+      question: 'What will be the length of this sparse array?',
+      codeSnippet: `const items = [10, 20];
+items[5] = 60;
+console.log(items.length, items[2]);`,
+      options: ['6 undefined', '3 60', '6 null', '3 undefined'],
+      correctAnswer: 0,
+      subTopic: 'Arrays & Strings',
+      level: 'Intermediate',
+      explanation: 'Assigning to index 5 expands the array length to 5 + 1 = 6. Unassigned slots between indices 2 and 4 evaluate to undefined.',
+    },
+    {
+      id: 'arr_5',
+      question: 'Which method returns a new array without mutating the original input array?',
+      codeSnippet: '',
+      options: ['slice()', 'splice()', 'reverse()', 'sort()'],
+      correctAnswer: 0,
+      subTopic: 'Arrays & Strings',
+      level: 'Beginner',
+      explanation: 'slice() returns a shallow copy of a portion of the array without altering the original array. splice(), reverse(), and sort() mutate in place.',
+    },
+    {
+      id: 'arr_6',
+      question: 'What does String.prototype.includes() return when given an empty string search term?',
+      codeSnippet: `console.log('Programming'.includes(''));`,
+      options: ['true', 'false', '0', 'TypeError'],
+      correctAnswer: 0,
+      subTopic: 'Arrays & Strings',
+      level: 'Beginner',
+      explanation: 'In ECMAScript, an empty string is considered a substring of every string at position 0, so includes("") returns true.',
+    },
+    {
+      id: 'arr_7',
+      question: 'What is the output of the following spread and flatMap operation?',
+      codeSnippet: `const nested = [[1, 2], [3, 4]];
+const flat = nested.flatMap(x => x.map(n => n * 2));
+console.log(flat);`,
+      options: ['[2, 4, 6, 8]', '[[2, 4], [6, 8]]', '[1, 2, 3, 4]', '[4, 8, 12, 16]'],
+      correctAnswer: 0,
+      subTopic: 'Arrays & Strings',
+      level: 'Advanced',
+      explanation: 'flatMap maps each inner subarray [1, 2] to [2, 4] and [3, 4] to [6, 8], then flattens the result by one level into [2, 4, 6, 8].',
     },
   ],
-  Arrays: [
+
+  'Data Structures': [
     {
-      question: 'Which array method creates a new array with all elements that satisfy a provided test condition?',
-      options: ['map()', 'forEach()', 'filter()', 'reduce()'],
-      correctAnswer: 2,
-      explanation: "'filter()' returns a new array containing only elements for which the predicate returns true.",
+      id: 'ds_1',
+      question: 'What is the average time complexity of checking membership in a Hash Set vs an Array?',
+      codeSnippet: `const set = new Set(largeList);
+const hasInSet = set.has(target);
+const hasInArr = largeList.includes(target);`,
+      options: [
+        'Set: O(1) average, Array: O(n) linear search',
+        'Set: O(n), Array: O(1)',
+        'Both are O(log n)',
+        'Both are O(1) in modern engines',
+      ],
+      correctAnswer: 0,
+      subTopic: 'Data Structures',
+      level: 'Beginner',
+      explanation: 'Hash sets use hash codes to jump directly to buckets in O(1) average time, whereas array.includes() scans elements sequentially in O(n).',
     },
     {
-      question: 'What does `Array.prototype.map()` return?',
+      id: 'ds_2',
+      question: 'What will be output when using objects as keys in a JavaScript Map vs a plain Object?',
+      codeSnippet: `const map = new Map();
+const key1 = { id: 1 };
+const key2 = { id: 1 };
+map.set(key1, 'User A');
+map.set(key2, 'User B');
+console.log(map.get(key1), map.size);`,
       options: [
-        'A new array populated with the results of calling the callback on every element',
-        'A single aggregated numeric value',
-        'The index of the first matching element',
+        'User A 2',
+        'User B 1',
+        'undefined 2',
+        'User B 2',
+      ],
+      correctAnswer: 0,
+      subTopic: 'Data Structures',
+      level: 'Intermediate',
+      explanation: 'In JavaScript Map, objects are compared by reference identity, not structural equality. key1 and key2 are distinct objects in memory, so map contains 2 entries and map.get(key1) retrieves "User A".',
+    },
+    {
+      id: 'ds_3',
+      question: 'Which data structure follows the First-In, First-Out (FIFO) access discipline?',
+      codeSnippet: '',
+      options: ['Queue', 'Stack', 'Max Heap', 'Binary Search Tree'],
+      correctAnswer: 0,
+      subTopic: 'Data Structures',
+      level: 'Beginner',
+      explanation: 'A Queue enforces FIFO (First-In, First-Out). Stacks enforce LIFO (Last-In, First-Out).',
+    },
+    {
+      id: 'ds_4',
+      question: 'What problem occurs when inserting sorted keys into an unweighted Binary Search Tree (BST)?',
+      codeSnippet: '',
+      options: [
+        'The tree degenerates into a linear linked list with O(n) search time',
+        'The tree automatically rotates into an AVL tree in O(1) time',
+        'An immediate MemoryOverflow exception is thrown',
+        'Search time improves to O(1)',
+      ],
+      correctAnswer: 0,
+      subTopic: 'Data Structures',
+      level: 'Intermediate',
+      explanation: 'Inserting sorted elements into an unbalanced BST creates a skewed tree resembling a linked list where depth = n and search degrades from O(log n) to O(n).',
+    },
+    {
+      id: 'ds_5',
+      question: 'What will this Stack implementation output?',
+      codeSnippet: `const stack = [];
+stack.push(10);
+stack.push(20);
+stack.push(30);
+stack.pop();
+stack.push(40);
+console.log(stack[stack.length - 1]);`,
+      options: ['40', '30', '20', '10'],
+      correctAnswer: 0,
+      subTopic: 'Data Structures',
+      level: 'Beginner',
+      explanation: 'Pushing 10, 20, 30 gives [10, 20, 30]. Popping removes 30. Pushing 40 gives [10, 20, 40]. The top element is 40.',
+    },
+    {
+      id: 'ds_6',
+      question: 'What is a collision in a Hash Table and how is it commonly resolved?',
+      codeSnippet: '',
+      options: [
+        'Two distinct keys produce the same hash bucket index; resolved via chaining (linked lists) or open addressing',
+        'The CPU runs out of cache lines; resolved by clearing RAM',
+        'Two threads write to the same index; resolved by aborting execution',
+        'Keys have identical data types; resolved by casting to strings',
+      ],
+      correctAnswer: 0,
+      subTopic: 'Data Structures',
+      level: 'Advanced',
+      explanation: 'Hash collisions occur when distinct keys map to the same bucket index. Standard resolution strategies include separate chaining and open addressing (linear probing).',
+    },
+  ],
+
+  'Algorithms & Big-O': [
+    {
+      id: 'algo_1',
+      question: 'What is the time complexity of the following nested loop algorithm?',
+      codeSnippet: `function findPairs(arr) {
+  let count = 0;
+  for (let i = 0; i < arr.length; i++) {
+    for (let j = i + 1; j < arr.length; j++) {
+      if (arr[i] + arr[j] === 0) count++;
+    }
+  }
+  return count;
+}`,
+      options: ['O(n^2)', 'O(n)', 'O(n log n)', 'O(log n)'],
+      correctAnswer: 0,
+      subTopic: 'Algorithms & Big-O',
+      level: 'Beginner',
+      explanation: 'The outer loop runs n times and the inner loop runs n - 1, n - 2, ... 1 times. The total operations equal n*(n-1)/2, which simplifies to O(n^2) quadratic time.',
+    },
+    {
+      id: 'algo_2',
+      question: 'What is the worst-case and average-case time complexity of Binary Search on a sorted array of size n?',
+      codeSnippet: `function binarySearch(arr, target) {
+  let low = 0, high = arr.length - 1;
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2);
+    if (arr[mid] === target) return mid;
+    if (arr[mid] < target) low = mid + 1;
+    else high = mid - 1;
+  }
+  return -1;
+}`,
+      options: ['O(log n)', 'O(n)', 'O(1)', 'O(n log n)'],
+      correctAnswer: 0,
+      subTopic: 'Algorithms & Big-O',
+      level: 'Beginner',
+      explanation: 'Binary search halves the remaining search interval each iteration, giving O(log n) worst and average time.',
+    },
+    {
+      id: 'algo_3',
+      question: 'What is the time complexity of this recursive Fibonacci implementation without memoization?',
+      codeSnippet: `function fib(n) {
+  if (n <= 1) return n;
+  return fib(n - 1) + fib(n - 2);
+}`,
+      options: ['O(2^n) exponential', 'O(n) linear', 'O(n^2) quadratic', 'O(log n) logarithmic'],
+      correctAnswer: 0,
+      subTopic: 'Algorithms & Big-O',
+      level: 'Intermediate',
+      explanation: 'Each call spawns two additional recursive calls, forming a recursion tree with depth n and 2^n total nodes, leading to O(2^n) exponential time.',
+    },
+    {
+      id: 'algo_4',
+      question: 'Which sorting algorithm guarantees O(n log n) worst-case time complexity?',
+      codeSnippet: '',
+      options: ['Merge Sort', 'Quick Sort', 'Bubble Sort', 'Insertion Sort'],
+      correctAnswer: 0,
+      subTopic: 'Algorithms & Big-O',
+      level: 'Intermediate',
+      explanation: 'Merge Sort divides the array in half log n times and performs O(n) work to merge at each level, ensuring O(n log n) worst-case time (unlike QuickSort, which can degrade to O(n^2)).',
+    },
+    {
+      id: 'algo_5',
+      question: 'What is the time complexity to find if a pair sums to target in a sorted array using two pointers?',
+      codeSnippet: `function hasTargetSum(sortedArr, target) {
+  let left = 0, right = sortedArr.length - 1;
+  while (left < right) {
+    const sum = sortedArr[left] + sortedArr[right];
+    if (sum === target) return true;
+    if (sum < target) left++;
+    else right--;
+  }
+  return false;
+}`,
+      options: ['O(n) time and O(1) auxiliary space', 'O(n^2) time and O(n) space', 'O(log n) time and O(1) space', 'O(n log n) time and O(n) space'],
+      correctAnswer: 0,
+      subTopic: 'Algorithms & Big-O',
+      level: 'Intermediate',
+      explanation: 'The two pointers start at opposite ends and converge inward in a single pass of at most n steps, taking O(n) time and O(1) extra space.',
+    },
+    {
+      id: 'algo_6',
+      question: 'What technique improves the time complexity of overlapping subproblems from O(2^n) to O(n)?',
+      codeSnippet: '',
+      options: ['Memoization / Dynamic Programming', 'Greedy Choice Property', 'Breadth-First Search', 'Quickselect'],
+      correctAnswer: 0,
+      subTopic: 'Algorithms & Big-O',
+      level: 'Advanced',
+      explanation: 'Memoization caches computed results of subproblems so each distinct state is computed only once, transforming exponential time into linear time.',
+    },
+  ],
+
+  'OOP Concepts': [
+    {
+      id: 'oop_1',
+      question: 'What OOP principle is demonstrated by using private fields in modern JavaScript classes?',
+      codeSnippet: `class BankAccount {
+  #balance = 0;
+  deposit(amount) {
+    if (amount > 0) this.#balance += amount;
+  }
+  getBalance() {
+    return this.#balance;
+  }
+}`,
+      options: ['Encapsulation', 'Polymorphism', 'Multiple Inheritance', 'Duck Typing'],
+      correctAnswer: 0,
+      subTopic: 'OOP Concepts',
+      level: 'Beginner',
+      explanation: 'Encapsulation bundles data and methods while restricting direct external access to internal state via private fields (`#balance`).',
+    },
+    {
+      id: 'oop_2',
+      question: 'What is the output when calling speak() on an instance of Dog?',
+      codeSnippet: `class Animal {
+  speak() { return 'generic sound'; }
+}
+class Dog extends Animal {
+  speak() { return 'bark'; }
+}
+const pet = new Dog();
+console.log(pet.speak());`,
+      options: ['bark', 'generic sound', 'bark generic sound', 'undefined'],
+      correctAnswer: 0,
+      subTopic: 'OOP Concepts',
+      level: 'Beginner',
+      explanation: 'Method overriding allows the subclass (Dog) to provide its own implementation of speak(), which takes precedence over Animal.prototype.speak().',
+    },
+    {
+      id: 'oop_3',
+      question: 'What is the difference between composition and inheritance?',
+      codeSnippet: '',
+      options: [
+        'Composition models a "has-a" relationship by combining components, while inheritance models an "is-a" taxonomy',
+        'Composition only works with functional programming',
+        'Inheritance creates faster code at runtime by skipping prototypes',
+        'Composition requires multiple class extends keywords',
+      ],
+      correctAnswer: 0,
+      subTopic: 'OOP Concepts',
+      level: 'Intermediate',
+      explanation: 'Composition combines modular behaviors ("Car has an Engine"), whereas inheritance forms class hierarchies ("Dog is an Animal"). Favoring composition avoids rigid hierarchies.',
+    },
+    {
+      id: 'oop_4',
+      question: 'What will super() do inside a subclass constructor?',
+      codeSnippet: `class Parent {
+  constructor(name) { this.name = name; }
+}
+class Child extends Parent {
+  constructor(name, age) {
+    super(name);
+    this.age = age;
+  }
+}`,
+      options: [
+        'Invokes the parent class constructor and initializes `this` before child properties are assigned',
+        'Duplicates the entire parent class in memory',
+        'Converts the child instance into a static singleton',
+        'Stops execution of the child constructor',
+      ],
+      correctAnswer: 0,
+      subTopic: 'OOP Concepts',
+      level: 'Intermediate',
+      explanation: 'In derived classes, super() invokes the superclass constructor. In JavaScript, accessing `this` before super() throws a ReferenceError.',
+    },
+    {
+      id: 'oop_5',
+      question: 'What does the `static` keyword designate on a class method?',
+      codeSnippet: `class MathUtils {
+  static square(n) { return n * n; }
+}
+console.log(MathUtils.square(4));`,
+      options: [
+        'The method belongs to the class constructor function itself rather than instance objects',
+        'The method can only be called once during runtime',
+        'The method variables cannot be garbage collected',
+        'The method is automatically run in a background worker',
+      ],
+      correctAnswer: 0,
+      subTopic: 'OOP Concepts',
+      level: 'Beginner',
+      explanation: 'Static methods are attached directly to the class constructor itself and are called as `Class.method()` without instantiating an object.',
+    },
+  ],
+
+  'Async & APIs': [
+    {
+      id: 'async_1',
+      question: 'What is the exact console output order of the following event loop code?',
+      codeSnippet: `console.log('1');
+setTimeout(() => console.log('2'), 0);
+Promise.resolve().then(() => console.log('3'));
+console.log('4');`,
+      options: ['1, 4, 3, 2', '1, 2, 3, 4', '1, 4, 2, 3', '1, 3, 4, 2'],
+      correctAnswer: 0,
+      subTopic: 'Async & APIs',
+      level: 'Intermediate',
+      explanation: 'Synchronous code runs first ("1", "4"). Microtasks (Promise callbacks) run immediately after synchronous execution completes ("3"). Macrotasks (setTimeout) run in the next tick ("2"). Result: 1, 4, 3, 2.',
+    },
+    {
+      id: 'async_2',
+      question: 'How does Promise.all() behave if one of the promises in the array rejects?',
+      codeSnippet: `Promise.all([fetchA(), fetchB(), fetchC()])
+  .then(results => console.log(results))
+  .catch(err => console.error(err));`,
+      options: [
+        'It rejects immediately with the error of the first rejected promise (fail-fast)',
+        'It waits for all promises to resolve and ignores rejections',
+        'It returns an array containing null for the failed promise',
+        'It retries the failed promise up to 3 times',
+      ],
+      correctAnswer: 0,
+      subTopic: 'Async & APIs',
+      level: 'Intermediate',
+      explanation: 'Promise.all fails fast on the very first rejection. To wait for all outcomes regardless of rejection, use Promise.allSettled().',
+    },
+    {
+      id: 'async_3',
+      question: 'What does an async function always return in JavaScript?',
+      codeSnippet: `async function getValue() {
+  return 42;
+}`,
+      options: [
+        'A Promise that resolves with the return value',
+        'The raw primitive number 42 synchronously',
+        'A callback generator',
         'undefined',
       ],
       correctAnswer: 0,
-      explanation: "'map()' transforms each element and returns a new array of the same length.",
+      subTopic: 'Async & APIs',
+      level: 'Beginner',
+      explanation: 'Async functions always wrap their return value in a Promise (e.g. Promise.resolve(42)).',
     },
     {
-      question: 'Which array method mutates the original array in-place?',
-      options: ['concat()', 'slice()', 'splice()', 'filter()'],
-      correctAnswer: 2,
-      explanation: "'splice()' modifies the array in place, whereas 'slice()', 'concat()', and 'filter()' return new arrays.",
+      id: 'async_4',
+      question: 'What is the correct HTTP status code for a resource created successfully on a REST API?',
+      codeSnippet: '',
+      options: ['201 Created', '200 OK', '204 No Content', '302 Found'],
+      correctAnswer: 0,
+      subTopic: 'Async & APIs',
+      level: 'Beginner',
+      explanation: 'HTTP 201 Created signifies that the request succeeded and resulted in a new resource being created on the server.',
     },
     {
-      question: 'What is `Array.prototype.reduce()` primarily used for?',
+      id: 'async_5',
+      question: 'What is the primary benefit of using AbortController with fetch()?',
+      codeSnippet: `const controller = new AbortController();
+setTimeout(() => controller.abort(), 5000);
+fetch('/api/data', { signal: controller.signal });`,
       options: [
-        'Sorting items alphabetically',
-        'Accumulating array elements into a single summary value, object, or collection',
-        'Removing the last element from an array',
-        'Checking if an array is empty',
+        'It allows cancelling pending HTTP requests to enforce timeouts or prevent unneeded network transfers',
+        'It speeds up API download bandwidth by 50%',
+        'It automatically adds authentication headers to requests',
+        'It converts responses directly to binary buffers',
       ],
-      correctAnswer: 1,
-      explanation: "'reduce()' applies a reducer callback across elements to produce a single accumulated result.",
-    },
-    {
-      question: 'What does `Array.prototype.find()` return if no element satisfies the testing function?',
-      options: ['-1', 'null', 'undefined', '[]'],
-      correctAnswer: 2,
-      explanation: "`find()` returns `undefined` when no element matches (unlike `findIndex()`, which returns `-1`).",
+      correctAnswer: 0,
+      subTopic: 'Async & APIs',
+      level: 'Advanced',
+      explanation: 'AbortController generates an AbortSignal that can be passed to fetch() to cancel in-flight network requests on demand or on timeout.',
     },
   ],
-  'Control Flow': [
+
+  'SQL & Databases': [
     {
-      question: "What is the key difference between '==' and '===' in JavaScript?",
-      options: [
-        "'==' performs type coercion before comparison, whereas '===' strictly checks value and type",
-        "'===' checks value only, while '==' checks both value and type",
-        'They behave identically in modern ECMAScript',
-        "'===' can only compare strings",
-      ],
+      id: 'sql_1',
+      question: 'Which SQL clause is used to filter aggregated grouped data?',
+      codeSnippet: `SELECT department_id, COUNT(*)
+FROM employees
+GROUP BY department_id
+HAVING COUNT(*) > 5;`,
+      options: ['HAVING', 'WHERE', 'ORDER BY', 'LIMIT'],
       correctAnswer: 0,
-      explanation: "'==' converts operands before comparing (loose equality), while '===' compares without coercion.",
+      subTopic: 'SQL & Databases',
+      level: 'Beginner',
+      explanation: 'WHERE filters rows before grouping occurs. HAVING filters aggregate values after GROUP BY is applied.',
     },
     {
-      question: "Which value is NOT considered 'falsy' in JavaScript?",
-      options: ['0', "'' (empty string)", '[] (empty array)', 'null'],
-      correctAnswer: 2,
-      explanation: 'Objects and arrays (including `[]` and `{}`) are always truthy in JavaScript.',
-    },
-    {
-      question: 'What happens if you omit `break` in a `switch` case?',
+      id: 'sql_2',
+      question: 'What is the primary purpose of a database Index (e.g. B-Tree index)?',
+      codeSnippet: `CREATE INDEX idx_user_email ON users(email);`,
       options: [
-        'Execution falls through into the next case block',
-        'JavaScript throws a SyntaxError',
-        'The switch immediately returns null',
-        'Only the default block runs',
+        'Significantly speeds up data retrieval queries (SELECT) at the cost of slight overhead on writes (INSERT/UPDATE)',
+        'Compresses the entire table on disk to zero bytes',
+        'Prevents all SQL injection vulnerabilities automatically',
+        'Encrypts column values with AES-256',
       ],
       correctAnswer: 0,
-      explanation: 'Without `break` or `return`, execution falls through sequentially into subsequent switch cases.',
+      subTopic: 'SQL & Databases',
+      level: 'Beginner',
+      explanation: 'Indexes provide fast lookup paths (O(log n) via B-Trees) for WHERE and JOIN clauses, with minor write overhead for maintenance.',
     },
     {
-      question: 'What bug is caused by writing `if (x = 5)` instead of `if (x === 5)` in C-like languages?',
+      id: 'sql_3',
+      question: 'What does a LEFT JOIN return if there are no matching rows in the right-hand table?',
+      codeSnippet: `SELECT u.name, o.order_id
+FROM users u
+LEFT JOIN orders o ON u.id = o.user_id;`,
       options: [
-        'It assigns 5 to x and evaluates the truthiness of 5 instead of comparing',
-        'It checks strict equality faster',
-        'It automatically declares x as const',
-        'It deletes the variable x',
+        'All rows from the left table, with NULL values for columns from the right table',
+        'Only rows that have matching entries in both tables',
+        'An empty result set',
+        'A database integrity error',
       ],
       correctAnswer: 0,
-      explanation: 'A single `=` is an assignment operator, not a comparison operator.',
+      subTopic: 'SQL & Databases',
+      level: 'Intermediate',
+      explanation: 'LEFT JOIN keeps every record from the left table (users); if no match exists in the right table (orders), right table columns are populated with NULL.',
     },
     {
-      question: 'What does the nullish coalescing operator (`a ?? b`) do?',
+      id: 'sql_4',
+      question: 'What are the ACID properties in relational database transactions?',
+      codeSnippet: '',
       options: [
-        'Returns `b` only when `a` is `null` or `undefined`',
-        'Returns `b` whenever `a` is 0 or empty string',
-        'Throws an error if `a` is null',
-        'Converts `a` to a boolean',
+        'Atomicity, Consistency, Isolation, Durability',
+        'Asynchronous, Cached, Indexed, Distributed',
+        'Availability, Concurrency, Integrity, Delivery',
+        'Authentication, Cipher, Inspection, Decryption',
       ],
       correctAnswer: 0,
-      explanation: '`??` only falls back to the right-hand operand when the left-hand side is `null` or `undefined` (preserving `0` and `""`).',
+      subTopic: 'SQL & Databases',
+      level: 'Intermediate',
+      explanation: 'ACID guarantees database transaction reliability: Atomicity (all-or-nothing), Consistency (valid state transitions), Isolation (independent transactions), and Durability (persisted commits).',
+    },
+    {
+      id: 'sql_5',
+      question: 'How do Parameterized Queries (Prepared Statements) prevent SQL Injection attacks?',
+      codeSnippet: `// Secure parameter binding:
+db.query('SELECT * FROM users WHERE email = $1', [userEmail]);`,
+      options: [
+        'They treat user inputs strictly as data literals rather than executable SQL syntax',
+        'They escape characters by deleting all quotes from input strings',
+        'They run queries in a temporary isolated sandbox',
+        'They convert SQL queries into JavaScript JSON objects',
+      ],
+      correctAnswer: 0,
+      subTopic: 'SQL & Databases',
+      level: 'Advanced',
+      explanation: 'Prepared statements separate query structure from parameters, preventing attacker input from altering the compiled SQL command tree.',
     },
   ],
-  'Async and Promises': [
+
+  'Debugging & Output Prediction': [
     {
-      question: 'What are the three possible states of a JavaScript Promise?',
+      id: 'debug_1',
+      question: 'What bug occurs when running this loop over an array of size n?',
+      codeSnippet: `function printAll(arr) {
+  for (let i = 0; i <= arr.length; i++) {
+    console.log(arr[i].toUpperCase());
+  }
+}`,
       options: [
-        'pending, fulfilled, rejected',
-        'starting, working, finished',
-        'open, resolving, closed',
-        'active, paused, stopped',
+        'TypeError: Cannot read properties of undefined on the final iteration (off-by-one bug: i <= arr.length)',
+        'SyntaxError: Invalid loop condition',
+        'The loop skips the first element of arr',
+        'Memory leak caused by console.log',
       ],
       correctAnswer: 0,
-      explanation: 'A Promise is always pending, fulfilled, or rejected.',
+      subTopic: 'Debugging & Output Prediction',
+      level: 'Beginner',
+      explanation: 'Arrays are 0-indexed with valid elements from 0 to length - 1. Using i <= arr.length accesses arr[arr.length] which is undefined, throwing a TypeError when calling .toUpperCase().',
     },
     {
-      question: "What does an 'async' function declaration always return?",
-      options: ['A Promise', 'A Callback Function', 'A Generator Object', 'undefined'],
+      id: 'debug_2',
+      question: 'What will be output by this code demonstrating reference mutation in JavaScript?',
+      codeSnippet: `const original = [1, 2, 3];
+const alias = original;
+alias.push(4);
+console.log(original.length, alias.length);`,
+      options: ['4 4', '3 4', '4 3', 'TypeError: Assignment to constant variable'],
       correctAnswer: 0,
-      explanation: 'Async functions always wrap their return value in a Promise.',
+      subTopic: 'Debugging & Output Prediction',
+      level: 'Beginner',
+      explanation: 'Objects and arrays are assigned by reference. `alias` points to the exact same array in heap memory as `original`, so mutating `alias` also affects `original`.',
     },
     {
-      question: 'How does `Promise.all([p1, p2])` behave if one of the Promises rejects?',
+      id: 'debug_3',
+      question: 'What will be printed to the console due to IEEE 754 floating-point representation?',
+      codeSnippet: `console.log(0.1 + 0.2 === 0.3);`,
+      options: ['false', 'true', 'undefined', 'NaN'],
+      correctAnswer: 0,
+      subTopic: 'Debugging & Output Prediction',
+      level: 'Intermediate',
+      explanation: 'Binary floating-point arithmetic represents numbers in base-2 fractions. 0.1 + 0.2 evaluates to 0.30000000000000004, which strictly does not equal 0.3.',
+    },
+    {
+      id: 'debug_4',
+      question: 'What is the output of this code checking NaN equality?',
+      codeSnippet: `const val = NaN;
+console.log(val === NaN, Number.isNaN(val));`,
+      options: ['false true', 'true true', 'false false', 'true false'],
+      correctAnswer: 0,
+      subTopic: 'Debugging & Output Prediction',
+      level: 'Intermediate',
+      explanation: 'In JavaScript and IEEE standards, NaN is the only value not equal to itself (`NaN === NaN` is false). Number.isNaN() is the correct method to test for NaN.',
+    },
+    {
+      id: 'debug_5',
+      question: 'What is the output of this postfix increment snippet?',
+      codeSnippet: `let count = 5;
+const result = count++;
+console.log(result, count);`,
+      options: ['5 6', '6 6', '5 5', '6 5'],
+      correctAnswer: 0,
+      subTopic: 'Debugging & Output Prediction',
+      level: 'Beginner',
+      explanation: 'Postfix increment (`count++`) returns the value BEFORE incrementing, and then increments the variable. Thus result is 5 and count becomes 6.',
+    },
+    {
+      id: 'debug_6',
+      question: 'What bug causes this debounce helper to lose its timer reference across calls?',
+      codeSnippet: `function debounce(fn, delay) {
+  return function(...args) {
+    let timer;
+    clearTimeout(timer);
+    timer = setTimeout(() => fn.apply(this, args), delay);
+  };
+}`,
       options: [
-        'It immediately rejects with that rejection reason',
-        'It waits for all Promises and ignores errors',
-        'It returns only the resolved Promises',
-        'It retries the rejected Promise automatically',
+        '`let timer` is declared inside the returned function, re-creating it on every call instead of enclosing it in the outer scope',
+        '`setTimeout` cannot take arguments',
+        '`clearTimeout` throws an error on undefined',
+        '`fn.apply` is deprecated',
       ],
       correctAnswer: 0,
-      explanation: '`Promise.all` fails fast on the first rejection; use `Promise.allSettled` to collect all outcomes.',
-    },
-    {
-      question: 'What is the proper way to handle errors when awaiting a Promise inside an `async` function?',
-      options: [
-        'Wrap the await expression in a `try...catch` block',
-        'Use `switch...case` around await',
-        'Place `return null` before await',
-        'Async functions never throw errors',
-      ],
-      correctAnswer: 0,
-      explanation: 'Rejected awaited Promises throw exceptions that can be caught cleanly with `try...catch`.',
-    },
-    {
-      question: 'Why is `Promise.all` often faster than sequential `await` calls for independent requests?',
-      options: [
-        'It starts the asynchronous operations concurrently instead of waiting for each one before starting the next',
-        'It compresses HTTP headers automatically',
-        'It disables error checking',
-        'It runs each request on a separate CPU core synchronously',
-      ],
-      correctAnswer: 0,
-      explanation: 'Running independent async I/O concurrently avoids stacking their wait latencies.',
-    },
-  ],
-  'Data Structures & OOP': [
-    {
-      question: 'Which data structure follows the Last-In, First-Out (LIFO) principle?',
-      options: ['Queue', 'Stack', 'Hash Table', 'Linked List'],
-      correctAnswer: 1,
-      explanation: 'A Stack pushes and pops elements from the top, following LIFO order.',
-    },
-    {
-      question: 'Which data structure follows the First-In, First-Out (FIFO) principle?',
-      options: ['Stack', 'Queue', 'Binary Tree', 'Set'],
-      correctAnswer: 1,
-      explanation: 'A Queue enqueues at the back and dequeues from the front (FIFO).',
-    },
-    {
-      question: 'What is the average time complexity of a key lookup in a Hash Table / Map?',
-      options: ['O(1)', 'O(log n)', 'O(n)', 'O(n log n)'],
-      correctAnswer: 0,
-      explanation: 'Hash tables compute bucket indices directly from keys for O(1) average lookup.',
-    },
-    {
-      question: 'What is encapsulation in Object-Oriented Programming?',
-      options: [
-        'Bundling data and methods together while restricting direct external access to internal state',
-        'Duplicating class code across multiple files',
-        'Converting all variables into global constants',
-        'Writing programs without functions',
-      ],
-      correctAnswer: 0,
-      explanation: 'Encapsulation hides internal state behind a public interface to protect invariants.',
-    },
-    {
-      question: 'What is the main advantage of a Set over an Array for membership checks (`has` vs `includes`)?',
-      options: [
-        'Set lookups run in O(1) average time and enforce uniqueness, whereas Array.includes is O(n)',
-        'Set preserves duplicate entries automatically',
-        'Array.includes is always faster for 1,000,000 items',
-        'Sets can only store integers',
-      ],
-      correctAnswer: 0,
-      explanation: 'Sets use hash-based indexing for O(1) average lookup instead of linear O(n) scanning.',
-    },
-  ],
-  Complexity: [
-    {
-      question: 'What is the time complexity of a single loop iterating over `n` elements with O(1) work per step?',
-      options: ['O(1)', 'O(log n)', 'O(n)', 'O(n^2)'],
-      correctAnswer: 2,
-      explanation: 'Visiting each of `n` elements once takes linear time O(n).',
-    },
-    {
-      question: 'What is the time complexity of Binary Search on a sorted array of `n` elements?',
-      options: ['O(1)', 'O(log n)', 'O(n)', 'O(n^2)'],
-      correctAnswer: 1,
-      explanation: 'Binary search halves the remaining search space each step, yielding O(log n) time.',
-    },
-    {
-      question: 'What is the typical time complexity of two nested loops each running `n` times?',
-      options: ['O(n)', 'O(n log n)', 'O(n^2)', 'O(2^n)'],
-      correctAnswer: 2,
-      explanation: 'For each of `n` outer steps, the inner loop performs `n` steps: `n * n = O(n^2)`.',
-    },
-    {
-      question: 'What does Big-O space complexity measure?',
-      options: [
-        'How much additional memory an algorithm allocates relative to input size `n`',
-        'The number of lines of source code',
-        'The CPU clock speed in GHz',
-        'The disk size of the compiled file',
-      ],
-      correctAnswer: 0,
-      explanation: 'Space complexity characterizes memory usage growth as input size `n` increases.',
-    },
-    {
-      question: 'Why does a recursive function without tail-call optimization take O(n) space for recursion depth `n`?',
-      options: [
-        'Each active recursive call pushes a frame onto the call stack until base cases unwind',
-        'Recursion stores every variable on disk',
-        'JavaScript copies the entire heap on each return',
-        'Recursion uses O(n^2) memory per call',
-      ],
-      correctAnswer: 0,
-      explanation: 'Each pending call frame stays on the call stack until the recursion reaches its base case.',
-    },
-  ],
-  'Recursion & Algorithms': [
-    {
-      question: 'What is essential to prevent a recursive function from causing a stack overflow?',
-      options: [
-        'A well-defined base case that stops recursion',
-        'Using global variables inside the function',
-        'Adding a setTimeout delay on each call',
-        'Calling the function inside a while(true) loop',
-      ],
-      correctAnswer: 0,
-      explanation: 'Every recursive function requires a reachable base case so the call stack can unwind.',
-    },
-    {
-      question: 'Which algorithmic technique caches previously computed subproblem results to avoid redundant work?',
-      options: ['Memoization (Dynamic Programming)', 'Brute-force polling', 'Infinite looping', 'Bubble sorting'],
-      correctAnswer: 0,
-      explanation: 'Memoization stores subproblem results so overlapping calls return in O(1).',
-    },
-    {
-      question: 'What condition must hold before applying Binary Search to an array?',
-      options: ['The array must be sorted', 'The array length must be prime', 'All values must be negative', 'The array must contain strings'],
-      correctAnswer: 0,
-      explanation: 'Binary search relies on sorted ordering to discard half of the elements per comparison.',
-    },
-    {
-      question: 'What is the worst-case time complexity of Merge Sort on `n` elements?',
-      options: ['O(n)', 'O(n log n)', 'O(n^2)', 'O(log n)'],
-      correctAnswer: 1,
-      explanation: 'Merge Sort splits in log n levels and merges n elements per level, guaranteeing O(n log n).',
-    },
-    {
-      question: 'What problem does a two-pointer approach commonly solve in O(n) time on sorted arrays?',
-      options: [
-        'Finding a pair of elements that sum to a target',
-        'Compiling C++ templates',
-        'Hashing passwords securely',
-        'Parsing arbitrary nested XML',
-      ],
-      correctAnswer: 0,
-      explanation: 'Two pointers converging from both ends inspect sorted pairs in a single linear pass.',
-    },
-  ],
-  'Exception Handling': [
-    {
-      question: "In a `try...catch...finally` block, when does the 'finally' block execute?",
-      options: [
-        'Only if an exception is thrown',
-        'Only if no exception occurs',
-        'Always, regardless of whether an exception was thrown or caught',
-        'Only when return is omitted',
-      ],
-      correctAnswer: 2,
-      explanation: 'The `finally` block always runs for cleanup after `try` and `catch` complete.',
-    },
-    {
-      question: 'Why is a bare `except:` clause discouraged in Python?',
-      options: [
-        'It catches system signals like KeyboardInterrupt and SystemExit, hiding real failures',
-        'Python does not allow catching exceptions',
-        'It makes the code run twice as slow on every line',
-        'It deletes local variables automatically',
-      ],
-      correctAnswer: 0,
-      explanation: 'Catching specific exception classes (e.g., `except ValueError as e:`) avoids masking critical exits.',
-    },
-    {
-      question: 'Why is swallowing exceptions in an empty `catch (err) {}` block dangerous?',
-      options: [
-        'Failures occur silently, making bugs hard to diagnose and leaving invalid state',
-        'Empty catch blocks cause syntax errors in JavaScript',
-        'It automatically restarts the server',
-        'It doubles memory usage',
-      ],
-      correctAnswer: 0,
-      explanation: 'Always log, handle, or rethrow caught errors rather than silently ignoring them.',
-    },
-    {
-      question: 'What should you throw in JavaScript when signaling an error?',
-      options: ['An `Error` instance (`throw new Error(...)`)', 'Only a boolean `false`', 'A random integer', 'undefined'],
-      correctAnswer: 0,
-      explanation: 'Throwing `Error` objects preserves stack traces and diagnostic messages.',
-    },
-    {
-      question: 'Where should input validation happen in a web API?',
-      options: [
-        'Only in browser CSS',
-        'On both client (UX) and server (security/data integrity)',
-        'Never, databases validate everything automatically',
-        'Only in production logs',
-      ],
-      correctAnswer: 1,
-      explanation: 'Client validation aids UX while server validation enforces integrity against arbitrary requests.',
-    },
-  ],
-  'Syntax & Debugging': [
-    {
-      question: 'What causes `SyntaxError: Unexpected end of input` in JavaScript?',
-      options: [
-        'An unclosed brace `{`, parenthesis `(`, bracket `[`, or string literal',
-        'A slow network connection',
-        'Using `const` instead of `let`',
-        'Dividing by 2',
-      ],
-      correctAnswer: 0,
-      explanation: 'The parser reached the end of the file while expecting a closing delimiter or expression.',
-    },
-    {
-      question: 'What causes a `ReferenceError: x is not defined` at runtime?',
-      options: [
-        'Reading an undeclared variable or one outside its block/function scope',
-        'Assigning a number to a let variable',
-        'Using strict equality `===`',
-        'Calling `console.log()` with a string',
-      ],
-      correctAnswer: 0,
-      explanation: 'A ReferenceError occurs when referencing an identifier that does not exist in the current scope.',
-    },
-    {
-      question: 'In Python, what error is raised when `:` is omitted at the end of a `def` or `if` header?',
-      options: ['SyntaxError', 'ZeroDivisionError', 'KeyError', 'ImportError'],
-      correctAnswer: 0,
-      explanation: 'Python requires a trailing colon `:` to introduce indented block headers.',
-    },
-    {
-      question: 'What is the most reliable way to fix a `TypeError: Cannot read properties of undefined`?',
-      options: [
-        'Guard against null/undefined values (e.g. optional chaining `?.` or early checks) before accessing properties',
-        'Ignore the error in an empty catch block',
-        'Replace `const` with `var`',
-        'Wrap the file in a while(true) loop',
-      ],
-      correctAnswer: 0,
-      explanation: 'Checking for null/undefined before dereferencing prevents runtime TypeErrors.',
-    },
-    {
-      question: 'Why should mutable defaults like `def add_item(items=[])` be avoided in Python?',
-      options: [
-        'Default list/dict objects are created once at definition time and shared across all calls',
-        'Python forbids lists as parameters',
-        'It raises a SyntaxError on import',
-        'It converts the list into a tuple',
-      ],
-      correctAnswer: 0,
-      explanation: 'Use `None` as the default and create a fresh list inside the function body.',
+      subTopic: 'Debugging & Output Prediction',
+      level: 'Advanced',
+      explanation: 'To debounce properly, `let timer;` must be declared in the outer `debounce` function scope so the closure retains the timer ID across consecutive calls.',
     },
   ],
 };
 
+// Aliases mapping user search terms / route params to curated bank keys
 const TOPIC_ALIASES = [
-  { pattern: /func|scope|closure/i, key: 'Functions' },
-  { pattern: /var|type|primitive|immutab/i, key: 'Variables and Data Types' },
-  { pattern: /loop|iter|for|while/i, key: 'Loops' },
-  { pattern: /array|list|map|filter|reduce/i, key: 'Arrays' },
-  { pattern: /control|cond|switch|equality|truthy/i, key: 'Control Flow' },
-  { pattern: /async|promise|await/i, key: 'Async and Promises' },
-  { pattern: /stack|queue|hash|tree|graph|oop|class|data struct/i, key: 'Data Structures & OOP' },
-  { pattern: /complex|big[\s-]?o|time|space/i, key: 'Complexity' },
-  { pattern: /recurs|algo|sort|search|dp|memo/i, key: 'Recursion & Algorithms' },
-  { pattern: /except|try|catch|error handl/i, key: 'Exception Handling' },
-  { pattern: /syntax|debug|parse|typo/i, key: 'Syntax & Debugging' },
+  { pattern: /mixed|overall|general|all/i, key: 'Mixed / Overall Coding Quiz' },
+  { pattern: /func|scope|closure/i, key: 'Functions & Scope' },
+  { pattern: /array|string|list|slice/i, key: 'Arrays & Strings' },
+  { pattern: /stack|queue|tree|graph|hash|set|map|data struct/i, key: 'Data Structures' },
+  { pattern: /algo|big[\s-]?o|complex|sort|search|dp|recur/i, key: 'Algorithms & Big-O' },
+  { pattern: /oop|class|inherit|polymorph|encapsul/i, key: 'OOP Concepts' },
+  { pattern: /async|promise|await|api|fetch|event loop/i, key: 'Async & APIs' },
+  { pattern: /sql|database|query|table|join/i, key: 'SQL & Databases' },
+  { pattern: /debug|output|predict|typo|syntax|error/i, key: 'Debugging & Output Prediction' },
+  { pattern: /var|type|primitive/i, key: 'Functions & Scope' },
+  { pattern: /loop|iter/i, key: 'Debugging & Output Prediction' },
 ];
 
 const shuffleArray = (arr) => {
@@ -1160,82 +1380,184 @@ const shuffleArray = (arr) => {
   return copy;
 };
 
-const getCuratedQuizForTopics = (weakTopics = []) => {
-  const matchedKeys = [];
-  for (const raw of weakTopics || []) {
-    const lower = String(raw || '').toLowerCase();
+const getCuratedQuizForTopics = (weakTopics = [], options = {}) => {
+  const reqTopic =
+    typeof options === 'string'
+      ? options
+      : options?.topic || weakTopics?.[0] || 'Mixed / Overall Coding Quiz';
+  const level = ['Beginner', 'Intermediate', 'Advanced'].includes(options?.level)
+    ? options.level
+    : 'Beginner';
+  const targetCount =
+    Number.isInteger(options?.count) && options.count > 0
+      ? options.count
+      : level === 'Advanced'
+      ? 15
+      : level === 'Intermediate'
+      ? 10
+      : 5;
+
+  const isMixed = /mixed|overall|general|all/i.test(reqTopic);
+
+  let pool = [];
+  if (isMixed) {
+    const mixedKeys = [
+      'Data Structures',
+      'Algorithms & Big-O',
+      'Debugging & Output Prediction',
+      'Functions & Scope',
+      'OOP Concepts',
+    ];
+    mixedKeys.forEach((k) => {
+      if (CURATED_QUESTIONS_BY_TOPIC[k]) {
+        pool.push(...CURATED_QUESTIONS_BY_TOPIC[k]);
+      }
+    });
+  } else {
+    const lower = reqTopic.toLowerCase();
     const directKey = Object.keys(CURATED_QUESTIONS_BY_TOPIC).find(
-      (k) => k.toLowerCase() === lower || k.toLowerCase().includes(lower) || lower.includes(k.toLowerCase())
+      (k) =>
+        k.toLowerCase() === lower ||
+        k.toLowerCase().includes(lower) ||
+        lower.includes(k.toLowerCase())
     );
     if (directKey) {
-      matchedKeys.push(directKey);
-      continue;
+      pool.push(...CURATED_QUESTIONS_BY_TOPIC[directKey]);
+    } else {
+      const alias = TOPIC_ALIASES.find((a) => a.pattern.test(lower));
+      if (alias && CURATED_QUESTIONS_BY_TOPIC[alias.key]) {
+        pool.push(...CURATED_QUESTIONS_BY_TOPIC[alias.key]);
+      }
     }
-    const alias = TOPIC_ALIASES.find((a) => a.pattern.test(lower));
-    if (alias) matchedKeys.push(alias.key);
   }
 
-  const uniqueKeys = [...new Set(matchedKeys)];
+  // Fallback to all topics if pool is still empty
+  if (pool.length === 0) {
+    pool = Object.values(CURATED_QUESTIONS_BY_TOPIC).flat();
+  }
 
-  // Strictly prioritize topic-aligned questions first without polluting with unrelated topics
-  let primaryPool = uniqueKeys.flatMap((k) => CURATED_QUESTIONS_BY_TOPIC[k] || []);
-  primaryPool = shuffleArray(primaryPool);
+  // Prioritize matching difficulty level
+  const levelMatching = pool.filter(
+    (q) => !q.level || q.level.toLowerCase() === level.toLowerCase()
+  );
+  const otherLevels = pool.filter(
+    (q) => q.level && q.level.toLowerCase() !== level.toLowerCase()
+  );
 
-  let selected = primaryPool.slice(0, 5);
+  let candidates = shuffleArray(levelMatching).concat(shuffleArray(otherLevels));
+  let selected = candidates.slice(0, targetCount);
 
-  // Only fill remaining slots if matched topics together had < 5 questions
-  if (selected.length < 5) {
-    const selectedSet = new Set(selected.map((q) => q.question));
-    const fallbackPool = shuffleArray(
+  // If still fewer than targetCount, supplement from entire bank without duplicates
+  if (selected.length < targetCount) {
+    const existingQuestions = new Set(selected.map((q) => q.question));
+    const allRemaining = shuffleArray(
       Object.values(CURATED_QUESTIONS_BY_TOPIC)
         .flat()
-        .filter((q) => !selectedSet.has(q.question))
+        .filter((q) => !existingQuestions.has(q.question))
     );
-    selected = selected.concat(fallbackPool.slice(0, 5 - selected.length));
+    selected = selected.concat(allRemaining.slice(0, targetCount - selected.length));
   }
 
-  const randomizedQuestions = selected.map((q) => {
+  const randomizedQuestions = selected.map((q, idx) => {
     const correctText = q.options[q.correctAnswer];
     const shuffledOptions = shuffleArray(q.options);
     return {
+      id: q.id || `curated_${idx + 1}`,
       question: q.question,
+      codeSnippet: q.codeSnippet || '',
+      subTopic: q.subTopic || (isMixed ? 'General' : reqTopic),
       options: shuffledOptions,
       correctAnswer: shuffledOptions.indexOf(correctText),
-      explanation: q.explanation,
+      explanation: q.explanation || 'Reviewed by Code Review Buddy curriculum team.',
     };
   });
 
   return { questions: randomizedQuestions };
 };
 
-const getFallbackQuiz = (weakTopics = []) => getCuratedQuizForTopics(weakTopics);
+const getFallbackQuiz = (weakTopics = [], options = {}) =>
+  getCuratedQuizForTopics(weakTopics, options);
 
-const generateQuizInternal = async (weakTopics = []) => {
-  const normalizedKey = (weakTopics || [])
-    .map((t) => t.toLowerCase().replace(/[^a-z0-9]/g, ''))
-    .sort()
-    .join('_') || 'default_quiz';
+const generateQuizInternal = async (weakTopics = [], options = {}) => {
+  const topic =
+    typeof options === 'string'
+      ? options
+      : options?.topic || weakTopics?.[0] || 'Mixed / Overall Coding Quiz';
+  const level = ['Beginner', 'Intermediate', 'Advanced'].includes(options?.level)
+    ? options.level
+    : 'Beginner';
+  const language =
+    options?.language && options.language !== 'Any / General'
+      ? options.language.toLowerCase()
+      : 'general';
+  const count =
+    Number.isInteger(options?.count) && options.count > 0
+      ? options.count
+      : level === 'Advanced'
+      ? 15
+      : level === 'Intermediate'
+      ? 10
+      : 5;
 
-  // 1. Sub-millisecond Cache Check (Upstash Redis or in-memory)
+  const normalizedKey = [
+    'quiz',
+    topic.toLowerCase().replace(/[^a-z0-9]/g, ''),
+    level.toLowerCase(),
+    language,
+    count,
+  ].join('_');
+
+  // 1. Sub-millisecond Cache Check
   const cached = await getQuizCache(normalizedKey);
-  if (cached && Array.isArray(cached.questions) && cached.questions.length >= 5) {
-    // Re-shuffle curated order slightly if cache hit, keeping options accurate
-    return cached;
+  if (cached && Array.isArray(cached.questions) && cached.questions.length >= count) {
+    return { questions: cached.questions.slice(0, count) };
   }
 
-  // 2. Ultra-Fast AI Race (Capped at 3.5s)
+  // 2. High-Quality Gemini AI Question Generation
   if (!hasGeminiKey()) {
     console.warn('[AI Quiz Generation] GEMINI_API_KEY missing or placeholder; using curated topic bank.');
-    return getCuratedQuizForTopics(weakTopics);
+    return getCuratedQuizForTopics(weakTopics, { topic, level, language, count });
   }
 
   try {
-    const topicList = weakTopics.length > 0 ? weakTopics.join(', ') : 'JavaScript Core Fundamentals';
-    const prompt = `You are a programming quiz generator. Generate exactly 5 multiple-choice questions on these topics: ${topicList}. Return ONLY valid JSON matching the schema.`;
+    const isMixed = /mixed|overall|general/i.test(topic);
+    const langPrompt =
+      language !== 'general'
+        ? `Use ${language} for all code snippets and examples.`
+        : 'Use standard JavaScript or Python for code snippets.';
+
+    const prompt = `You are a programming quiz generator and senior technical interviewer.
+Generate exactly ${count} high-quality, non-trivial multiple-choice questions for a student at the "${level}" difficulty level.
+
+TOPIC: ${topic}
+${
+  isMixed
+    ? 'This is a Mixed / Overall Coding Quiz. Evenly distribute questions across these 5 core domains: "Data Structures", "Algorithms & Big-O", "Debugging & Output Prediction", "Functions & Scope", "OOP Concepts". Tag each question with its domain in the "subTopic" field.'
+    : `All questions must focus on "${topic}". Tag each question with the specific sub-concept tested in the "subTopic" field.`
+}
+
+DIFFICULTY LEVEL: ${level}
+- Beginner (5 questions): Focus on core fundamentals, basic syntax rules, control flow, type behavior, and simple execution traces.
+- Intermediate (10 questions): Focus on edge cases, mutation vs immutability, bug spotting in code, time/space complexity, and practical patterns.
+- Advanced (15 questions): Focus on tricky runtime outputs, recursion limits, asynchronous race conditions, memory pitfalls, and algorithmic optimization trade-offs.
+
+LANGUAGE: ${langPrompt}
+
+CRITICAL RULES:
+1. CODE SNIPPETS: At least 40% to 50% of the questions MUST include a clean, concise code snippet (in the "codeSnippet" field). The question can ask what it outputs, which line has a bug, or its Big-O time complexity. For purely conceptual questions without code, set "codeSnippet" to "".
+2. OPTIONS: Provide exactly 4 distinct, plausible options. Only ONE option must be correct. Avoid low-effort distractors like "All of the above" or "None of the above".
+3. CORRECT ANSWER: "correctAnswer" must be the 0-indexed integer (0, 1, 2, or 3) of the correct option in "options".
+4. EXPLANATION: Provide a beginner-friendly explanation ("explanation") explaining why the correct choice is right and why common distractors are wrong.
+
+Return ONLY a valid JSON object matching the schema.`;
 
     const validated = await generateJsonWithFallback(getQuizModel, prompt, aiQuizResponseSchema, 45000);
-    await setQuizCache(normalizedKey, validated, 43200);
-    return validated;
+    if (validated?.questions?.length >= count) {
+      const trimmed = { questions: validated.questions.slice(0, count) };
+      await setQuizCache(normalizedKey, trimmed, 43200);
+      return trimmed;
+    }
+    return getCuratedQuizForTopics(weakTopics, { topic, level, language, count });
   } catch (error) {
     console.error(
       '[Gemini Quiz Error]',
@@ -1243,7 +1565,7 @@ const generateQuizInternal = async (weakTopics = []) => {
       error?.code ?? error?.name ?? 'UNKNOWN',
       sanitizeAiErrorMessage(error?.message || String(error))
     );
-    return getCuratedQuizForTopics(weakTopics);
+    return getCuratedQuizForTopics(weakTopics, { topic, level, language, count });
   }
 };
 
@@ -1696,7 +2018,7 @@ Return ONLY valid JSON matching this structure:
 };
 
 const reviewCode = (code, language) => aiQueue.add(() => reviewCodeInternal(code, language));
-const generateQuiz = (weakTopics) => aiQueue.add(() => generateQuizInternal(weakTopics));
+const generateQuiz = (weakTopics, options) => aiQueue.add(() => generateQuizInternal(weakTopics, options));
 const generateRoadmap = (weakTopics, studentName, options) =>
   aiQueue.add(() => generateRoadmapInternal(weakTopics, studentName, options));
 

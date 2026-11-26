@@ -127,7 +127,7 @@ const quizSubmitSchema = z.object({
   answers: z
     .array(
       z.object({
-        questionIndex: z.number().int().min(0),
+        questionIndex: z.number().int().min(0).max(50),
         selectedOption: z.number().int().min(0).max(3).nullable(),
       })
     )
@@ -469,18 +469,73 @@ const aiReviewResponseSchema = z.preprocess(
   })
 );
 
-const aiQuizResponseSchema = z.object({
-  questions: z
-    .array(
-      z.object({
-        question: z.string(),
-        options: z.array(z.string()).min(2).max(4),
-        correctAnswer: z.coerce.number().int().min(0).max(3),
-        explanation: z.string().optional().default(''),
-      })
-    )
-    .min(1),
-});
+const normalizeQuizPayload = (raw) => {
+  if (!raw || typeof raw !== 'object') return { questions: [] };
+  const rawQuestions = Array.isArray(raw.questions) ? raw.questions : [];
+  const questions = rawQuestions
+    .map((q, idx) => {
+      if (!q || typeof q !== 'object') return null;
+      const questionText = String(q.question || q.prompt || q.text || '').trim();
+      if (!questionText) return null;
+
+      let rawOptions = Array.isArray(q.options)
+        ? q.options.map((opt) => String(opt || '').trim()).filter(Boolean)
+        : [];
+      if (rawOptions.length < 2) return null;
+      if (rawOptions.length > 4) rawOptions = rawOptions.slice(0, 4);
+      while (rawOptions.length < 4) {
+        rawOptions.push(`Option ${String.fromCharCode(65 + rawOptions.length)}`);
+      }
+
+      let correct = q.correctAnswer ?? q.correctIndex ?? q.answerIndex ?? q.answer;
+      if (typeof correct === 'string') {
+        const trimmed = correct.trim();
+        if (/^[A-D]$/i.test(trimmed)) {
+          correct = trimmed.toUpperCase().charCodeAt(0) - 65;
+        } else {
+          const parsed = parseInt(trimmed, 10);
+          correct = Number.isFinite(parsed) ? parsed : 0;
+        }
+      }
+      correct = clampInt(correct, 0, 3, 0);
+
+      const codeSnippet = String(q.codeSnippet ?? q.snippet ?? q.code ?? '').trim();
+      const subTopic = String(q.subTopic ?? q.topic ?? q.category ?? q.domain ?? '').trim();
+      const explanation = String(q.explanation ?? q.reason ?? q.details ?? '').trim();
+
+      return {
+        id: String(q.id || `q_${idx + 1}`),
+        question: questionText,
+        codeSnippet,
+        subTopic,
+        options: rawOptions,
+        correctAnswer: correct,
+        explanation,
+      };
+    })
+    .filter(Boolean);
+
+  return { questions };
+};
+
+const aiQuizResponseSchema = z.preprocess(
+  normalizeQuizPayload,
+  z.object({
+    questions: z
+      .array(
+        z.object({
+          id: z.string().optional(),
+          question: z.string().min(1),
+          codeSnippet: z.string().optional().default(''),
+          subTopic: z.string().optional().default(''),
+          options: z.array(z.string()).min(4).max(4),
+          correctAnswer: z.coerce.number().int().min(0).max(3),
+          explanation: z.string().optional().default(''),
+        })
+      )
+      .min(1),
+  })
+);
 
 const normalizeRoadmapPayload = (raw) => {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return raw;
