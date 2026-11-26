@@ -147,12 +147,32 @@ export default function ReviewDetailPage() {
   if (error) return <ErrorMessage message={error} onRetry={fetchReview} />;
   if (!review) return null;
 
+  const hasCriticalErrors =
+    review.score < 50 ||
+    review.bugs?.some((b) =>
+      /syntax error|unclosed|unterminated|unexpected closing|missing colon|division by zero|mismatch|misspelled|without where/i.test(
+        b.title || ''
+      )
+    );
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       {/* Top navigation */}
       <button onClick={() => navigate(-1)} className="btn btn-ghost btn-sm gap-1.5 text-gray-500">
         <ArrowLeft size={16} /> Back to History
       </button>
+
+      {hasCriticalErrors && (
+        <div className="card p-4 bg-red-50 border border-red-300 text-red-800 flex items-start gap-3">
+          <AlertTriangle size={20} className="text-red-600 shrink-0 mt-0.5" />
+          <div className="text-sm">
+            <p className="font-bold text-red-900">Code Errors Detected — Needs Fix</p>
+            <p className="mt-0.5 text-red-700">
+              Your submitted {getLanguageLabel(review.language)} code contains syntax or critical errors. Review the error details and hints below to fix them.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Header card with Score & Editable Title */}
       <div className="card p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -162,6 +182,9 @@ export default function ReviewDetailPage() {
               {getLanguageLabel(review.language)}
             </span>
             <span className="text-xs text-gray-400">{formatDate(review.createdAt)}</span>
+            {review.isFallback && (
+              <span className="badge badge-yellow text-[11px]">Static Syntax Analyzer</span>
+            )}
           </div>
 
           {editingTitle ? (

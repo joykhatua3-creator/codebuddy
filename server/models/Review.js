@@ -87,6 +87,14 @@ const reviewSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    isFallback: {
+      type: Boolean,
+      default: false,
+    },
+    analysisVersion: {
+      type: Number,
+      default: 2,
+    },
   },
   {
     timestamps: true,

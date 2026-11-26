@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
-import { Trash2, Radio, Sparkles, Moon, Sun, Maximize2, Minimize2, Globe } from 'lucide-react';
+import { Trash2, Radio, Sparkles, Moon, Sun, Maximize2, Minimize2, Globe, AlertCircle } from 'lucide-react';
 import { reviewService } from '../../services';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { ALL_LANGUAGES, POPULAR_LANGUAGES, getMonacoLanguage, getLanguageLabel } from '../../utils/helpers';
@@ -300,7 +300,10 @@ export default function CodeReviewPage() {
             height="100%"
             language={getMonacoLanguage(language)}
             value={code}
-            onChange={(val) => setCode(val || '')}
+            onChange={(val) => {
+              setCode(val || '');
+              if (error) setError('');
+            }}
             onMount={handleEditorDidMount}
             theme={editorTheme}
             loading={
@@ -382,8 +385,12 @@ export default function CodeReviewPage() {
 
       {/* Error Banner */}
       {error && (
-        <div className="card p-4 bg-red-50 border border-red-200 text-red-700 text-sm">
-          {error}
+        <div className="card p-4 bg-red-50 border border-red-200 text-red-700 text-sm flex items-start gap-2.5">
+          <AlertCircle size={18} className="shrink-0 mt-0.5 text-red-600" />
+          <div>
+            <p className="font-semibold">Invalid Code Submission</p>
+            <p className="mt-0.5">{error}</p>
+          </div>
         </div>
       )}
     </div>
