@@ -161,10 +161,11 @@ export const quizService = {
 };
 
 export const roadmapService = {
-  generate: () => api.post('/roadmap/generate'),
-  get: () => api.get('/roadmap'),
+  generate: (data = {}) => api.post('/roadmap/generate', data),
+  get: (roadmapId) => api.get('/roadmap', { params: roadmapId ? { roadmapId } : {} }),
   updateStep: (stepId, data) => api.patch(`/roadmap/steps/${stepId}`, data),
-  delete: () => api.delete('/roadmap'),
+  resetProgress: (roadmapId) => api.patch(`/roadmap/${roadmapId}/reset`),
+  delete: (roadmapId) => api.delete(roadmapId ? `/roadmap/${roadmapId}` : '/roadmap'),
 };
 
 export const teacherService = {

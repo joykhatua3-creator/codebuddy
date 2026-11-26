@@ -1,9 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const rateLimit = require('express-rate-limit');
-const { generateRoadmap, getRoadmap, updateStep, deleteRoadmap } = require('../controllers/roadmapController');
+const {
+  generateRoadmap,
+  getRoadmap,
+  updateStep,
+  resetRoadmapProgress,
+  deleteRoadmap,
+} = require('../controllers/roadmapController');
 const { protect, authorize } = require('../middleware/auth');
-const { validate, updateRoadmapStepSchema } = require('../validators/schemas');
+const { validate, generateRoadmapSchema, updateRoadmapStepSchema } = require('../validators/schemas');
 
 const aiRateLimit = rateLimit({
   windowMs: 60 * 1000,
@@ -17,9 +23,11 @@ const aiRateLimit = rateLimit({
 router.use(protect);
 router.use(authorize('student'));
 
-router.post('/generate', aiRateLimit, generateRoadmap);
+router.post('/generate', aiRateLimit, validate(generateRoadmapSchema), generateRoadmap);
 router.get('/', getRoadmap);
 router.patch('/steps/:stepId', validate(updateRoadmapStepSchema), updateStep);
+router.patch('/:id/reset', resetRoadmapProgress);
+router.delete('/:id', deleteRoadmap);
 router.delete('/', deleteRoadmap);
 
 module.exports = router;

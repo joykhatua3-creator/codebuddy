@@ -250,6 +250,10 @@ const quizJsonSchema = {
 const roadmapJsonSchema = {
   type: SchemaType.OBJECT,
   properties: {
+    skillName: { type: SchemaType.STRING },
+    level: { type: SchemaType.STRING },
+    language: { type: SchemaType.STRING },
+    totalHours: { type: SchemaType.INTEGER },
     steps: {
       type: SchemaType.ARRAY,
       items: {
@@ -263,15 +267,17 @@ const roadmapJsonSchema = {
           objective: { type: SchemaType.STRING },
           explanation: { type: SchemaType.STRING },
           keyConcepts: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+          subTasks: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
           learningTask: { type: SchemaType.STRING },
           practiceAssignment: { type: SchemaType.STRING },
           starterCode: { type: SchemaType.STRING },
+          language: { type: SchemaType.STRING },
         },
-        required: ['order', 'topic', 'objective'],
+        required: ['order', 'title', 'topic', 'objective', 'keyConcepts', 'subTasks'],
       },
     },
   },
-  required: ['steps'],
+  required: ['skillName', 'level', 'language', 'steps'],
 };
 
 const buildBaseGenerationConfig = ({ modelName, temperature, schemaJson, useResponseSchema, thinkingLevel }) => {
@@ -1299,7 +1305,270 @@ const MODERN_TOPIC_TEMPLATES = {
   }
 };
 
-const getFallbackRoadmap = (weakTopics = [], studentName = 'Student') => {
+const inferSkillLanguage = (skillName = '') => {
+  const s = skillName.toLowerCase();
+  if (s.includes('python') || s.includes('django') || s.includes('fastapi') || s.includes('pandas') || s.includes('ml')) return 'python';
+  if (s.includes('typescript')) return 'typescript';
+  if (s.includes('sql') || s.includes('database') || s.includes('postgres') || s.includes('mysql')) return 'sql';
+  if (s.includes('c++') || s.includes('cpp')) return 'cpp';
+  if (/\bjava\b/.test(s)) return 'java';
+  if (/\bc#\b|csharp|\.net/.test(s)) return 'csharp';
+  if (s.includes('rust')) return 'rust';
+  if (/\bgo\b|golang/.test(s)) return 'go';
+  if (s.includes('kotlin')) return 'kotlin';
+  if (s.includes('swift')) return 'swift';
+  if (s.includes('data structures') || s.includes('algorithms') || s.includes('dynamic programming')) return 'python';
+  return 'javascript';
+};
+
+const SKILL_STEP_BANKS = {
+  python: [
+    {
+      title: 'Python Syntax, Variables & Clean Expressions',
+      topic: 'Variables & Types',
+      estimatedHours: 2,
+      objective: 'Write readable Python using dynamic types, f-strings, and safe input parsing.',
+      explanation: 'Python emphasizes clean indentation and expressive built-in types like int, float, str, and bool.',
+      keyConcepts: ['Dynamic typing & truthiness', 'f-strings & string slicing', 'Type casting & input validation', 'PEP 8 naming rules'],
+      subTasks: ['Practice creating variables and formatting output with f-strings', 'Safely convert user strings to numbers with error checks', 'Refactor variable names to snake_case'],
+      practiceAssignment: 'Write parse_user_age(raw_text) that trims input, checks digits cleanly, and rejects negatives.',
+      starterCode: 'def parse_user_age(raw_text):\n    cleaned = raw_text.strip()\n    # Validate digits and return integer age or None\n    return None\n\nprint(parse_user_age(" 21 "))',
+    },
+    {
+      title: 'Lists, Dictionaries & Sets in Practice',
+      topic: 'Collections',
+      estimatedHours: 3,
+      objective: 'Store, group, and look up items in O(1) time with dictionaries and sets.',
+      explanation: 'Lists preserve ordered items, sets enforce uniqueness with fast membership checks, and dicts map keys to values.',
+      keyConcepts: ['List slicing & comprehensions', 'Dict .get() & frequency counters', 'Set operations for O(1) lookups', 'Avoiding mutable default arguments'],
+      subTasks: ['Build a frequency dictionary counting word occurrences', 'Convert a slow list membership check into a set lookup', 'Write a clean list comprehension filter'],
+      practiceAssignment: 'Count frequency of each word in a sentence and return words appearing more than once.',
+      starterCode: 'def duplicate_words(sentence):\n    counts = {}\n    for word in sentence.lower().split():\n        counts[word] = counts.get(word, 0) + 1\n    return [w for w, c in counts.items() if c > 1]\n\nprint(duplicate_words("code review buddy code"))',
+    },
+    {
+      title: 'Functions, Scope & Defensive Return Paths',
+      topic: 'Functions & Scope',
+      estimatedHours: 3,
+      objective: 'Design modular Python functions with clear parameters, docstrings, and zero mutable defaults.',
+      explanation: 'Small single-purpose functions make code reusable and keep bugs isolated and easy to test.',
+      keyConcepts: ['Default parameters without [] or {}', 'Early return guard clauses', '*args and **kwargs basics', 'Tuple unpacking'],
+      subTasks: ['Split a multi-step calculation into helper functions', 'Replace mutable default lists with None', 'Add early-return validation at the top of each function'],
+      practiceAssignment: 'Write summarize_scores(scores) returning (min_score, max_score, avg_score) safely on empty lists.',
+      starterCode: 'def summarize_scores(scores):\n    if not scores:\n        return (0, 0, 0.0)\n    return (min(scores), max(scores), sum(scores) / len(scores))\n\nprint(summarize_scores([78, 92, 85]))',
+    },
+    {
+      title: 'Loops, Indexing & Algorithmic Complexity',
+      topic: 'Loops & Big-O',
+      estimatedHours: 3,
+      objective: 'Spot O(n^2) nested loops and optimize pair-matching using enumerate() and hash maps.',
+      explanation: 'Comparing elements with nested loops scales poorly; hash lookups eliminate extra passes cleanly.',
+      keyConcepts: ['enumerate() instead of range(len())', 'Preventing i == j self-pairing bugs', 'Replacing O(n^2) loops with O(n) sets', 'zip() for parallel iteration'],
+      subTasks: ['Rewrite an index loop using enumerate()', 'Fix a duplicate-pair nested loop missing i != j', 'Optimize a two-sum search to linear O(n) time'],
+      practiceAssignment: 'Implement has_pair_sum(nums, target) in O(n) time without pairing an element with itself.',
+      starterCode: 'def has_pair_sum(nums, target):\n    seen = set()\n    for num in nums:\n        if (target - num) in seen:\n            return True\n        seen.add(num)\n    return False\n\nprint(has_pair_sum([2, 7, 11, 15], 9))',
+    },
+    {
+      title: 'Exceptions, File Safety & Modular Design',
+      topic: 'Exception Handling',
+      estimatedHours: 3,
+      objective: 'Catch specific exceptions cleanly and structure multi-function Python programs with a clear entry point.',
+      explanation: 'Catching targeted exceptions like ValueError or ZeroDivisionError prevents hiding unexpected failures.',
+      keyConcepts: ['try / except ValueError (avoid bare except:)', 'if __name__ == "__main__": guard', 'Context managers with open()', 'Custom helper decomposition'],
+      subTasks: ['Replace a bare except: block with specific exception classes', 'Compose a validate -> transform -> main function chain', 'Test boundary inputs like 0 or empty strings'],
+      practiceAssignment: 'Build safe_average(items) validating empty input and non-numeric entries cleanly.',
+      starterCode: 'def safe_average(items):\n    if not items:\n        return 0.0\n    return sum(items) / len(items)\n\ndef main():\n    print(safe_average([10, 20, 30]))\n\nif __name__ == "__main__":\n    main()',
+    },
+  ],
+  dsa: [
+    {
+      title: 'Big-O Complexity & Loop Analysis',
+      topic: 'Complexity',
+      estimatedHours: 2,
+      objective: 'Measure worst-case time and space complexity before choosing an algorithm.',
+      explanation: 'Counting how operations grow relative to input size n helps avoid timeouts on large inputs.',
+      keyConcepts: ['O(1), O(log n), O(n), O(n^2) growth curves', 'Loop nesting vs sequential loops', 'Memory space vs recursion stack', 'Trade-offs between speed and memory'],
+      subTasks: ['Trace step counts on a nested loop snippet', 'Identify space allocated inside recursive functions', 'Optimize a duplicate scan using sorting or hashing'],
+      practiceAssignment: 'Compute and optimize duplicate detection in an integer array from O(n^2) to O(n).',
+      starterCode: 'def contains_duplicate(nums):\n    seen = set()\n    for n in nums:\n        if n in seen:\n            return True\n        seen.add(n)\n    return False\n\nprint(contains_duplicate([1, 2, 3, 1]))',
+    },
+    {
+      title: 'Arrays, Two Pointers & Sliding Window',
+      topic: 'Arrays & Pointers',
+      estimatedHours: 3,
+      objective: 'Solve subarray and pair problems in linear O(n) time without nested brute force.',
+      explanation: 'Two pointers converging or sliding over a window eliminate redundant re-scans cleanly.',
+      keyConcepts: ['Left/right converging pointers', 'Fixed vs variable sliding windows', 'Prefix sum arrays', 'In-place array partitioning'],
+      subTasks: ['Write a two-pointer palindrome checker', 'Implement max_window_sum over size k subarray', 'Verify empty and single-element edge cases'],
+      practiceAssignment: 'Find the maximum sum of any contiguous subarray of length k using sliding window.',
+      starterCode: 'def max_window_sum(nums, k):\n    if len(nums) < k or k <= 0:\n        return 0\n    curr = sum(nums[:k])\n    best = curr\n    for i in range(k, len(nums)):\n        curr += nums[i] - nums[i - k]\n        best = max(best, curr)\n    return best\n\nprint(max_window_sum([2, 1, 5, 1, 3, 2], 3))',
+    },
+    {
+      title: 'Hash Maps, Stacks & Queues',
+      topic: 'Data Structures',
+      estimatedHours: 3,
+      objective: 'Apply LIFO stacks and O(1) hash maps to bracket matching and index lookups.',
+      explanation: 'Choosing the right container immediately simplifies parsing, undo histories, and complement searches.',
+      keyConcepts: ['Stack LIFO push/pop invariants', 'Queue FIFO scheduling with deque', 'Hash table collision intuition', 'Balanced bracket verification'],
+      subTasks: ['Trace valid_parentheses on nested brackets', 'Return False early on empty stack pops', 'Build a complement index map for two-sum'],
+      practiceAssignment: 'Implement is_valid_brackets(s) supporting (), {}, and [] cleanly.',
+      starterCode: 'def is_valid_brackets(s):\n    pairs = {")": "(", "}": "{", "]": "["}\n    stack = []\n    for ch in s:\n        if ch in pairs:\n            if not stack or stack.pop() != pairs[ch]:\n                return False\n        else:\n            stack.append(ch)\n    return len(stack) == 0\n\nprint(is_valid_brackets("({[]})"))',
+    },
+    {
+      title: 'Binary Search & Divide and Conquer',
+      topic: 'Searching & Sorting',
+      estimatedHours: 3,
+      objective: 'Avoid mid-overflow and off-by-one bugs when implementing binary search in O(log n).',
+      explanation: 'Halving a sorted search space locates items in milliseconds even across millions of entries.',
+      keyConcepts: ['while left <= right loop invariant', 'mid = left + (right - left) // 2', 'Lower/upper bound boundary checks', 'Merge sort O(n log n) recursion tree'],
+      subTasks: ['Trace left/mid/right on a 6-element array', 'Verify behavior when target is missing', 'Adapt binary search to find first occurrence'],
+      practiceAssignment: 'Implement binary_search(nums, target) returning index or -1 cleanly.',
+      starterCode: 'def binary_search(nums, target):\n    left, right = 0, len(nums) - 1\n    while left <= right:\n        mid = left + (right - left) // 2\n        if nums[mid] == target:\n            return mid\n        elif nums[mid] < target:\n            left = mid + 1\n        else:\n            right = mid - 1\n    return -1\n\nprint(binary_search([1, 3, 5, 7, 9], 7))',
+    },
+    {
+      title: 'Recursion, Trees & Dynamic Programming Intro',
+      topic: 'Recursion & DP',
+      estimatedHours: 4,
+      objective: 'Structure base cases cleanly and eliminate repeated subproblems via memoization.',
+      explanation: 'Every recursive solution needs shrinking inputs and a base case; caching turns exponential trees into linear scans.',
+      keyConcepts: ['Base case & recursive step design', 'Avoiding stack overflow depth traps', 'Top-down memoization with dict/@lru_cache', 'Bottom-up tabulation arrays'],
+      subTasks: ['Trace a recursive Fibonacci tree to see duplicate calls', 'Add a memo dictionary to make it O(n)', 'Convert simple 1D DP to O(1) space variables'],
+      practiceAssignment: 'Implement climb_stairs(n) with memoization or DP in O(n) time.',
+      starterCode: 'def climb_stairs(n):\n    if n <= 2:\n        return max(0, n)\n    prev, curr = 1, 2\n    for _ in range(3, n + 1):\n        prev, curr = curr, prev + curr\n    return curr\n\nprint(climb_stairs(5))',
+    },
+  ],
+};
+
+const getFallbackRoadmap = (weakTopics = [], studentName = 'Student', options = {}) => {
+  const skillName = String(options?.skillName || '').trim();
+  const level = ['Beginner', 'Intermediate', 'Advanced'].includes(options?.level)
+    ? options.level
+    : 'Beginner';
+
+  const lowerSkill = skillName.toLowerCase();
+  const language = inferSkillLanguage(skillName);
+
+  // Use dedicated curated bank for Python / DSA when selected, or adapt modern topic bank cleanly
+  let selectedSteps = null;
+  if (lowerSkill.includes('python')) {
+    selectedSteps = SKILL_STEP_BANKS.python;
+  } else if (
+    lowerSkill.includes('data structure') ||
+    lowerSkill.includes('algorithm') ||
+    lowerSkill.includes('dynamic programming')
+  ) {
+    selectedSteps = SKILL_STEP_BANKS.dsa;
+  }
+
+  if (selectedSteps) {
+    const steps = selectedSteps.map((s, idx) => ({
+      order: idx + 1,
+      title: s.title,
+      topic: s.topic,
+      level,
+      estimatedHours: s.estimatedHours,
+      objective: s.objective,
+      explanation: s.explanation,
+      keyConcepts: s.keyConcepts,
+      subTasks: s.subTasks.map((t) => ({ title: t, completed: false })),
+      learningTask: s.subTasks.join(' • '),
+      practiceAssignment: s.practiceAssignment,
+      starterCode: s.starterCode,
+      language,
+    }));
+    const totalHours = steps.reduce((sum, s) => sum + s.estimatedHours, 0);
+    return {
+      skillName: skillName || 'Python Mastery',
+      level,
+      language,
+      totalHours,
+      steps,
+    };
+  }
+
+  // Tailor SQL, Java, C++, TypeScript, Node, or any custom skill cleanly
+  if (skillName) {
+    const label = skillName;
+    const sampleStarterByLang = {
+      sql: '-- Practice SQL query\nSELECT u.id, u.name, COUNT(o.id) AS total_orders\nFROM users u\nLEFT JOIN orders o ON u.id = o.user_id\nGROUP BY u.id, u.name\nORDER BY total_orders DESC;',
+      java: 'public class Main {\n    public static int sumEven(int[] nums) {\n        int total = 0;\n        for (int n : nums) {\n            if (n % 2 == 0) total += n;\n        }\n        return total;\n    }\n    public static void main(String[] args) {\n        System.out.println(sumEven(new int[]{1, 2, 3, 4}));\n    }\n}',
+      cpp: '#include <iostream>\n#include <vector>\nusing namespace std;\n\nint sumPositive(const vector<int>& nums) {\n    int sum = 0;\n    for (int n : nums) if (n > 0) sum += n;\n    return sum;\n}\n\nint main() {\n    cout << sumPositive({-2, 4, 6}) << endl;\n    return 0;\n}',
+      typescript: 'interface Task {\n  id: number;\n  title: string;\n  done: boolean;\n}\n\nfunction countCompleted(tasks: Task[]): number {\n  return tasks.filter((t) => t.done).length;\n}\n\nconsole.log(countCompleted([{ id: 1, title: "Learn TS", done: true }]));',
+      rust: 'fn sum_even(nums: &[i32]) -> i32 {\n    nums.iter().filter(|&&n| n % 2 == 0).sum()\n}\n\nfn main() {\n    println!("{}", sum_even(&[1, 2, 3, 4]));\n}',
+      go: 'package main\n\nimport "fmt"\n\nfunc sumEven(nums []int) int {\n    total := 0\n    for _, n := range nums {\n        if n%2 == 0 { total += n }\n    }\n    return total\n}\n\nfunc main() {\n    fmt.Println(sumEven([]int{1, 2, 3, 4}))\n}',
+      javascript: '// Practice milestone challenge\nfunction solveTask(items) {\n  return items.filter(Boolean);\n}\n\nconsole.log(solveTask(["step1", "step2"]));',
+    };
+    const starter = sampleStarterByLang[language] || sampleStarterByLang.javascript;
+
+    const blueprint = [
+      {
+        title: `${label}: Core Foundations & Mental Model`,
+        topic: `${label} Basics`,
+        estimatedHours: 2,
+        objective: `Build a solid foundation in ${label} vocabulary, syntax, and core building blocks (${level}).`,
+        explanation: `Understanding how ${label} structures data and execution early makes advanced features intuitive instead of overwhelming.`,
+        keyConcepts: [`${label} core primitives`, 'Clean naming & structure', 'Reading compiler/runtime errors', 'Input validation basics'],
+        subTasks: [`Write and run your first ${label} example`, 'Inspect types and edge cases on sample inputs', 'Review common beginner syntax pitfalls'],
+        practiceAssignment: `Implement a clean starter helper in ${label} handling empty or edge inputs safely.`,
+      },
+      {
+        title: `${label}: Control Flow, State & Modularity`,
+        topic: 'Control Flow & Functions',
+        estimatedHours: 3,
+        objective: `Organize ${label} programs into small, reusable functions with clear guard clauses.`,
+        explanation: 'Breaking problems into focused helper functions prevents duplicated logic and simplifies debugging.',
+        keyConcepts: ['Early returns & guard clauses', 'Function decomposition', 'Iteration & state management', 'Avoiding hidden side effects'],
+        subTasks: ['Extract repetitive logic into a helper function', 'Add guard checks for invalid inputs', 'Trace execution line by line'],
+        practiceAssignment: `Build two cooperating functions where the main entrypoint delegates validation to a helper.`,
+      },
+      {
+        title: `${label}: Data Patterns, Lookups & Performance`,
+        topic: 'Data & Complexity',
+        estimatedHours: 3,
+        objective: `Choose efficient data structures in ${label} to avoid unnecessary nested work.`,
+        explanation: 'Evaluating time and space trade-offs keeps programs responsive as real-world datasets scale.',
+        keyConcepts: ['Big-O time & space trade-offs', 'Constant-time lookup structures', 'Immutable transformations', 'Avoiding off-by-one bugs'],
+        subTasks: ['Identify linear vs quadratic patterns in your code', 'Optimize repeated lookups with sets/maps', 'Check loop boundaries on empty and 1-item inputs'],
+        practiceAssignment: `Refactor an O(n^2) search or transformation into an O(n) solution.`,
+      },
+      {
+        title: `${label}: Error Handling, Resilience & Edge Cases`,
+        topic: 'Error Handling',
+        estimatedHours: 3,
+        objective: `Harden ${label} code against failures, timeouts, and unexpected runtime inputs.`,
+        explanation: 'Explicit error handling and clear recovery paths distinguish production-ready code from fragile prototypes.',
+        keyConcepts: ['Specific error catching', 'Boundary & null safety checks', 'Clean failure messages', 'Debugging from stack traces'],
+        subTasks: ['Audit a snippet for null/zero-division risks', 'Add clear fallback handling for edge inputs', 'Test both valid and malformed cases'],
+        practiceAssignment: `Write a defensive ${label} handler that gracefully catches invalid inputs and reports clear diagnostics.`,
+      },
+      {
+        title: `${label}: Mini Capstone & Code Review Polish`,
+        topic: 'Architecture & Review',
+        estimatedHours: 4,
+        objective: `Combine everything learned in ${label} into a clean, self-documented solution ready for AI review.`,
+        explanation: 'Bringing modularity, performance, and clarity together cements long-term mastery.',
+        keyConcepts: ['End-to-end feature decomposition', 'Self-reviewing for bugs & complexity', 'Readable comments for non-obvious why', 'Iterative refinement'],
+        subTasks: ['Build a complete multi-function mini project', 'Submit it to Code Review Studio for Gemini feedback', 'Apply suggested improvements and aim for 85+ score'],
+        practiceAssignment: `Design and polish a complete ${label} mini-module and validate it in Code Review Studio.`,
+      },
+    ];
+
+    const steps = blueprint.map((b, idx) => ({
+      order: idx + 1,
+      ...b,
+      level,
+      learningTask: b.subTasks.join(' • '),
+      starterCode: starter,
+      language,
+    }));
+    return {
+      skillName: label,
+      level,
+      language,
+      totalHours: steps.reduce((sum, s) => sum + s.estimatedHours, 0),
+      steps,
+    };
+  }
+
   const defaultKeys = ['variables', 'loops', 'functions', 'arrays', 'async'];
   let matchedKeys = [];
 
@@ -1314,7 +1583,6 @@ const getFallbackRoadmap = (weakTopics = [], studentName = 'Student') => {
     });
   }
 
-  // Deduplicate and ensure at least 3-5 comprehensive milestones
   matchedKeys = [...new Set(matchedKeys)];
   defaultKeys.forEach((k) => {
     if (!matchedKeys.includes(k) && matchedKeys.length < 5) {
@@ -1329,51 +1597,76 @@ const getFallbackRoadmap = (weakTopics = [], studentName = 'Student') => {
       order: idx + 1,
       title: tmpl.title,
       topic: topicLabel,
-      level: tmpl.level,
+      level,
       estimatedHours: tmpl.estimatedHours,
       objective: tmpl.objective,
       explanation: tmpl.explanation,
       keyConcepts: tmpl.keyConcepts,
+      subTasks: [
+        { title: tmpl.learningTask, completed: false },
+        { title: `Review ${topicLabel} key concepts`, completed: false },
+        { title: `Complete the ${topicLabel} starter challenge`, completed: false },
+      ],
       learningTask: tmpl.learningTask,
       practiceAssignment: tmpl.practiceAssignment,
-      starterCode: tmpl.starterCode
+      starterCode: tmpl.starterCode,
+      language: 'javascript',
     };
   });
 
-  return { steps };
+  return {
+    skillName: `Personalized Roadmap (${studentName})`,
+    level,
+    language: 'javascript',
+    totalHours: steps.reduce((sum, s) => sum + (s.estimatedHours || 2), 0),
+    steps,
+  };
 };
 
-const generateRoadmapInternal = async (weakTopics = [], studentName = 'Student') => {
-  const topicList = weakTopics.length > 0 ? weakTopics.join(', ') : 'JavaScript Core Fundamentals';
+const generateRoadmapInternal = async (weakTopics = [], studentName = 'Student', options = {}) => {
+  const skillName = String(options?.skillName || '').trim();
+  const level = ['Beginner', 'Intermediate', 'Advanced'].includes(options?.level)
+    ? options.level
+    : 'Beginner';
+  const inferredLanguage = inferSkillLanguage(skillName);
+  const targetSkill = skillName || (weakTopics.length > 0 ? weakTopics.join(', ') : 'JavaScript Core Fundamentals');
 
   const prompt = `
-You are a modern programming curriculum architect creating a personalized learning roadmap for ${studentName}.
-Focus on these programming topics (most critical first): ${topicList}.
+You are an expert curriculum architect designing an interactive, beginner-friendly coding roadmap for ${studentName}.
+Target Skill to Master: "${targetSkill}"
+Experience Level: "${level}"
+Suggested Coding Language: "${inferredLanguage}"
 
-Generate an ultra-modern, outcome-oriented learning roadmap.
+Create 5 to 6 progressive, practical milestones specifically tailored to "${targetSkill}" at the "${level}" level.
 Return ONLY valid JSON matching this structure:
 {
+  "skillName": "${skillName || 'JavaScript Fundamentals'}",
+  "level": "${level}",
+  "language": "<canonical lowercase language id e.g. python, javascript, typescript, java, cpp, sql, rust, go>",
+  "totalHours": <integer sum of step estimatedHours>,
   "steps": [
     {
       "order": 1,
-      "title": "<Milestone title e.g. Mastering Closures & Lexical Scope>",
-      "topic": "<Topic category>",
-      "level": "<Beginner | Intermediate | Advanced>",
-      "estimatedHours": <number of hours, e.g. 3>,
-      "objective": "<Actionable outcome>",
-      "explanation": "<Concise conceptual guide explaining why this matters>",
-      "keyConcepts": ["<Tag1>", "<Tag2>", "<Tag3>"],
-      "learningTask": "<Step-by-step learning checklist>",
-      "practiceAssignment": "<Real-world coding challenge>",
-      "starterCode": "<Boilerplate starter code snippet to test in editor>"
+      "title": "<Clear milestone title e.g. Python Dictionaries & Set Lookups>",
+      "topic": "<Short topic label>",
+      "level": "${level}",
+      "estimatedHours": <integer 1-6>,
+      "objective": "<1-sentence plain-English goal>",
+      "explanation": "<2-3 concise sentences explaining why this matters in plain beginner-friendly English>",
+      "keyConcepts": ["<3 to 4 crisp concept bullets in plain English>"],
+      "subTasks": ["<3 concrete checkable mini-tasks the student can tick off>"],
+      "learningTask": "<short action summary>",
+      "practiceAssignment": "<clear hands-on coding challenge prompt>",
+      "starterCode": "<clean runnable starter snippet in the target language>",
+      "language": "<canonical lowercase language id>"
     }
   ]
 }
 `;
 
   if (!hasGeminiKey()) {
-    console.warn('[AI Roadmap Generation] GEMINI_API_KEY missing or placeholder; using curated roadmap.');
-    return getFallbackRoadmap(weakTopics, studentName);
+    console.warn('[AI Roadmap Generation] GEMINI_API_KEY missing or placeholder; using tailored curated roadmap.');
+    return getFallbackRoadmap(weakTopics, studentName, { skillName, level });
   }
 
   try {
@@ -1383,7 +1676,14 @@ Return ONLY valid JSON matching this structure:
       aiRoadmapResponseSchema,
       45000
     );
-    return validated;
+    const computedHours = validated.steps.reduce((sum, s) => sum + (Number(s.estimatedHours) || 2), 0);
+    return {
+      ...validated,
+      skillName: validated.skillName || skillName || 'Custom Learning Roadmap',
+      level: validated.level || level,
+      language: validated.language || inferredLanguage,
+      totalHours: validated.totalHours || computedHours,
+    };
   } catch (error) {
     console.error(
       '[Gemini Roadmap Error]',
@@ -1391,14 +1691,14 @@ Return ONLY valid JSON matching this structure:
       error?.code ?? error?.name ?? 'UNKNOWN',
       sanitizeAiErrorMessage(error?.message || String(error))
     );
-    return getFallbackRoadmap(weakTopics, studentName);
+    return getFallbackRoadmap(weakTopics, studentName, { skillName, level });
   }
 };
 
 const reviewCode = (code, language) => aiQueue.add(() => reviewCodeInternal(code, language));
 const generateQuiz = (weakTopics) => aiQueue.add(() => generateQuizInternal(weakTopics));
-const generateRoadmap = (weakTopics, studentName) =>
-  aiQueue.add(() => generateRoadmapInternal(weakTopics, studentName));
+const generateRoadmap = (weakTopics, studentName, options) =>
+  aiQueue.add(() => generateRoadmapInternal(weakTopics, studentName, options));
 
 module.exports = {
   reviewCode,

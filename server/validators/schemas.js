@@ -107,8 +107,18 @@ const updateReviewSchema = z.object({
   isBookmarked: z.boolean().optional(),
 });
 
+const generateRoadmapSchema = z.object({
+  skillName: z.string().trim().max(100, 'Skill name cannot exceed 100 characters').optional().default(''),
+  level: z.enum(['Beginner', 'Intermediate', 'Advanced']).optional().default('Beginner'),
+  roadmapId: z.string().trim().optional(),
+  regenerate: z.boolean().optional().default(false),
+});
+
 const updateRoadmapStepSchema = z.object({
   completed: z.boolean().optional(),
+  roadmapId: z.string().trim().optional(),
+  subTaskId: z.string().trim().optional(),
+  subTaskCompleted: z.boolean().optional(),
 });
 
 // ─── Quiz Validators ─────────────────────────────────────────────────────────
@@ -472,25 +482,92 @@ const aiQuizResponseSchema = z.object({
     .min(1),
 });
 
-const aiRoadmapResponseSchema = z.object({
-  steps: z
-    .array(
-      z.object({
-        order: z.number().int().min(1),
-        topic: z.string(),
-        title: z.string().optional().default(''),
-        level: z.string().optional().default('Intermediate'),
-        estimatedHours: z.coerce.number().optional().default(2),
-        objective: z.string().optional().default('Master this topic'),
-        explanation: z.string().optional().default(''),
-        keyConcepts: z.array(z.string()).optional().default([]),
-        learningTask: z.string().optional().default(''),
-        practiceAssignment: z.string().optional().default(''),
-        starterCode: z.string().optional().default(''),
+const normalizeRoadmapPayload = (raw) => {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return raw;
+  const rawSteps = Array.isArray(raw.steps) ? raw.steps : [];
+  const steps = rawSteps.map((s, idx) => {
+    const rawSubTasks = Array.isArray(s.subTasks) ? s.subTasks : [];
+    const subTasks = rawSubTasks
+      .map((st) => {
+        if (typeof st === 'string' && st.trim()) {
+          return { title: st.trim(), completed: false };
+        }
+        if (st && typeof st === 'object' && String(st.title || st.task || st.label || '').trim()) {
+          return {
+            title: String(st.title || st.task || st.label).trim(),
+            completed: Boolean(st.completed),
+          };
+        }
+        return null;
       })
-    )
-    .min(1),
-});
+      .filter(Boolean);
+
+    const keyConcepts = (Array.isArray(s.keyConcepts) ? s.keyConcepts : [])
+      .map((k) => String(k || '').trim())
+      .filter(Boolean);
+
+    return {
+      order: clampInt(s.order, 1, 30, idx + 1),
+      topic: String(s.topic || s.title || `Milestone ${idx + 1}`).trim(),
+      title: String(s.title || s.topic || `Step ${idx + 1}`).trim(),
+      level: ['Beginner', 'Intermediate', 'Advanced'].includes(s.level) ? s.level : 'Beginner',
+      estimatedHours: clampInt(s.estimatedHours, 1, 40, 2),
+      objective: String(s.objective || 'Master core concepts and apply them in code.').trim(),
+      explanation: String(s.explanation || s.objective || '').trim(),
+      keyConcepts,
+      subTasks,
+      learningTask: String(s.learningTask || (subTasks[0]?.title ? subTasks.map((t) => t.title).join(' • ') : '')).trim(),
+      practiceAssignment: String(s.practiceAssignment || '').trim(),
+      starterCode: String(s.starterCode || '').trim(),
+      language: String(s.language || '').trim().toLowerCase(),
+    };
+  });
+
+  return {
+    skillName: typeof raw.skillName === 'string' ? raw.skillName.trim() : undefined,
+    level: ['Beginner', 'Intermediate', 'Advanced'].includes(raw.level) ? raw.level : undefined,
+    language: typeof raw.language === 'string' ? raw.language.trim().toLowerCase() : undefined,
+    totalHours: raw.totalHours != null ? clampInt(raw.totalHours, 1, 300, undefined) : undefined,
+    steps,
+  };
+};
+
+const aiRoadmapResponseSchema = z.preprocess(
+  normalizeRoadmapPayload,
+  z.object({
+    skillName: z.string().optional(),
+    level: z.enum(['Beginner', 'Intermediate', 'Advanced']).optional(),
+    language: z.string().optional(),
+    totalHours: z.number().int().min(1).optional(),
+    steps: z
+      .array(
+        z.object({
+          order: z.number().int().min(1),
+          topic: z.string(),
+          title: z.string().optional().default(''),
+          level: z.string().optional().default('Beginner'),
+          estimatedHours: z.coerce.number().optional().default(2),
+          objective: z.string().optional().default('Master this topic'),
+          explanation: z.string().optional().default(''),
+          keyConcepts: z.array(z.string()).optional().default([]),
+          subTasks: z
+            .array(
+              z.object({
+                title: z.string(),
+                completed: z.boolean().optional().default(false),
+              })
+            )
+            .optional()
+            .default([]),
+          learningTask: z.string().optional().default(''),
+          practiceAssignment: z.string().optional().default(''),
+          starterCode: z.string().optional().default(''),
+          language: z.string().optional().default(''),
+        })
+      )
+      .min(1),
+  })
+);
 
 /**
  * Validate request body against a Zod schema.
@@ -515,6 +592,7 @@ module.exports = {
   updatePasswordSchema,
   reviewSubmitSchema,
   updateReviewSchema,
+  generateRoadmapSchema,
   updateRoadmapStepSchema,
   createAssignmentSchema,
   teacherFeedbackSchema,

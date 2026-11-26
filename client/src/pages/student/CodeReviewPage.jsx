@@ -95,12 +95,14 @@ export default function CodeReviewPage() {
   const { isDark } = useTheme();
   const assignmentId = location.state?.assignmentId || null;
   const assignmentTitle = location.state?.assignmentTitle || null;
+  const challengePrompt = location.state?.challengePrompt || null;
   const hasExplicitStarter = Boolean(location.state?.starterCode || assignmentId);
 
   const [editorTheme, setEditorTheme] = useState(isDark ? 'vs-dark' : 'vs-dark'); // VS Code Dark default
   const [fontSize, setFontSize] = useState(14);
   const [language, setLanguage] = useState(() => {
-    if (location.state?.language) return location.state.language;
+    const incoming = String(location.state?.language || '').toLowerCase();
+    if (incoming && ALL_LANGUAGES.some((l) => l.id === incoming)) return incoming;
     const draft = readStoredDraft();
     return draft?.language || 'javascript';
   });
@@ -309,6 +311,18 @@ export default function CodeReviewPage() {
             <span className="font-semibold">Solving Assignment:</span> {assignmentTitle || 'Course Assignment'}
           </div>
           <span className="badge badge-blue text-[11px]">Linked Submission</span>
+        </div>
+      )}
+
+      {!assignmentId && challengePrompt && (
+        <div className="card p-4 bg-indigo-50/80 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/60 space-y-1">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs sm:text-sm font-semibold text-indigo-900 dark:text-indigo-100">
+              Roadmap Challenge: {assignmentTitle || 'Milestone Practice'}
+            </span>
+            <span className="badge badge-blue text-[11px]">Guided Challenge</span>
+          </div>
+          <p className="text-xs sm:text-sm text-indigo-800 dark:text-indigo-200">{challengePrompt}</p>
         </div>
       )}
 
