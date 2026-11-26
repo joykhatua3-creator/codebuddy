@@ -12,6 +12,7 @@ export default function StudentAssignmentsPage() {
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [nowTimestamp] = useState(() => Date.now());
 
   const fetchAssignments = useCallback(async () => {
     setLoading(true);
@@ -53,7 +54,7 @@ export default function StudentAssignmentsPage() {
         <div className="space-y-4">
           {assignments.map((a) => {
             const sub = a.mySubmission;
-            const isPastDue = new Date(a.dueDate) < new Date();
+            const isPastDue = new Date(a.dueDate).getTime() < nowTimestamp;
 
             return (
               <div key={a._id} className="card p-5 space-y-3">

@@ -51,5 +51,6 @@ const assignmentSchema = new mongoose.Schema(
 );
 
 assignmentSchema.index({ isDemo: 1, createdAt: -1 });
+assignmentSchema.index({ isDemo: 1, dueDate: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Assignment', assignmentSchema);

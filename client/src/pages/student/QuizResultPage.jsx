@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useLocation, useNavigate, useParams, Link } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   CheckCircle2,
   XCircle,
@@ -9,7 +9,6 @@ import {
   ChevronUp,
   Flame,
   Sparkles,
-  ArrowRight,
   Code2,
   Terminal,
   Target,
@@ -19,7 +18,7 @@ import {
 } from 'lucide-react';
 import { quizService } from '../../services';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
-import { getScoreColor, getScoreLabel } from '../../utils/helpers';
+import { getScoreLabel } from '../../utils/helpers';
 
 const OPTIONS = ['A', 'B', 'C', 'D'];
 
@@ -219,7 +218,7 @@ export default function QuizResultPage() {
   // Identify lowest performing sub-topic for targeted roadmap prompt
   const subTopicEntries = Object.entries(subTopicBreakdown || {});
   const weakestSubTopicEntry = subTopicEntries
-    .filter(([_, stats]) => stats && stats.total > 0 && stats.percentage < 75)
+    .filter(([, stats]) => stats && stats.total > 0 && stats.percentage < 75)
     .sort((a, b) => a[1].percentage - b[1].percentage)[0];
 
   const weakestSubTopic = weakestSubTopicEntry ? weakestSubTopicEntry[0] : null;

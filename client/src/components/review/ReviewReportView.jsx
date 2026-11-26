@@ -12,7 +12,7 @@ import {
   getConceptLevelClass, getSeverityClass, copyToClipboard,
   getMonacoLanguage,
 } from '../../utils/helpers';
-import { downloadStudyNotesPdf, normalizeReviewSections } from '../../utils/studyNotesPdf';
+import { normalizeReviewSections } from '../../utils/reviewNormalizer';
 import { useToast } from '../ui/Toast';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -263,7 +263,8 @@ export default function ReviewReportView({
   const { errors, howItWorks, complexity, callGraph, functionBreakdown, isGemini } = studyData;
   const callChain = useMemo(() => buildCallChainPreview(callGraph), [callGraph]);
 
-  const originalCode = useMemo(() => unescapeCodeText(review?.code || ''), [review?.code]);
+  const rawCode = review?.code || '';
+  const originalCode = useMemo(() => unescapeCodeText(rawCode), [rawCode]);
   const improvedCode = useMemo(() => synthesizeImprovedCode(review), [review]);
   const diffLineCount = Math.max(
     originalCode ? originalCode.split('\n').length : 1,
@@ -299,9 +300,10 @@ export default function ReviewReportView({
     }
   };
 
-  const handleDownloadPdf = () => {
+  const handleDownloadPdf = async () => {
     setExportingPdf(true);
     try {
+      const { downloadStudyNotesPdf } = await import('../../utils/studyNotesPdf');
       const filename = downloadStudyNotesPdf(review);
       toast({ type: 'success', message: `Study Notes downloaded (${filename})` });
     } catch (err) {

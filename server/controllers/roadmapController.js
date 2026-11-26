@@ -10,7 +10,9 @@ const toSkillSlug = (name = '') =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '') || 'custom-skill';
 
+let legacyIndexChecked = false;
 const dropLegacyUniqueUserIndexIfNeeded = async () => {
+  if (legacyIndexChecked) return;
   try {
     const indexes = await Roadmap.collection.indexes();
     const legacy = indexes.find((idx) => idx.name === 'user_1' && idx.unique);
@@ -18,6 +20,7 @@ const dropLegacyUniqueUserIndexIfNeeded = async () => {
       await Roadmap.collection.dropIndex('user_1');
       console.log('ℹ️ Dropped legacy unique user_1 index on roadmaps collection');
     }
+    legacyIndexChecked = true;
   } catch {
     // Ignore if index does not exist or collection not yet created
   }

@@ -1,4 +1,5 @@
 const Review = require('../models/Review');
+const Assignment = require('../models/Assignment');
 const TopicProgress = require('../models/TopicProgress');
 const User = require('../models/User');
 const { reviewCode: aiReviewCode } = require('../services/aiService');
@@ -92,7 +93,6 @@ const resolveAndSaveReview = async ({ userId, language, code, assignmentId = nul
 
   let validAssignmentId = null;
   if (assignmentId) {
-    const Assignment = require('../models/Assignment');
     const assignmentDoc = await Assignment.findById(assignmentId).select('_id isDemo').lean();
     if (assignmentDoc) {
       validAssignmentId = assignmentDoc._id;

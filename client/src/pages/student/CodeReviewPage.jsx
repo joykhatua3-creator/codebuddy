@@ -98,12 +98,15 @@ export default function CodeReviewPage() {
   const challengePrompt = location.state?.challengePrompt || null;
   const hasExplicitStarter = Boolean(location.state?.starterCode || assignmentId);
 
-  const [editorTheme, setEditorTheme] = useState(isDark ? 'vs-dark' : 'light');
+  const [editorThemeOverride, setEditorThemeOverride] = useState(null);
+  const editorTheme = editorThemeOverride ?? (isDark ? 'vs-dark' : 'light');
+  const setEditorTheme = (updater) => {
+    setEditorThemeOverride((prev) => {
+      const current = prev ?? (isDark ? 'vs-dark' : 'light');
+      return typeof updater === 'function' ? updater(current) : updater;
+    });
+  };
   const [fontSize, setFontSize] = useState(14);
-
-  useEffect(() => {
-    setEditorTheme(isDark ? 'vs-dark' : 'light');
-  }, [isDark]);
   const [language, setLanguage] = useState(() => {
     const incoming = String(location.state?.language || '').toLowerCase();
     if (incoming && ALL_LANGUAGES.some((l) => l.id === incoming)) return incoming;
@@ -132,18 +135,21 @@ export default function CodeReviewPage() {
   const isEmpty = code.trim().length < 5;
   const isDefaultTemplate = code === (DEFAULT_CODE[language] || `// Write your ${getLanguageLabel(language)} code here`);
 
-  // Auto-save draft to localStorage while editing (skip overwriting when viewing fresh assignment starter)
+  // Debounced auto-save draft to localStorage while editing (avoids main-thread I/O per keystroke)
   useEffect(() => {
     if (hasExplicitStarter && code === location.state?.starterCode) return;
-    try {
-      if (isDefaultTemplate) {
-        clearStoredDraft();
-      } else {
-        localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify({ language, code }));
+    const timer = setTimeout(() => {
+      try {
+        if (isDefaultTemplate) {
+          clearStoredDraft();
+        } else {
+          localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify({ language, code }));
+        }
+      } catch {
+        // ignore quota/private mode errors
       }
-    } catch {
-      // ignore quota/private mode errors
-    }
+    }, 400);
+    return () => clearTimeout(timer);
   }, [code, language, isDefaultTemplate, hasExplicitStarter, location.state?.starterCode]);
 
   const handleLanguageChange = (lang) => {

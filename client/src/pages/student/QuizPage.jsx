@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Brain,
@@ -7,12 +7,9 @@ import {
   CheckCircle,
   Bookmark,
   Sparkles,
-  Layers,
   Code2,
   Terminal,
-  RotateCcw,
   AlertCircle,
-  HelpCircle,
   Flame,
 } from 'lucide-react';
 import { quizService } from '../../services';
@@ -75,7 +72,7 @@ const DIFFICULTY_LEVELS = [
 
 export default function QuizPage() {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const toast = useToast();
 
   const urlTopic = searchParams.get('topic') || '';

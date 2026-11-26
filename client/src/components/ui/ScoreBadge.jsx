@@ -1,5 +1,3 @@
-import { getScoreColor, getScoreLabel } from '../../utils/helpers';
-
 const ScoreBadge = ({ score, size = 'md' }) => {
   const sizes = {
     sm: 'w-10 h-10 text-sm',

@@ -39,7 +39,7 @@ export default function RegisterPage() {
     setLoading(true);
     setError('');
     try {
-      const { confirmPassword, ...payload } = form;
+      const payload = { name: form.name, email: form.email, password: form.password, role: form.role };
       const user = await register(payload);
       navigate(user.role === 'teacher' ? '/teacher' : '/dashboard', { replace: true });
     } catch (err) {
