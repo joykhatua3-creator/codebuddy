@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import { Bot, Eye, EyeOff, AlertCircle, GraduationCap, BookOpen } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, GraduationCap, BookOpen } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import OAuthButtons from '../../components/auth/OAuthButtons';
+import AuroraBackdrop from '../../components/ui/AuroraBackdrop';
 
 export default function LoginPage() {
   const { login, demoLogin, completeOAuthLogin } = useAuth();
@@ -100,20 +101,22 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-sm">
-        {/* Logo */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="p-3 bg-primary-600 rounded-xl mb-3 shadow-sm">
-            <Bot size={28} className="text-white" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900">Code Review Buddy</h1>
-          <p className="text-sm text-gray-500 mt-1">Sign in to your account</p>
-        </div>
+    <div className="relative min-h-screen flex flex-col items-center justify-center py-8 px-4 overflow-x-hidden">
+      <AuroraBackdrop />
 
-        <div className="card p-6">
+      <div className="w-full max-w-md mx-auto">
+        {/* Logo */}
+        <Link to="/" className="flex flex-col items-center mb-7 group">
+          <span className="font-mono text-base font-bold px-3.5 py-2 rounded-2xl bg-gradient-to-r from-cyan-500 to-indigo-600 text-white shadow-[0_8px_24px_-4px_rgba(14,165,233,0.45)] mb-3">
+            &lt;/&gt;
+          </span>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">CodeBuddy</h1>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">Sign in to your account</p>
+        </Link>
+
+        <div className="liquid-glass p-5 sm:p-6">
           {error && (
-            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm mb-4">
+            <div className="flex items-center gap-2 p-3 bg-rose-500/10 border border-rose-400/30 rounded-xl text-rose-700 dark:text-rose-200 text-sm mb-4">
               <AlertCircle size={16} className="shrink-0" />
               <span>{error}</span>
             </div>
@@ -127,7 +130,7 @@ export default function LoginPage() {
                 name="email"
                 value={form.email}
                 onChange={handleChange}
-                className="input"
+                className="input min-h-[44px]"
                 placeholder="you@example.com"
                 autoComplete="email"
                 disabled={isBusy}
@@ -142,7 +145,7 @@ export default function LoginPage() {
                   name="password"
                   value={form.password}
                   onChange={handleChange}
-                  className="input pr-10"
+                  className="input min-h-[44px] pr-10"
                   placeholder="Enter your password"
                   autoComplete="current-password"
                   disabled={isBusy}
@@ -150,7 +153,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPass((p) => !p)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
                   tabIndex={-1}
                 >
                   {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -158,7 +161,7 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <button type="submit" className="btn btn-primary w-full" disabled={isBusy}>
+            <button type="submit" className="btn btn-primary rounded-full w-full min-h-[44px]" disabled={isBusy}>
               {loading ? <><LoadingSpinner size="sm" /> Signing in...</> : 'Sign In'}
             </button>
           </form>
@@ -167,44 +170,46 @@ export default function LoginPage() {
 
           <div className="relative my-5">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200 dark:border-slate-700" />
+              <div className="w-full border-t border-slate-200/80 dark:border-white/10" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white dark:bg-slate-900 px-2 text-gray-400">Or try instant demo</span>
+              <span className="px-3 py-0.5 rounded-full bg-white/80 dark:bg-[#0B1120]/90 text-slate-500 dark:text-slate-400 border border-white/80 dark:border-white/10">
+                Or try instant demo
+              </span>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <button
               type="button"
               onClick={() => handleDemoLogin('student')}
               disabled={isBusy}
-              className="btn-secondary w-full"
+              className="btn-secondary rounded-full w-full min-h-[44px]"
             >
               {demoRole === 'student' ? (
                 <><LoadingSpinner size="sm" /> Loading...</>
               ) : (
-                <><GraduationCap size={16} /> Student</>
+                <><GraduationCap size={16} /> Student Demo</>
               )}
             </button>
             <button
               type="button"
               onClick={() => handleDemoLogin('teacher')}
               disabled={isBusy}
-              className="btn-secondary w-full"
+              className="btn-secondary rounded-full w-full min-h-[44px]"
             >
               {demoRole === 'teacher' ? (
                 <><LoadingSpinner size="sm" /> Loading...</>
               ) : (
-                <><BookOpen size={16} /> Teacher</>
+                <><BookOpen size={16} /> Teacher Demo</>
               )}
             </button>
           </div>
         </div>
 
-        <p className="text-center text-sm text-gray-500 mt-5">
+        <p className="text-center text-sm text-slate-600 dark:text-slate-400 mt-5">
           Don&apos;t have an account?{' '}
-          <Link to="/register" className="text-primary-600 font-medium hover:underline">
+          <Link to="/register" className="text-cyan-600 dark:text-cyan-400 font-semibold hover:underline">
             Create one free
           </Link>
         </p>

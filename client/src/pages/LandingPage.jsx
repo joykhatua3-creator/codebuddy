@@ -8,16 +8,23 @@ import {
   Terminal,
   Layers,
   Code2,
+  Menu,
+  X,
 } from 'lucide-react';
+import AuroraBackdrop from '../components/ui/AuroraBackdrop';
 
 export default function LandingPage() {
   const [previewMode, setPreviewMode] = useState('optimized');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen lucid-light-canvas text-slate-900 flex flex-col selection:bg-cyan-400/25 selection:text-slate-900">
-      {/* Floating Glass Pill Navbar */}
-      <header className="sticky top-4 z-40 px-4 sm:px-6 pt-4">
-        <nav className="max-w-4xl mx-auto rounded-full bg-white/75 backdrop-blur-2xl border border-white/80 shadow-[0_8px_32px_-8px_rgba(15,23,42,0.08),inset_0_1px_0_0_rgba(255,255,255,0.85)] px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4">
+    <div className="relative min-h-screen text-slate-900 flex flex-col overflow-x-hidden selection:bg-cyan-400/25 selection:text-slate-900">
+      {/* Always-Light Fixed Pastel Aurora Backdrop */}
+      <AuroraBackdrop forceLight />
+
+      {/* Outer Sticky Header Wrapper — Strictly Transparent (NO opaque bar behind pill) */}
+      <header className="sticky top-0 z-40 px-3 sm:px-6 pt-3 sm:pt-4 bg-transparent border-none shadow-none">
+        <nav className="max-w-4xl mx-auto rounded-full bg-white/75 backdrop-blur-2xl border border-white/85 shadow-[0_8px_32px_-8px_rgba(15,23,42,0.08),inset_0_1px_0_0_rgba(255,255,255,0.9)] px-3.5 sm:px-6 py-2 flex items-center justify-between gap-2">
           <Link to="/" className="flex items-center gap-2 shrink-0 group">
             <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-full bg-gradient-to-r from-cyan-500 to-indigo-600 text-white shadow-sm">
               &lt;/&gt;
@@ -27,7 +34,8 @@ export default function LandingPage() {
             </span>
           </Link>
 
-          <div className="hidden sm:flex items-center gap-6 text-sm font-medium text-slate-600">
+          {/* Desktop Center Links */}
+          <div className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
             <a href="#features" className="hover:text-slate-900 transition-colors">
               Features
             </a>
@@ -41,61 +49,92 @@ export default function LandingPage() {
 
           <div className="flex items-center gap-2 shrink-0">
             <Link
-              to="/login"
-              className="sm:hidden text-xs font-medium text-slate-600 hover:text-slate-900 px-2 py-1.5"
-            >
-              Sign In
-            </Link>
-            <Link
               to="/register"
-              className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white px-4 py-2 text-xs sm:text-sm font-semibold shadow-[0_6px_18px_-4px_rgba(14,165,233,0.45),inset_0_1px_0_0_rgba(255,255,255,0.4)] transition-all"
+              className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white px-3.5 sm:px-4 py-2 text-xs sm:text-sm font-semibold shadow-[0_6px_18px_-4px_rgba(14,165,233,0.45),inset_0_1px_0_0_rgba(255,255,255,0.4)] transition-all whitespace-nowrap"
             >
               <span>Start Free</span>
               <ArrowRight size={14} />
             </Link>
+
+            {/* Mobile Hamburger Button */}
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen((p) => !p)}
+              aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              className="md:hidden inline-flex items-center justify-center w-9 h-9 rounded-full bg-white/80 border border-slate-200/80 text-slate-700 hover:bg-white transition-colors"
+            >
+              {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+            </button>
           </div>
         </nav>
+
+        {/* Mobile Dropdown Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden max-w-4xl mx-auto mt-2 rounded-2xl bg-white/90 backdrop-blur-2xl border border-white/90 shadow-lg p-3 space-y-1">
+            <a
+              href="#features"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center min-h-[44px] px-4 rounded-xl text-sm font-medium text-slate-800 hover:bg-cyan-500/10"
+            >
+              Features
+            </a>
+            <a
+              href="#roadmap-tile"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center min-h-[44px] px-4 rounded-xl text-sm font-medium text-slate-800 hover:bg-cyan-500/10"
+            >
+              Roadmap
+            </a>
+            <Link
+              to="/login"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center min-h-[44px] px-4 rounded-xl text-sm font-medium text-slate-800 hover:bg-cyan-500/10"
+            >
+              Sign In
+            </Link>
+          </div>
+        )}
       </header>
 
       {/* Two-Column Hero */}
       <main className="flex-1">
-        <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-16 lg:pt-20 lg:pb-24">
-          <div className="grid lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+        <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-14 lg:pt-18 lg:pb-22">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
             {/* Left Column */}
-            <div className="lg:col-span-6 space-y-6">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/75 backdrop-blur-xl border border-white/80 shadow-xs text-xs font-medium text-slate-700">
+            <div className="space-y-5 min-w-0">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/80 backdrop-blur-xl border border-white/90 shadow-xs text-xs font-medium text-slate-700">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34D399]" />
                 <span>Gemini 3.8 Flash · Lucid Study Studio</span>
               </div>
 
-              <h1 className="text-4xl sm:text-5xl lg:text-[58px] font-extrabold leading-[1.06] tracking-tight text-slate-900">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold leading-[1.08] tracking-tight text-slate-900">
                 Write cleaner code.{' '}
                 <span className="bg-gradient-to-r from-indigo-600 via-cyan-500 to-emerald-500 bg-clip-text text-transparent block sm:inline">
                   Understand the why.
                 </span>
               </h1>
 
-              <p className="text-base sm:text-lg text-slate-600 max-w-lg leading-relaxed">
+              <p className="text-sm sm:text-base lg:text-lg text-slate-600 max-w-lg leading-relaxed">
                 Submit any snippet for instant AI code reviews, plain-English walkthroughs, and adaptive practice quizzes inside a calm liquid-glass workspace.
               </p>
 
-              <div className="flex flex-wrap items-center gap-3 pt-1">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-1">
                 <Link
                   to="/register"
-                  className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white px-7 py-3.5 text-sm sm:text-base font-semibold shadow-[0_10px_26px_-6px_rgba(14,165,233,0.5),inset_0_1px_0_0_rgba(255,255,255,0.4)] transition-all"
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white px-7 py-3.5 min-h-[44px] text-sm sm:text-base font-semibold shadow-[0_10px_26px_-6px_rgba(14,165,233,0.5),inset_0_1px_0_0_rgba(255,255,255,0.4)] transition-all"
                 >
                   <span>Start Free</span>
                   <ArrowRight size={17} />
                 </Link>
                 <Link
                   to="/login"
-                  className="inline-flex items-center gap-2 rounded-full bg-white/75 backdrop-blur-xl border border-white/80 hover:border-cyan-400/60 text-slate-800 px-7 py-3.5 text-sm sm:text-base font-semibold shadow-[inset_0_1px_0_0_rgba(255,255,255,0.85),0_4px_14px_rgba(15,23,42,0.06)] hover:shadow-[0_0_20px_rgba(56,189,248,0.2)] transition-all"
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-white/80 backdrop-blur-xl border border-white/90 hover:border-cyan-400/60 text-slate-800 px-7 py-3.5 min-h-[44px] text-sm sm:text-base font-semibold shadow-[inset_0_1px_0_0_rgba(255,255,255,0.85),0_4px_14px_rgba(15,23,42,0.06)] hover:shadow-[0_0_20px_rgba(56,189,248,0.2)] transition-all"
                 >
                   Sign In
                 </Link>
               </div>
 
-              <div className="pt-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-medium text-slate-600">
+              <div className="pt-2 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-medium text-slate-600">
                 <span className="flex items-center gap-1.5">
                   <CheckCircle2 size={14} className="text-emerald-500" /> 30+ Languages
                 </span>
@@ -109,16 +148,18 @@ export default function LandingPage() {
             </div>
 
             {/* Right Column: Sculpted Translucent Glass Window */}
-            <div className="lg:col-span-6 space-y-4">
-              <div className="p-3 rounded-3xl bg-white/60 backdrop-blur-2xl border border-white/80 shadow-[0_20px_50px_-12px_rgba(15,23,42,0.14),inset_0_1px_0_0_rgba(255,255,255,0.85)]">
+            <div className="space-y-4 min-w-0">
+              <div className="p-2.5 sm:p-3 rounded-3xl bg-white/65 backdrop-blur-2xl border border-white/85 shadow-[0_20px_50px_-12px_rgba(15,23,42,0.14),inset_0_1px_0_0_rgba(255,255,255,0.85)]">
                 <div className="rounded-2xl bg-[#0B1120] text-slate-100 border border-white/10 overflow-hidden shadow-lg">
                   {/* Window Header */}
-                  <div className="flex items-center justify-between gap-2 px-4 py-3 bg-white/[0.04] border-b border-white/10">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-rose-400" />
-                      <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-                      <span className="ml-2 font-mono text-xs text-slate-400">find_duplicates.py</span>
+                  <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 sm:px-4 py-2.5 bg-white/[0.04] border-b border-white/10">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="w-2.5 h-2.5 rounded-full bg-rose-400 shrink-0" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0" />
+                      <span className="ml-1.5 font-mono text-[11px] sm:text-xs text-slate-400 truncate">
+                        find_duplicates.py
+                      </span>
                     </div>
 
                     <button
@@ -126,15 +167,15 @@ export default function LandingPage() {
                       onClick={() =>
                         setPreviewMode((prev) => (prev === 'optimized' ? 'original' : 'optimized'))
                       }
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-semibold bg-emerald-400/15 border border-emerald-400/40 text-emerald-300 shadow-[0_0_14px_rgba(52,211,153,0.2)] hover:bg-emerald-400/25 transition-all"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-mono font-semibold bg-emerald-400/15 border border-emerald-400/40 text-emerald-300 shadow-[0_0_14px_rgba(52,211,153,0.2)] hover:bg-emerald-400/25 transition-all shrink-0"
                       title="Toggle between original and optimized code"
                     >
                       <span>O(n²) → O(n) Optimized</span>
                     </button>
                   </div>
 
-                  {/* Code Snippet */}
-                  <div className="p-4 sm:p-5 font-mono text-xs sm:text-[13px] leading-relaxed overflow-x-auto">
+                  {/* Code Snippet (Scrolls Internally) */}
+                  <div className="p-3.5 sm:p-5 font-mono text-[11px] sm:text-[13px] leading-relaxed overflow-x-auto max-w-full">
                     {previewMode === 'original' ? (
                       <pre className="text-slate-300">
                         <code>
@@ -182,7 +223,7 @@ export default function LandingPage() {
                 </div>
 
                 {/* Floating Glass Explanation */}
-                <div className="mt-3 p-3.5 rounded-2xl bg-white/80 backdrop-blur-xl border border-white/90 flex items-start gap-3 shadow-xs">
+                <div className="mt-3 p-3.5 rounded-2xl bg-white/85 backdrop-blur-xl border border-white/95 flex items-start gap-3 shadow-xs">
                   <div className="p-1.5 rounded-xl bg-gradient-to-br from-cyan-500/15 to-indigo-500/15 text-indigo-600 shrink-0 mt-0.5">
                     <Sparkles size={15} />
                   </div>
@@ -198,18 +239,18 @@ export default function LandingPage() {
               </div>
 
               {/* Call-Flow Pill Nodes */}
-              <div className="px-4 py-2.5 rounded-full bg-white/70 backdrop-blur-xl border border-white/80 shadow-xs flex items-center justify-between gap-2 text-xs font-mono">
-                <span className="inline-flex items-center gap-1.5 font-semibold text-slate-800">
+              <div className="px-3 sm:px-4 py-2.5 rounded-full bg-white/75 backdrop-blur-xl border border-white/85 shadow-xs flex items-center justify-between gap-1.5 text-[11px] sm:text-xs font-mono overflow-x-auto no-scrollbar">
+                <span className="inline-flex items-center gap-1.5 font-semibold text-slate-800 shrink-0">
                   <span className="w-2 h-2 rounded-full bg-cyan-500" />
                   Input
                 </span>
                 <ArrowRight size={13} className="text-slate-400 shrink-0" />
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-400/30 font-semibold text-indigo-700">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-400/30 font-semibold text-indigo-700 shrink-0">
                   <span className="w-2 h-2 rounded-full bg-indigo-500" />
                   Hash Set
                 </span>
                 <ArrowRight size={13} className="text-slate-400 shrink-0" />
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-400/30 font-semibold text-emerald-700">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-400/30 font-semibold text-emerald-700 shrink-0">
                   <span className="w-2 h-2 rounded-full bg-emerald-500" />
                   O(n) Output
                 </span>
@@ -224,14 +265,14 @@ export default function LandingPage() {
             <span className="inline-block font-mono text-xs uppercase tracking-widest text-indigo-600 font-semibold">
               Liquid Glass Learning Suite
             </span>
-            <h2 className="text-3xl sm:text-4xl font-bold text-slate-900">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900">
               Three tools. One lucid workflow.
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch">
             {/* Tile 1: 6-Part Study Notes PDF */}
-            <div className="rounded-2xl bg-white/65 backdrop-blur-2xl border border-white/80 shadow-[0_8px_32px_-8px_rgba(15,23,42,0.08),inset_0_1px_0_0_rgba(255,255,255,0.75)] p-6 flex flex-col justify-between gap-5">
+            <div className="rounded-2xl bg-white/70 backdrop-blur-2xl border border-white/85 shadow-[0_8px_32px_-8px_rgba(15,23,42,0.08),inset_0_1px_0_0_rgba(255,255,255,0.75)] p-5 sm:p-6 flex flex-col justify-between gap-5">
               <div className="space-y-2.5">
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-400/30 text-cyan-700 text-xs font-semibold">
                   <FileDown size={13} /> 1-Click PDF Export
@@ -242,7 +283,7 @@ export default function LandingPage() {
                 </p>
               </div>
 
-              <div className="p-3 rounded-xl bg-white/75 border border-white/90 grid grid-cols-2 gap-2 text-xs">
+              <div className="p-3 rounded-xl bg-white/80 border border-white/95 grid grid-cols-2 gap-2 text-xs">
                 {[
                   ['01', 'Errors & Fixes'],
                   ['02', 'Walkthrough'],
@@ -260,7 +301,7 @@ export default function LandingPage() {
             {/* Tile 2: Skill Mastery Paths */}
             <div
               id="roadmap-tile"
-              className="rounded-2xl bg-white/65 backdrop-blur-2xl border border-white/80 shadow-[0_8px_32px_-8px_rgba(15,23,42,0.08),inset_0_1px_0_0_rgba(255,255,255,0.75)] p-6 flex flex-col justify-between gap-5"
+              className="rounded-2xl bg-white/70 backdrop-blur-2xl border border-white/85 shadow-[0_8px_32px_-8px_rgba(15,23,42,0.08),inset_0_1px_0_0_rgba(255,255,255,0.75)] p-5 sm:p-6 flex flex-col justify-between gap-5"
             >
               <div className="space-y-2.5">
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-400/30 text-emerald-700 text-xs font-semibold">
@@ -277,16 +318,16 @@ export default function LandingPage() {
                   <span>ROADMAP</span>
                   <span className="text-emerald-400">2 / 3 DONE</span>
                 </div>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="px-2.5 py-1 rounded-full bg-emerald-400/20 text-emerald-300 font-mono text-[11px] font-semibold">
+                <div className="flex items-center justify-between gap-1.5">
+                  <span className="px-2 py-1 rounded-full bg-emerald-400/20 text-emerald-300 font-mono text-[11px] font-semibold">
                     ✓ Python
                   </span>
                   <span className="h-px flex-1 bg-white/20" />
-                  <span className="px-2.5 py-1 rounded-full bg-cyan-400/20 border border-cyan-400/40 text-cyan-200 font-mono text-[11px] font-semibold">
+                  <span className="px-2 py-1 rounded-full bg-cyan-400/20 border border-cyan-400/40 text-cyan-200 font-mono text-[11px] font-semibold">
                     DSA
                   </span>
                   <span className="h-px flex-1 bg-white/20" />
-                  <span className="px-2.5 py-1 rounded-full bg-white/10 text-slate-400 font-mono text-[11px]">
+                  <span className="px-2 py-1 rounded-full bg-white/10 text-slate-400 font-mono text-[11px]">
                     Async
                   </span>
                 </div>
@@ -294,7 +335,7 @@ export default function LandingPage() {
             </div>
 
             {/* Tile 3: Adaptive Code Quizzes */}
-            <div className="rounded-2xl bg-white/65 backdrop-blur-2xl border border-white/80 shadow-[0_8px_32px_-8px_rgba(15,23,42,0.08),inset_0_1px_0_0_rgba(255,255,255,0.75)] p-6 flex flex-col justify-between gap-5">
+            <div className="rounded-2xl bg-white/70 backdrop-blur-2xl border border-white/85 shadow-[0_8px_32px_-8px_rgba(15,23,42,0.08),inset_0_1px_0_0_rgba(255,255,255,0.75)] p-5 sm:p-6 flex flex-col justify-between gap-5">
               <div className="space-y-2.5">
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-400/30 text-indigo-700 text-xs font-semibold">
                   <Code2 size={13} /> Practice Arena
@@ -305,8 +346,8 @@ export default function LandingPage() {
                 </p>
               </div>
 
-              <div className="p-3 rounded-xl bg-white/75 border border-white/90 space-y-2 text-xs">
-                <div className="p-2 rounded-lg bg-[#0B1120] font-mono text-[11px] text-emerald-300 flex items-center gap-1.5">
+              <div className="p-3 rounded-xl bg-white/80 border border-white/95 space-y-2 text-xs">
+                <div className="p-2 rounded-lg bg-[#0B1120] font-mono text-[11px] text-emerald-300 flex items-center gap-1.5 overflow-x-auto">
                   <Terminal size={12} className="text-cyan-400 shrink-0" />
                   <span>print(0.1 + 0.2 == 0.3)</span>
                 </div>
@@ -328,24 +369,24 @@ export default function LandingPage() {
       </main>
 
       {/* Clean Minimal Footer */}
-      <footer className="border-t border-white/70 bg-white/45 backdrop-blur-xl py-8 px-6 text-sm text-slate-600">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+      <footer className="border-t border-white/80 bg-white/50 backdrop-blur-xl py-7 px-4 sm:px-6 text-sm text-slate-600">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
           <p className="font-medium">© 2026 CodeBuddy · Lucid Liquid Glass Studio</p>
-          <div className="flex flex-wrap items-center justify-center gap-6 font-medium">
-            <a href="#features" className="hover:text-slate-900 transition-colors">
+          <div className="flex flex-wrap items-center justify-center gap-5 sm:gap-6 font-medium">
+            <a href="#features" className="hover:text-slate-900 transition-colors py-1">
               Features
             </a>
-            <Link to="/login" className="hover:text-slate-900 transition-colors">
+            <Link to="/login" className="hover:text-slate-900 transition-colors py-1">
               Sign In
             </Link>
-            <Link to="/register" className="hover:text-slate-900 transition-colors">
+            <Link to="/register" className="hover:text-slate-900 transition-colors py-1">
               Get Started
             </Link>
             <a
               href="https://github.com/joykhatua3-creator/codebuddy"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-slate-900 transition-colors"
+              className="hover:text-slate-900 transition-colors py-1"
             >
               GitHub
             </a>

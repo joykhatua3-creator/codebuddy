@@ -291,7 +291,7 @@ export default function RoadmapPage() {
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto">
+      <div className="w-full max-w-[1440px] mx-auto">
         <RouteContentSkeleton />
       </div>
     );
@@ -305,7 +305,7 @@ export default function RoadmapPage() {
     roadmap?.totalHours || roadmap?.steps?.reduce((acc, s) => acc + (s.estimatedHours || 2), 0) || 0;
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-5 w-full max-w-[1440px] mx-auto overflow-x-hidden">
       {/* Top Page Title Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -389,7 +389,7 @@ export default function RoadmapPage() {
             <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400">
               Quick Skill Chips
             </p>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex overflow-x-auto flex-nowrap sm:flex-wrap gap-2 pb-1 sm:pb-0 no-scrollbar">
               {QUICK_SKILLS.map((skill) => {
                 const active = selectedSkill.trim().toLowerCase() === skill.toLowerCase();
                 return (
@@ -397,10 +397,10 @@ export default function RoadmapPage() {
                     key={skill}
                     type="button"
                     onClick={() => setSelectedSkill(skill)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                    className={`px-3 py-1.5 min-h-[36px] shrink-0 rounded-full text-xs font-medium border transition-colors ${
                       active
-                        ? 'bg-primary-600 border-primary-600 text-white shadow-2xs'
-                        : 'bg-gray-50 border-gray-200 text-gray-700 hover:border-primary-400 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-700'
+                        ? 'bg-gradient-to-r from-cyan-500 to-indigo-600 border-cyan-400/50 text-white shadow-2xs'
+                        : 'bg-white/70 border-white/80 text-slate-700 hover:border-cyan-400/60 dark:bg-white/[0.06] dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/[0.12]'
                     }`}
                   >
                     {skill}

@@ -1,12 +1,13 @@
 import { useState, Suspense } from 'react';
-import { Outlet, NavLink, useNavigate, Link } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate, useLocation, Link } from 'react-router-dom';
 import {
   LayoutDashboard, Code2, History, Map, Brain, BarChart2, User,
-  LogOut, Sun, Moon, Bell, Menu, ChevronDown, ClipboardList,
+  LogOut, Sun, Moon, Bell, Menu, X, ChevronDown, ClipboardList,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { RouteContentSkeleton } from '../components/ui/Skeleton';
+import AuroraBackdrop from '../components/ui/AuroraBackdrop';
 
 const NAV = [
   { to: '/dashboard', label: 'Overview', icon: LayoutDashboard, end: true },
@@ -19,23 +20,45 @@ const NAV = [
   { to: '/dashboard/profile', label: 'Profile', icon: User },
 ];
 
-const StudentSidebarContent = ({ user, onNavigate, onLogout }) => (
-  <div className="flex flex-col h-full bg-white/65 dark:bg-[#0B1120]/75 backdrop-blur-2xl">
-    {/* Logo */}
-    <div className="flex items-center gap-2.5 px-4 py-5 border-b border-white/70 dark:border-white/10">
-      <Link to="/" className="flex items-center gap-2.5 group">
-        <span className="font-mono text-xs font-bold px-2.5 py-1.5 rounded-full bg-gradient-to-r from-cyan-500 to-indigo-600 text-white shadow-sm">
+const getMobilePageTitle = (pathname) => {
+  if (pathname.startsWith('/dashboard/code-review')) return 'Code Review';
+  if (pathname.startsWith('/dashboard/review')) return 'Study Report';
+  if (pathname.startsWith('/dashboard/assignments')) return 'Assignments';
+  if (pathname.startsWith('/dashboard/history')) return 'Review History';
+  if (pathname.startsWith('/dashboard/roadmap')) return 'Roadmap';
+  if (pathname.startsWith('/dashboard/quiz')) return 'Quizzes';
+  if (pathname.startsWith('/dashboard/progress')) return 'My Progress';
+  if (pathname.startsWith('/dashboard/profile')) return 'Profile';
+  return 'Overview';
+};
+
+const StudentSidebarContent = ({ user, onNavigate, onLogout, showClose = false }) => (
+  <div className="flex flex-col h-full bg-white/75 dark:bg-[#0B1120]/85 backdrop-blur-2xl">
+    {/* Logo + Mobile Close */}
+    <div className="flex items-center justify-between gap-2 px-4 py-4 border-b border-white/70 dark:border-white/10">
+      <Link to="/" onClick={onNavigate} className="flex items-center gap-2.5 group min-w-0">
+        <span className="font-mono text-xs font-bold px-2.5 py-1.5 rounded-full bg-gradient-to-r from-cyan-500 to-indigo-600 text-white shadow-sm shrink-0">
           &lt;/&gt;
         </span>
-        <div>
-          <span className="text-sm font-bold text-slate-900 dark:text-white leading-tight block">
+        <div className="min-w-0">
+          <span className="text-sm font-bold text-slate-900 dark:text-white leading-tight block truncate">
             CodeBuddy
           </span>
-          <span className="text-[11px] font-mono text-cyan-600 dark:text-cyan-300 font-medium">
+          <span className="text-[11px] font-mono text-cyan-600 dark:text-cyan-300 font-medium block">
             Lucid Studio
           </span>
         </div>
       </Link>
+      {showClose && (
+        <button
+          type="button"
+          onClick={onNavigate}
+          aria-label="Close navigation drawer"
+          className="lg:hidden p-1.5 rounded-full text-slate-600 dark:text-slate-300 hover:bg-white/60 dark:hover:bg-white/10"
+        >
+          <X size={18} />
+        </button>
+      )}
     </div>
 
     {/* Nav links */}
@@ -56,7 +79,7 @@ const StudentSidebarContent = ({ user, onNavigate, onLogout }) => (
 
     {/* Logout */}
     <div className="p-3 border-t border-white/70 dark:border-white/10">
-      <div className="px-3 py-2 mb-1.5 rounded-xl bg-white/60 dark:bg-white/[0.05] border border-white/80 dark:border-white/10">
+      <div className="px-3 py-2 mb-1.5 rounded-xl bg-white/65 dark:bg-white/[0.05] border border-white/80 dark:border-white/10">
         <p className="text-xs font-semibold text-slate-900 dark:text-white truncate">{user?.name}</p>
         <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{user?.email}</p>
       </div>
@@ -75,53 +98,73 @@ export default function StudentLayout() {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
 
   const initials = user?.name?.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2) || 'S';
+  const pageTitle = getMobilePageTitle(location.pathname);
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
   return (
-    <div className="flex h-screen bg-transparent overflow-hidden">
-      {/* Desktop sidebar */}
-      <aside className="hidden md:flex flex-col w-56 border-r border-white/70 dark:border-white/10 shrink-0">
+    <div className="relative flex min-h-screen lg:h-screen overflow-x-hidden lg:overflow-hidden">
+      <AuroraBackdrop />
+
+      {/* Desktop sidebar (>= lg) */}
+      <aside className="hidden lg:flex flex-col w-56 border-r border-white/70 dark:border-white/10 shrink-0">
         <StudentSidebarContent user={user} onNavigate={() => setSidebarOpen(false)} onLogout={handleLogout} />
       </aside>
 
-      {/* Mobile slide-over drawer (< 768px) */}
+      {/* Mobile & Tablet slide-over glass drawer (< lg) */}
       {sidebarOpen && (
-        <div className="fixed inset-0 z-40 md:hidden">
-          <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-xs" onClick={() => setSidebarOpen(false)} />
-          <aside className="relative z-50 flex flex-col w-56 h-full border-r border-white/70 dark:border-white/10">
-            <StudentSidebarContent user={user} onNavigate={() => setSidebarOpen(false)} onLogout={handleLogout} />
+        <div className="fixed inset-0 z-50 lg:hidden flex">
+          <div className="fixed inset-0 bg-slate-950/50 backdrop-blur-xs" onClick={() => setSidebarOpen(false)} />
+          <aside className="relative z-10 flex flex-col w-64 max-w-[80vw] h-full border-r border-white/75 dark:border-white/15 shadow-2xl">
+            <StudentSidebarContent
+              user={user}
+              showClose
+              onNavigate={() => setSidebarOpen(false)}
+              onLogout={handleLogout}
+            />
           </aside>
         </div>
       )}
 
       {/* Main area */}
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+      <div className="flex flex-col flex-1 min-w-0">
         {/* Top header */}
-        <header className="flex items-center gap-3 px-4 lg:px-6 py-3 bg-white/60 dark:bg-[#0B1120]/70 backdrop-blur-xl border-b border-white/70 dark:border-white/10 shrink-0">
-          <button onClick={() => setSidebarOpen(true)} className="md:hidden btn btn-ghost p-1.5">
-            <Menu size={20} />
+        <header className="sticky top-0 z-30 flex items-center gap-2 sm:gap-3 px-3 sm:px-5 lg:px-6 py-2.5 sm:py-3 bg-white/70 dark:bg-[#0B1120]/75 backdrop-blur-xl border-b border-white/75 dark:border-white/10 shrink-0">
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Open navigation menu"
+            className="lg:hidden inline-flex items-center justify-center w-9 h-9 rounded-full bg-white/80 dark:bg-white/[0.08] border border-white/85 dark:border-white/15 text-slate-700 dark:text-slate-200 shrink-0"
+          >
+            <Menu size={18} />
           </button>
+
+          <span className="lg:hidden text-sm font-bold text-slate-900 dark:text-white truncate">
+            {pageTitle}
+          </span>
 
           <div className="flex-1" />
 
           {/* Theme toggle */}
           <button
+            type="button"
             onClick={toggleTheme}
             title={theme === 'dark' ? 'Switch to Lucid Light Mode' : 'Switch to Deep Lucid Dark Mode'}
-            className="liquid-pill p-2 text-xs"
+            className="liquid-pill p-2 text-xs shrink-0"
           >
             {theme === 'dark' ? <Sun size={16} className="text-cyan-300" /> : <Moon size={16} className="text-indigo-600" />}
           </button>
 
           {/* Notifications */}
-          <div className="relative">
+          <div className="relative shrink-0">
             <button
+              type="button"
               onClick={() => { setNotifOpen((p) => !p); setUserMenuOpen(false); }}
               className="liquid-pill p-2 relative"
               title="Learning Status"
@@ -132,7 +175,7 @@ export default function StudentLayout() {
             {notifOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
-                <div className="absolute right-0 top-full mt-2 w-64 liquid-glass p-3 z-50 space-y-2">
+                <div className="absolute right-0 top-full mt-2 w-64 max-w-[85vw] liquid-glass p-3 z-50 space-y-2">
                   <p className="text-xs font-semibold text-slate-900 dark:text-white">Learning Updates</p>
                   <div className="text-xs text-slate-800 dark:text-slate-100 bg-cyan-500/10 p-2.5 rounded-xl border border-cyan-400/25">
                     🔥 Current Streak: <strong>{user?.streak || 0} days</strong>. Keep submitting code reviews or quizzes!
@@ -149,12 +192,13 @@ export default function StudentLayout() {
           </div>
 
           {/* User menu */}
-          <div className="relative">
+          <div className="relative shrink-0">
             <button
+              type="button"
               onClick={() => { setUserMenuOpen((p) => !p); setNotifOpen(false); }}
-              className="liquid-pill px-2.5 py-1.5 flex items-center gap-2"
+              className="liquid-pill px-2 sm:px-2.5 py-1.5 flex items-center gap-1.5 sm:gap-2"
             >
-              <div className="w-6 h-6 rounded-full bg-gradient-to-r from-cyan-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold">
+              <div className="w-6 h-6 rounded-full bg-gradient-to-r from-cyan-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
                 {initials}
               </div>
               <span className="hidden sm:block text-xs font-semibold text-slate-800 dark:text-slate-100 max-w-[100px] truncate">
@@ -186,7 +230,7 @@ export default function StudentLayout() {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-6 scrollbar-thin">
+        <main className="flex-1 lg:overflow-y-auto overflow-x-hidden p-3 sm:p-5 lg:p-6 scrollbar-thin">
           <Suspense fallback={<RouteContentSkeleton />}>
             <Outlet />
           </Suspense>

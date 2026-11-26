@@ -235,7 +235,7 @@ export default function QuizResultPage() {
       : null;
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 pb-16">
+    <div className="w-full max-w-[1440px] mx-auto space-y-6 pb-16 overflow-x-hidden">
       {/* 1. HERO SCORE CARD */}
       <div className="card p-6 sm:p-8 text-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
         {/* Score Ring */}

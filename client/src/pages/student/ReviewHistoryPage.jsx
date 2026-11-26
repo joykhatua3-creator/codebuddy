@@ -77,37 +77,37 @@ export default function ReviewHistoryPage() {
   };
 
   return (
-    <div className="space-y-5 max-w-4xl mx-auto">
+    <div className="space-y-5 w-full max-w-[1440px] mx-auto overflow-x-hidden">
       <div>
-        <h2 className="text-xl font-bold text-gray-900">Review History</h2>
-        <p className="text-sm text-gray-500 mt-0.5">All your past code reviews</p>
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white">Review History</h2>
+        <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">All your past code reviews</p>
       </div>
 
       {/* Filters */}
-      <div className="card p-4 flex flex-wrap gap-3 items-end">
-        <div className="min-w-[140px]">
+      <div className="card p-4 grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap gap-3 items-end">
+        <div className="w-full lg:w-auto lg:min-w-[160px]">
           <label className="label">Language</label>
-          <select value={language} onChange={(e) => { setLanguage(e.target.value); setPage(1); }} className="input">
+          <select value={language} onChange={(e) => { setLanguage(e.target.value); setPage(1); }} className="input min-h-[42px]">
             <option value="">All Languages ({ALL_LANGUAGES.length})</option>
             {ALL_LANGUAGES.map((l) => (
               <option key={l.id} value={l.id}>{l.name}</option>
             ))}
           </select>
         </div>
-        <div className="min-w-[120px]">
+        <div className="w-full lg:w-auto lg:min-w-[130px]">
           <label className="label">Min Score</label>
           <input type="number" min="0" max="100" value={minScore}
             onChange={(e) => { setMinScore(e.target.value); setPage(1); }}
-            className="input" placeholder="0–100" />
+            className="input min-h-[42px]" placeholder="0–100" />
         </div>
-        <div className="min-w-[160px]">
+        <div className="w-full lg:w-auto lg:min-w-[160px]">
           <label className="label">Sort By</label>
-          <select value={sort} onChange={(e) => setSort(e.target.value)} className="input">
+          <select value={sort} onChange={(e) => setSort(e.target.value)} className="input min-h-[42px]">
             {SORTS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
         </div>
         <button onClick={() => { setLanguage(''); setMinScore(''); setSort('-createdAt'); setPage(1); }}
-          className="btn btn-secondary btn-sm">Reset</button>
+          className="btn btn-secondary btn-sm min-h-[42px] w-full sm:w-auto">Reset</button>
       </div>
 
       {/* Results */}

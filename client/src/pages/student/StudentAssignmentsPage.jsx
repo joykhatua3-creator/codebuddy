@@ -31,7 +31,7 @@ export default function StudentAssignmentsPage() {
   }, [fetchAssignments]);
 
   return (
-    <div className="space-y-5 max-w-4xl mx-auto">
+    <div className="space-y-5 w-full max-w-[1440px] mx-auto overflow-x-hidden">
       <div>
         <h2 className="text-xl font-bold text-gray-900 dark:text-slate-100">Coding Assignments</h2>
         <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">

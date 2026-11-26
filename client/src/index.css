@@ -3,16 +3,18 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --bg-canvas: #F4F7FB;
-    --text-primary: #0F172A;
-    --text-muted: #475569;
+  html,
+  body {
+    background-color: #F4F7FB;
+    color: #0F172A;
+    min-height: 100%;
+    @apply font-sans antialiased transition-colors duration-200;
   }
 
-  .dark {
-    --bg-canvas: #070B14;
-    --text-primary: #F8FAFC;
-    --text-muted: #94A3B8;
+  html.dark,
+  html.dark body {
+    background-color: #070B14;
+    color: #F8FAFC;
   }
 
   * {
@@ -21,27 +23,6 @@
 
   .dark * {
     border-color: rgba(255, 255, 255, 0.12);
-  }
-
-  body {
-    background-color: var(--bg-canvas);
-    color: var(--text-primary);
-    background-image:
-      radial-gradient(at 12% 10%, rgba(56, 189, 248, 0.18) 0px, transparent 48%),
-      radial-gradient(at 88% 12%, rgba(129, 140, 248, 0.18) 0px, transparent 46%),
-      radial-gradient(at 52% 92%, rgba(52, 211, 153, 0.14) 0px, transparent 50%);
-    background-attachment: fixed;
-    @apply font-sans antialiased transition-colors duration-200;
-  }
-
-  .dark body {
-    background-color: #070B14;
-    color: #F8FAFC;
-    background-image:
-      radial-gradient(at 14% 12%, rgba(56, 189, 248, 0.16) 0px, transparent 48%),
-      radial-gradient(at 86% 16%, rgba(99, 102, 241, 0.18) 0px, transparent 50%),
-      radial-gradient(at 48% 92%, rgba(16, 185, 129, 0.12) 0px, transparent 52%);
-    background-attachment: fixed;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -54,22 +35,12 @@
 }
 
 @layer components {
-  .lucid-light-canvas {
-    background-color: #F4F7FB;
-    color: #0F172A;
-    background-image:
-      radial-gradient(at 10% 8%, rgba(56, 189, 248, 0.22) 0px, transparent 46%),
-      radial-gradient(at 90% 14%, rgba(129, 140, 248, 0.22) 0px, transparent 48%),
-      radial-gradient(at 50% 90%, rgba(52, 211, 153, 0.16) 0px, transparent 50%);
-    background-attachment: fixed;
-  }
-
   .liquid-glass {
-    @apply bg-white/65 dark:bg-white/[0.06] backdrop-blur-2xl border border-white/70 dark:border-white/15 rounded-2xl shadow-[0_8px_32px_-8px_rgba(15,23,42,0.08),inset_0_1px_0_0_rgba(255,255,255,0.6)] dark:shadow-[0_12px_36px_-8px_rgba(0,0,0,0.55),inset_0_1px_0_0_rgba(255,255,255,0.16)];
+    @apply bg-white/70 dark:bg-white/[0.06] backdrop-blur-2xl border border-white/75 dark:border-white/15 rounded-2xl shadow-[0_8px_32px_-8px_rgba(15,23,42,0.08),inset_0_1px_0_0_rgba(255,255,255,0.65)] dark:shadow-[0_12px_36px_-8px_rgba(0,0,0,0.55),inset_0_1px_0_0_rgba(255,255,255,0.16)];
   }
 
   .liquid-pill {
-    @apply inline-flex items-center justify-center gap-2 rounded-full bg-white/75 dark:bg-white/[0.08] backdrop-blur-xl border border-white/80 dark:border-white/15 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.75),0_2px_10px_rgba(15,23,42,0.06)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.16),0_4px_14px_rgba(0,0,0,0.35)] hover:border-cyan-400/60 dark:hover:border-cyan-400/50 hover:shadow-[0_0_20px_rgba(56,189,248,0.22)] transition-all duration-200;
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-white/80 dark:bg-white/[0.08] backdrop-blur-xl border border-white/85 dark:border-white/15 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.75),0_2px_10px_rgba(15,23,42,0.06)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.16),0_4px_14px_rgba(0,0,0,0.35)] hover:border-cyan-400/60 dark:hover:border-cyan-400/50 hover:shadow-[0_0_20px_rgba(56,189,248,0.22)] transition-all duration-200;
   }
 
   .btn {
@@ -81,7 +52,7 @@
   }
 
   .btn-secondary {
-    @apply btn bg-white/70 text-slate-800 border border-slate-200/80 backdrop-blur-xl hover:bg-white hover:border-cyan-300/70 focus:ring-cyan-500 dark:bg-white/[0.07] dark:text-slate-100 dark:border-white/15 dark:hover:bg-white/[0.12] dark:hover:border-cyan-400/40;
+    @apply btn bg-white/75 text-slate-800 border border-slate-200/80 backdrop-blur-xl hover:bg-white hover:border-cyan-300/70 focus:ring-cyan-500 dark:bg-white/[0.07] dark:text-slate-100 dark:border-white/15 dark:hover:bg-white/[0.12] dark:hover:border-cyan-400/40;
   }
 
   .btn-danger {
@@ -154,11 +125,11 @@
 
   /* Frosted Glass Sidebar styles */
   .sidebar-link {
-    @apply flex items-center gap-3 px-3 py-2 rounded-full text-sm font-medium text-slate-600 hover:bg-white/60 hover:text-slate-900 border border-transparent transition-all cursor-pointer dark:text-slate-300 dark:hover:bg-white/[0.06] dark:hover:text-white;
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-full text-sm font-medium text-slate-600 hover:bg-white/60 hover:text-slate-900 border border-transparent transition-all cursor-pointer dark:text-slate-300 dark:hover:bg-white/[0.06] dark:hover:text-white;
   }
 
   .sidebar-link-active {
-    @apply flex items-center gap-3 px-3 py-2 rounded-full text-sm font-semibold bg-cyan-400/15 border border-cyan-300/50 text-cyan-700 shadow-[0_0_18px_rgba(56,189,248,0.16),inset_0_1px_0_0_rgba(255,255,255,0.65)] transition-all cursor-pointer dark:bg-cyan-400/15 dark:border-cyan-400/35 dark:text-cyan-200 dark:shadow-[0_0_20px_rgba(56,189,248,0.18),inset_0_1px_0_0_rgba(255,255,255,0.14)];
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-full text-sm font-semibold bg-cyan-400/15 border border-cyan-300/50 text-cyan-700 shadow-[0_0_18px_rgba(56,189,248,0.16),inset_0_1px_0_0_rgba(255,255,255,0.65)] transition-all cursor-pointer dark:bg-cyan-400/15 dark:border-cyan-400/35 dark:text-cyan-200 dark:shadow-[0_0_20px_rgba(56,189,248,0.18),inset_0_1px_0_0_rgba(255,255,255,0.14)];
   }
 
   /* Score colors */
@@ -173,13 +144,7 @@
   }
 }
 
-/* Global Dark & Light Surface Harmonization for Legacy Utility Classes */
-.dark aside,
-.dark header {
-  background-color: rgba(7, 11, 20, 0.72);
-  backdrop-filter: blur(24px);
-  border-color: rgba(255, 255, 255, 0.1);
-}
+/* Dark Mode surface harmonization without leaking onto <header>/<aside> tags */
 .dark .bg-gray-50,
 .dark .bg-slate-950 {
   background-color: #070B14;
@@ -219,6 +184,14 @@
 }
 
 @layer utilities {
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: rgba(148, 163, 184, 0.35) transparent;

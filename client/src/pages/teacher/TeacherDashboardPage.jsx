@@ -78,11 +78,11 @@ export default function TeacherDashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 w-full max-w-[1440px] mx-auto overflow-x-hidden">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-slate-100">Teacher Dashboard</h2>
-          <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">Monitor your students' learning progress</p>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Teacher Dashboard</h2>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">Monitor your students' learning progress</p>
         </div>
         <button
           onClick={handleExportCsv}
@@ -95,21 +95,21 @@ export default function TeacherDashboardPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Total Students" value={students.length} icon={Users} color="bg-blue-500" />
-        <StatCard label="Total Reviews" value={totalReviews} icon={Code2} color="bg-green-500" />
-        <StatCard label="Avg Score" value={avgScore} icon={TrendingUp} color="bg-purple-500" />
-        <StatCard label="Needs Help (<60)" value={needsHelp} icon={AlertTriangle} color="bg-red-500" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <StatCard label="Total Students" value={students.length} icon={Users} color="bg-cyan-500" />
+        <StatCard label="Total Reviews" value={totalReviews} icon={Code2} color="bg-emerald-500" />
+        <StatCard label="Avg Score" value={avgScore} icon={TrendingUp} color="bg-indigo-500" />
+        <StatCard label="Needs Help (<60)" value={needsHelp} icon={AlertTriangle} color="bg-rose-500" />
       </div>
 
       {/* Student table */}
-      <div className="card p-5">
-        <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+      <div className="card p-4 sm:p-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
           <h3 className="section-title">Students</h3>
-          <div className="relative">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <div className="relative w-full sm:w-auto">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input value={search} onChange={(e) => setSearch(e.target.value)}
-              className="input pl-9 w-56" placeholder="Search students..." />
+              className="input pl-9 w-full sm:w-56 min-h-[40px]" placeholder="Search students..." />
           </div>
         </div>
 

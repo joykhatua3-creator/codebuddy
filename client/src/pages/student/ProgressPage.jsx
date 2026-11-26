@@ -28,17 +28,17 @@ export default function ProgressPage() {
 
   useEffect(() => { fetchProgress(); }, [fetchProgress]);
 
-  if (loading) return <div className="max-w-5xl mx-auto"><RouteContentSkeleton /></div>;
+  if (loading) return <div className="w-full max-w-[1440px] mx-auto"><RouteContentSkeleton /></div>;
   if (error) return <ErrorMessage message={error} onRetry={fetchProgress} />;
 
   const { scoreTrend = [], topics = [], recentQuizzes = [] } = data || {};
   const quizChartData = recentQuizzes.slice().reverse().map((q, i) => ({ name: `Q${i+1}`, score: q.score || 0 }));
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-5 w-full max-w-[1440px] mx-auto overflow-x-hidden">
       <div>
-        <h2 className="text-xl font-bold text-gray-900">My Progress</h2>
-        <p className="text-sm text-gray-500 mt-0.5">Detailed analytics of your learning journey</p>
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white">My Progress</h2>
+        <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">Detailed analytics of your learning journey</p>
       </div>
 
       {/* Score Trend */}

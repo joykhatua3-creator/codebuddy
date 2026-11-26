@@ -172,7 +172,7 @@ export default function QuizPage() {
   // ───────────────────────────────────────────────────────────────────────────
   if (!quiz && !generating) {
     return (
-      <div className="max-w-4xl mx-auto space-y-6 pb-12">
+      <div className="w-full max-w-[1440px] mx-auto space-y-5 pb-12 overflow-x-hidden">
         {/* Header */}
         <div className="card p-6 md:p-8 bg-gradient-to-r from-cyan-500/10 via-indigo-500/10 to-emerald-500/10 border-cyan-400/25">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -213,8 +213,8 @@ export default function QuizPage() {
               </span>
             </div>
 
-            {/* Quick Select Pills */}
-            <div className="flex flex-wrap gap-2">
+            {/* Quick Select Pills — Horizontally scrollable on mobile */}
+            <div className="flex overflow-x-auto flex-nowrap sm:flex-wrap gap-2 pb-1 sm:pb-0 no-scrollbar">
               {QUICK_TOPICS.map((topic) => {
                 const isSelected = selectedTopic === topic;
                 const isMixed = topic === 'Mixed / Overall Coding Quiz';
@@ -226,15 +226,15 @@ export default function QuizPage() {
                       setSelectedTopic(topic);
                       setCustomTopic('');
                     }}
-                    className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all duration-150 flex items-center gap-1.5 border ${
+                    className={`px-3.5 py-2 min-h-[40px] shrink-0 rounded-full text-xs sm:text-sm font-medium transition-all duration-150 flex items-center gap-1.5 border ${
                       isSelected
-                        ? 'bg-primary-600 text-white border-primary-600 shadow-md shadow-primary-500/20 ring-2 ring-primary-500/30'
+                        ? 'bg-gradient-to-r from-cyan-500 to-indigo-600 text-white border-cyan-400/60 shadow-md shadow-cyan-500/20'
                         : isMixed
                         ? 'bg-gradient-to-r from-cyan-500/10 to-indigo-500/10 text-slate-900 dark:text-slate-100 border-cyan-400/40 hover:border-cyan-400'
-                        : 'bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-750'
+                        : 'bg-white/70 dark:bg-white/[0.06] text-slate-700 dark:text-slate-300 border-white/80 dark:border-white/15 hover:border-cyan-400/50'
                     }`}
                   >
-                    {isMixed && <Sparkles size={14} className={isSelected ? 'text-amber-200' : 'text-blue-500'} />}
+                    {isMixed && <Sparkles size={14} className={isSelected ? 'text-amber-200' : 'text-cyan-500'} />}
                     {topic}
                   </button>
                 );
@@ -243,10 +243,10 @@ export default function QuizPage() {
               <button
                 type="button"
                 onClick={() => setSelectedTopic('Custom')}
-                className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all duration-150 border ${
+                className={`px-3.5 py-2 min-h-[40px] shrink-0 rounded-full text-xs sm:text-sm font-medium transition-all duration-150 border ${
                   selectedTopic === 'Custom'
-                    ? 'bg-primary-600 text-white border-primary-600 shadow-md shadow-primary-500/20 ring-2 ring-primary-500/30'
-                    : 'bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-750'
+                    ? 'bg-gradient-to-r from-cyan-500 to-indigo-600 text-white border-cyan-400/60 shadow-md shadow-cyan-500/20'
+                    : 'bg-white/70 dark:bg-white/[0.06] text-slate-700 dark:text-slate-300 border-white/80 dark:border-white/15 hover:border-cyan-400/50'
                 }`}
               >
                 + Custom Topic
@@ -421,7 +421,7 @@ export default function QuizPage() {
   const progressPercent = Math.round(((currentQ + 1) / quiz.totalQuestions) * 100);
 
   return (
-    <div className="max-w-3xl mx-auto space-y-5 pb-16">
+    <div className="w-full max-w-[1440px] mx-auto space-y-5 pb-16 overflow-x-hidden">
       {/* Top Header Card */}
       <div className="card p-4 sm:p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -552,7 +552,7 @@ export default function QuizPage() {
                 key={i}
                 type="button"
                 onClick={() => selectAnswer(i)}
-                className={`w-full text-left p-4 rounded-xl border-2 transition-all flex items-start gap-3 relative ${
+                className={`w-full text-left p-3.5 sm:p-4 min-h-[48px] rounded-xl border-2 transition-all flex items-start gap-3 relative ${
                   isSelected
                     ? 'border-primary-500 bg-primary-50/70 text-slate-900 dark:border-primary-400 dark:bg-primary-950/40 dark:text-slate-100 ring-2 ring-primary-500/25 shadow-sm'
                     : 'border-slate-200 bg-white text-slate-800 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800/90 dark:text-slate-200 dark:hover:bg-slate-750 dark:hover:border-slate-600'

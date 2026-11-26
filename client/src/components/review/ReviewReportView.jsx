@@ -24,6 +24,16 @@ const unescapeCodeText = (str) => {
   return str;
 };
 
+const getCleanFallbackReason = (rawReason = '') => {
+  if (
+    !rawReason ||
+    /\[GoogleGenerativeAI|404|generativelanguage|https?:\/\/|models\/|Error\s*:/i.test(rawReason)
+  ) {
+    return 'AI review was temporarily unavailable for this snapshot — click Retry with Gemini AI.';
+  }
+  return rawReason;
+};
+
 const ErrorStudyCard = ({ err, index }) => {
   const [copied, setCopied] = useState(false);
   const toast = useToast();
@@ -255,6 +265,15 @@ export default function ReviewReportView({
 
   const originalCode = useMemo(() => unescapeCodeText(review?.code || ''), [review?.code]);
   const improvedCode = useMemo(() => synthesizeImprovedCode(review), [review]);
+  const diffLineCount = Math.max(
+    originalCode ? originalCode.split('\n').length : 1,
+    improvedCode ? improvedCode.split('\n').length : 1
+  );
+  const diffEditorHeight = Math.min(460, Math.max(160, diffLineCount * 22 + 48));
+  const cleanFallbackReason = useMemo(
+    () => getCleanFallbackReason(review?.fallbackReason),
+    [review?.fallbackReason]
+  );
   const hasDiffChanges = Boolean(originalCode && improvedCode && improvedCode !== originalCode);
   const improvementNotes = useMemo(() => {
     if (review?.improvementNotes?.length > 0) return review.improvementNotes;
@@ -330,7 +349,7 @@ export default function ReviewReportView({
             <div>
               <p className="font-semibold">Analyzed using Static Syntax Analyzer (Fallback)</p>
               <p className="text-xs text-amber-800 dark:text-amber-200 mt-0.5">
-                {review.fallbackReason || 'Gemini AI was temporarily unavailable during this review.'}
+                {cleanFallbackReason}
               </p>
             </div>
           </div>
@@ -480,7 +499,7 @@ export default function ReviewReportView({
         </div>
 
         {/* Horizontal Scrollable Section Jump Tabs */}
-        <div className="pt-2.5 border-t border-white/70 dark:border-white/10 flex items-center gap-2 overflow-x-auto scrollbar-thin pb-1 no-print">
+        <div className="pt-2.5 border-t border-white/70 dark:border-white/10 flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 no-print">
           {sectionTabs.map((tab) => (
             <button
               key={tab.id}
@@ -559,7 +578,7 @@ export default function ReviewReportView({
             </div>
           </div>
 
-          <div className="h-[340px] sm:h-[380px]">
+          <div style={{ height: `${diffEditorHeight}px` }}>
             {codeViewMode === 'diff' ? (
               <DiffEditor
                 height="100%"
@@ -636,45 +655,47 @@ export default function ReviewReportView({
       )}
 
       {/* ROW 1: Errors & Bugs (Left) + Complexity Analysis (Right: Cyan Time & Violet Space Glass Tiles) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-        <section id="section-errors" className="liquid-glass p-4 sm:p-5 space-y-3">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Bug
-                size={18}
-                className={errors.length === 0 ? 'text-emerald-500' : 'text-rose-500'}
-              />
-              <span>Errors &amp; Bugs Found</span>
-            </h3>
-            <span className={errors.length === 0 ? 'badge-green' : 'badge-red'}>
-              {errors.length} {errors.length === 1 ? 'issue' : 'issues'}
-            </span>
-          </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
+        <section id="section-errors" className="liquid-glass p-4 sm:p-5 space-y-3 h-full flex flex-col justify-between">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Bug
+                  size={18}
+                  className={errors.length === 0 ? 'text-emerald-500' : 'text-rose-500'}
+                />
+                <span>Errors &amp; Bugs Found</span>
+              </h3>
+              <span className={errors.length === 0 ? 'badge-green' : 'badge-red'}>
+                {errors.length} {errors.length === 1 ? 'issue' : 'issues'}
+              </span>
+            </div>
 
-          {errors.length === 0 ? (
-            <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-400/30 flex items-center gap-3">
-              <CheckCircle2 size={20} className="text-emerald-500 shrink-0" />
-              <div>
-                <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                  No syntax or logic errors found!
-                </p>
-                <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
-                  Your logic is clean. Review complexity and call flow on the right to optimize further.
-                </p>
+            {errors.length === 0 ? (
+              <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-400/30 flex items-center gap-3">
+                <CheckCircle2 size={20} className="text-emerald-500 shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                    No syntax or logic errors found!
+                  </p>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
+                    Your logic is clean. Review complexity and call flow to optimize further.
+                  </p>
+                </div>
               </div>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {errors.map((err, i) => (
-                <ErrorStudyCard key={i} err={err} index={i} />
-              ))}
-            </div>
-          )}
+            ) : (
+              <div className="space-y-3">
+                {errors.map((err, i) => (
+                  <ErrorStudyCard key={i} err={err} index={i} />
+                ))}
+              </div>
+            )}
+          </div>
         </section>
 
         {/* Complexity Analysis: Luminous Cyan Time & Violet Space Glass Tiles */}
-        <section id="section-complexity" className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="liquid-glass p-4 sm:p-5 space-y-2.5 border-t-2 border-t-cyan-400">
+        <section id="section-complexity" className="grid grid-cols-1 sm:grid-cols-2 gap-4 h-full">
+          <div className="liquid-glass p-4 sm:p-5 space-y-2.5 border-t-2 border-t-cyan-400 h-full">
             <div className="flex items-center justify-between gap-2">
               <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                 <Clock size={14} className="text-cyan-500 dark:text-cyan-300" /> Time
@@ -688,7 +709,7 @@ export default function ReviewReportView({
             </p>
           </div>
 
-          <div className="liquid-glass p-4 sm:p-5 space-y-2.5 border-t-2 border-t-violet-400">
+          <div className="liquid-glass p-4 sm:p-5 space-y-2.5 border-t-2 border-t-violet-400 h-full">
             <div className="flex items-center justify-between gap-2">
               <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                 <Cpu size={14} className="text-violet-500 dark:text-violet-300" /> Space
@@ -732,8 +753,8 @@ export default function ReviewReportView({
       </section>
 
       {/* ROW 3: Function Breakdown (Left 7 cols) + Method Call Flow & Practice CTA (Right 5 cols) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-        <section id="section-functions" className="lg:col-span-7 liquid-glass p-4 sm:p-5 space-y-3">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+        <section id="section-functions" className="lg:col-span-7 liquid-glass p-4 sm:p-5 space-y-3 flex flex-col">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <Boxes size={18} className="text-indigo-500 dark:text-indigo-300" />

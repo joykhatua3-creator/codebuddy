@@ -84,7 +84,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="w-full max-w-[1440px] mx-auto space-y-6 overflow-x-hidden">
       <div>
         <h2 className="text-xl font-bold text-gray-900">My Profile & Account</h2>
         <p className="text-sm text-gray-500 mt-0.5">Manage your personal details, credentials, and settings</p>

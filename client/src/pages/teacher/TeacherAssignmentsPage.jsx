@@ -117,7 +117,7 @@ export default function TeacherAssignmentsPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-5 w-full max-w-[1440px] mx-auto overflow-x-hidden">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-xl font-bold text-gray-900 dark:text-slate-100">Assignments &amp; Submissions</h2>

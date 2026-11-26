@@ -67,15 +67,15 @@ export default function DashboardPage() {
   }));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 w-full max-w-[1440px] mx-auto overflow-x-hidden">
       {/* Header */}
       <div>
-        <h2 className="text-xl font-bold text-gray-900">Overview</h2>
-        <p className="text-sm text-gray-500 mt-0.5">Your learning progress at a glance</p>
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white">Overview</h2>
+        <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">Your learning progress at a glance</p>
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
         <StatCard label="Total Reviews" value={overview?.totalReviews} icon={Code2} color="bg-blue-500" />
         <StatCard label="Avg Quality Score" value={overview?.avgScore} icon={TrendingUp} color="bg-green-500" sub={getScoreLabel(overview?.avgScore || 0)} />
         <StatCard label="Weak Topics" value={overview?.weakTopicsCount} icon={AlertTriangle} color="bg-yellow-500" />

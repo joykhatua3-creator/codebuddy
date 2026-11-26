@@ -359,11 +359,11 @@ export default function CodeReviewPage() {
             <select
               value={language}
               onChange={(e) => handleLanguageChange(e.target.value)}
-              className="px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200/80 dark:border-white/15 bg-white/80 dark:bg-[#0B1120]/80 text-slate-800 dark:text-slate-100 hover:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+              className="px-3.5 py-2 rounded-xl text-xs font-medium bg-white/75 dark:bg-white/[0.08] backdrop-blur-xl border border-white/85 dark:border-white/15 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.75)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)] text-slate-800 dark:text-slate-100 hover:border-cyan-400/60 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
             >
-              <option value="" disabled>Browse all 30 languages...</option>
+              <option value="" disabled className="dark:bg-[#0B1120]">Browse all 30 languages...</option>
               {ALL_LANGUAGES.map((l) => (
-                <option key={l.id} value={l.id}>
+                <option key={l.id} value={l.id} className="dark:bg-[#0B1120] dark:text-slate-100">
                   {l.name} ({l.category})
                 </option>
               ))}
@@ -371,14 +371,14 @@ export default function CodeReviewPage() {
           </div>
         </div>
 
-        {/* 10 Quick Popular Pills Compactly Wrapped Underneath */}
-        <div className="flex flex-wrap items-center gap-1.5">
+        {/* 10 Quick Popular Pills — Horizontally Scrollable Single Strip on Mobile */}
+        <div className="flex overflow-x-auto flex-nowrap sm:flex-wrap items-center gap-1.5 pb-1 sm:pb-0 no-scrollbar">
           {POPULAR_LANGUAGES.map((lang) => (
             <button
               key={lang}
               type="button"
               onClick={() => handleLanguageChange(lang)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+              className={`px-3 py-1.5 min-h-[36px] shrink-0 rounded-full text-xs font-medium border transition-all ${
                 language === lang
                   ? 'border-cyan-400/60 bg-gradient-to-r from-cyan-500 to-indigo-600 text-white shadow-[0_4px_14px_rgba(14,165,233,0.35)]'
                   : 'border-white/70 dark:border-white/15 text-slate-700 dark:text-slate-300 hover:border-cyan-400/50 hover:text-slate-900 dark:hover:text-white bg-white/60 dark:bg-white/[0.06]'
@@ -502,10 +502,12 @@ export default function CodeReviewPage() {
           </div>
         </div>
 
-        {/* Monaco Editor Container (Dynamic Viewport Height) */}
+        {/* Monaco Editor Container (Responsive Viewport Height) */}
         <div
           className={`w-full transition-all duration-200 ${
-            isExpanded ? 'min-h-[540px] h-[calc(100vh-190px)]' : 'min-h-[420px] h-[calc(100vh-300px)]'
+            isExpanded
+              ? 'h-[480px] sm:h-[540px] lg:h-[calc(100vh-190px)]'
+              : 'h-[320px] sm:h-[420px] lg:h-[calc(100vh-300px)]'
           }`}
         >
           <Editor
@@ -554,7 +556,7 @@ export default function CodeReviewPage() {
 
         {/* Bottom Actions Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 bg-white/70 dark:bg-[#0B1120]/80 backdrop-blur-xl border-t border-white/70 dark:border-white/10">
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="grid grid-cols-2 sm:flex items-center gap-2">
             <input
               ref={fileInputRef}
               type="file"
@@ -570,7 +572,7 @@ export default function CodeReviewPage() {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={loading}
-              className="btn btn-secondary btn-sm gap-1.5"
+              className="btn btn-secondary btn-sm min-h-[40px] sm:min-h-0 gap-1.5"
             >
               <Upload size={14} /> Upload File
             </button>
@@ -578,7 +580,7 @@ export default function CodeReviewPage() {
               type="button"
               onClick={handleClear}
               disabled={loading}
-              className="btn btn-secondary btn-sm gap-1.5"
+              className="btn btn-secondary btn-sm min-h-[40px] sm:min-h-0 gap-1.5"
             >
               <Trash2 size={14} /> Clear Code
             </button>
@@ -597,7 +599,7 @@ export default function CodeReviewPage() {
           <button
             onClick={handleSubmit}
             disabled={isEmpty || isOverLimit || loading}
-            className="btn btn-primary rounded-full w-full sm:w-auto px-6 gap-2"
+            className="btn btn-primary rounded-full w-full sm:w-auto min-h-[44px] px-6 gap-2"
           >
             {loading ? (
               <>

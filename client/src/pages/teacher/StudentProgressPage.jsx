@@ -32,14 +32,14 @@ export default function StudentProgressPage() {
 
   useEffect(() => { fetchProgress(); }, [fetchProgress]);
 
-  if (loading) return <div className="max-w-5xl mx-auto"><DashboardSkeleton cards={4} /></div>;
+  if (loading) return <div className="w-full max-w-[1440px] mx-auto"><DashboardSkeleton cards={4} /></div>;
   if (error) return <ErrorMessage message={error} onRetry={fetchProgress} />;
   if (!data) return null;
 
   const { student, overview, scoreTrend = [], topics = [], recentReviews = [], quizzes = [] } = data;
 
   return (
-    <div className="space-y-5 max-w-5xl mx-auto">
+    <div className="space-y-5 w-full max-w-[1440px] mx-auto overflow-x-hidden">
       {/* Header */}
       <div className="flex items-start gap-3">
         <button onClick={() => navigate(-1)} className="btn btn-ghost p-2 mt-0.5"><ArrowLeft size={18} /></button>
